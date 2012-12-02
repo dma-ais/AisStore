@@ -13,6 +13,26 @@
   <name>AisStore</name>
   <description>AisStore</description>
 
+  <build>
+    <plugins>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-assembly-plugin</artifactId>
+        <configuration>
+          <descriptor>src/assembly/bin.xml</descriptor>
+          <finalName>ais-store-${project.version}</finalName>
+        </configuration>
+        <executions>
+          <execution>
+            <phase>package</phase>
+            <goals>
+              <goal>single</goal>
+            </goals>
+          </execution>
+        </executions>
+      </plugin>
+    </plugins>
+  </build>
 
   <dependencies>
     <dependency>
@@ -36,7 +56,7 @@
       <artifactId>ais-communication</artifactId>
       <version>0.1-SNAPSHOT</version>
     </dependency>
-    
+
     <dependency>
       <groupId>dk.dma.app</groupId>
       <artifactId>dma-app</artifactId>

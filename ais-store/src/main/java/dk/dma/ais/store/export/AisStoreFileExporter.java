@@ -89,8 +89,8 @@ public class AisStoreFileExporter extends AbstractCommandLineTool {
     }
 
     public static void main(String[] args) throws Exception {
-        args = new String[] { "-cassandra", "/Applications/apache-cassandra-1.1.6/conf/cassandra.yaml", "-noZip",
-                "-start", "2012-11-12" };
+        // args = new String[] { "-cassandra", "/Applications/apache-cassandra-1.1.6/conf/cassandra.yaml", "-noZip",
+        // "-start", "2012-11-12" };
         new AisStoreFileExporter().execute(args);
     }
 }
