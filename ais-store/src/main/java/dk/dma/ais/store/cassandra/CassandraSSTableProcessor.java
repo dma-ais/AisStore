@@ -37,8 +37,8 @@ import org.apache.cassandra.io.sstable.Descriptor;
 import org.apache.cassandra.io.sstable.SSTableReader;
 import org.apache.cassandra.io.sstable.SSTableScanner;
 
-import dk.dma.ais.store.query.ReceivedMessage;
-import dk.dma.ais.store.query.ReceivedMessage.BatchedProducer;
+import dk.dma.ais.store.ReceivedMessage;
+import dk.dma.ais.store.ReceivedMessage.BatchedProducer;
 import dk.dma.app.util.FormatUtil;
 
 /**

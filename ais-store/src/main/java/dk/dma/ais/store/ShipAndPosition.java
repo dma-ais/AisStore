@@ -13,26 +13,24 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.ais.store.export;
+package dk.dma.ais.store;
 
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.Serializable;
 
-import dk.dma.ais.store.ReceivedMessage;
+import dk.dma.enav.model.geometry.Position;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public interface ExportFunction {
-    ExportFunction IGNORE = new Ignore();
+public class ShipAndPosition implements Serializable {
 
-    void export(ReceivedMessage msg, OutputStream os) throws IOException;
-}
+    /** serialVersionUID. */
+    private static final long serialVersionUID = 1L;
 
-class Ignore implements ExportFunction {
+    Position position;
 
-    /** {@inheritDoc} */
-    @Override
-    public void export(ReceivedMessage msg, OutputStream os) {}
+    // position
+    // timestamp
+    // (basically full message)
 }

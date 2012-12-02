@@ -27,8 +27,8 @@ import com.beust.jcommander.Parameter;
 import com.beust.jcommander.ParametersDelegate;
 import com.google.inject.Injector;
 
+import dk.dma.ais.store.ReceivedMessage;
 import dk.dma.ais.store.cassandra.CassandraSSTableProcessor;
-import dk.dma.ais.store.query.ReceivedMessage;
 import dk.dma.ais.store.util.QueuePumper;
 import dk.dma.app.AbstractCommandLineTool;
 import dk.dma.app.util.IoUtil;

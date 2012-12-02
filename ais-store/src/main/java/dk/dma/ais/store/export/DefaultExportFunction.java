@@ -21,7 +21,7 @@ import java.util.Date;
 
 import com.beust.jcommander.Parameter;
 
-import dk.dma.ais.store.query.ReceivedMessage;
+import dk.dma.ais.store.ReceivedMessage;
 
 /**
  * 

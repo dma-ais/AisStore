@@ -21,7 +21,7 @@ import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.Callable;
 
-import dk.dma.ais.store.query.ReceivedMessage;
+import dk.dma.ais.store.ReceivedMessage;
 
 /**
  * 
