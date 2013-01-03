@@ -1,18 +1,13 @@
 AisStore
 ========
+ais-store            Contains the actual archiver
+ais-store-exporter   Contains an in-progress bulk exporter
+ais-web              Contains the rest based frontend
+
+Current status
+---------------
+The code needs to be cleanup. It was just a prototype being checked in
 
 
-Installing Cassandra
-====================
-Download from http://cassandra.apache.org/download/
-
-Common Commands
-===============
-clear all snapshots
-./nodetool -h localhost -p 7199 clearsnapshot
-
-
-
-
-Exporting data from a Cassandra server
-======================================
+Thoghts
+Drop storing cell10 positions

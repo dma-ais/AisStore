@@ -1,5 +1,4 @@
 DROP TABLE aismessages;
-DROP TABLE aisships;
 
 CREATE TABLE aismessages (
   key blob PRIMARY KEY,
@@ -32,6 +31,8 @@ CREATE INDEX aismessages_cell01
 CREATE INDEX aismessages_cell1
   ON aismessages (cell1);
 
+
+DROP TABLE aisships;
 
 CREATE TABLE aisships (
   mmsi bigint PRIMARY KEY,
