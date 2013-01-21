@@ -111,6 +111,7 @@ public class AbstractColumnFamilySnapshotProcessor {
 
     }
 
+    @SuppressWarnings("unused")
     protected void processDataFileLocations(String snapshotName) throws Exception {
         for (String s : DatabaseDescriptor.getAllDataFileLocations()) {
             Path snapshots = Paths.get(s).resolve(keyspace).resolve(FullSchema.MESSAGES_TIME.getName())

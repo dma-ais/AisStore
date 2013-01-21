@@ -28,7 +28,6 @@ import org.joda.time.DateTime;
 import org.joda.time.Interval;
 
 import com.google.common.primitives.Longs;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 import com.netflix.astyanax.model.Column;
 
 import dk.dma.ais.packet.AisPacket;
@@ -74,6 +73,7 @@ public class CassandraMessageQueryService implements MessageQueryService {
         } else {
             postfix = "all_day_" + TimeUtil.daysSinceEpoch(date.getTime());
         }
+        System.out.println(postfix);
         // return columnQuery(postfix, new Function<Column<byte[]>, PositionAndTime>() {
         //
         // @Override
@@ -174,6 +174,7 @@ public class CassandraMessageQueryService implements MessageQueryService {
         return null;
     }
 
+    @SuppressWarnings("unused")
     public Query<Map.Entry<Integer, Integer>> findCells(final int mmsi, final Date start, final Date end)
             throws Exception {
         int first = TimeUtil.hoursSinceEpoch(start.getTime());
@@ -289,7 +290,7 @@ public class CassandraMessageQueryService implements MessageQueryService {
         return null;
     }
 
-    List<AisPacket> select(String column, long value) throws ConnectionException {
+    List<AisPacket> select(String column, long value) {
         // IndexQuery<byte[], String> r = connection.prepareQuery(FullSchema.MESSAGES).searchWithIndex().addExpression()
         // .whereColumn(column).equals().value(value).autoPaginateRows(true)
         // .withColumnSlice(FullSchema.MESSAGES_MESSAGE);

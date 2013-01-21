@@ -64,7 +64,7 @@ public class FullSchema extends CassandraWriteSink<AisPacket> {
     void messagesCell1(MutationBatch mb, AisPacket packet, AisMessage message, long ts) {
         if (message instanceof IPositionMessage) {
             IPositionMessage m = (IPositionMessage) message;
-            Position p = m.getPos().tryGetGeoLocation();
+            Position p = m.getPos().getGeoLocation();
             if (p != null) {
                 int cell1 = (int) p.getCell(1); // around 64800 total cells
                 ColumnListMutation<byte[]> r = mb.withRow(MESSAGES_CELL1, cell1).setTimestamp(ts);
@@ -77,7 +77,7 @@ public class FullSchema extends CassandraWriteSink<AisPacket> {
     void messagesCell10(MutationBatch mb, AisPacket packet, AisMessage message, long ts) {
         if (message instanceof IPositionMessage) {
             IPositionMessage m = (IPositionMessage) message;
-            Position p = m.getPos().tryGetGeoLocation();
+            Position p = m.getPos().getGeoLocation();
             if (p != null) {
                 int cell10 = (int) p.getCell(10); // around 648 total cells
                 int c = cell10 << 22 + TimeUtil.daysSinceEpoch(ts);
@@ -114,7 +114,7 @@ public class FullSchema extends CassandraWriteSink<AisPacket> {
             r.putColumn("last_message_timestamp", ts);
             if (message instanceof IPositionMessage) {
                 IPositionMessage m = (IPositionMessage) message;
-                Position p = m.getPos().tryGetGeoLocation();
+                Position p = m.getPos().getGeoLocation();
                 if (p != null) {
                     r.putColumn("last_position_message", packet.getStringMessage());
                     r.putColumn("last_position_timestamp", ts);
@@ -132,7 +132,7 @@ public class FullSchema extends CassandraWriteSink<AisPacket> {
     void positions(MutationBatch mb, AisPacket packet, AisMessage message, long ts) {
         if (message instanceof IPositionMessage) {
             IPositionMessage m = (IPositionMessage) message;
-            Position p = m.getPos().tryGetGeoLocation();
+            Position p = m.getPos().getGeoLocation();
             if (p != null) {
                 byte[] userid = Ints.toByteArray(message.getUserId());
                 int cell10 = (int) p.getCell(10); // around 648 total cells

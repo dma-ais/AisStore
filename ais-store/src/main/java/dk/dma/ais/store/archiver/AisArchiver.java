@@ -28,7 +28,7 @@ import dk.dma.ais.reader.AisReader;
 import dk.dma.ais.reader.IAisPacketHandler;
 import dk.dma.ais.reader.RoundRobinAisTcpReader;
 import dk.dma.ais.store.cassandra.FullSchema;
-import dk.dma.app.AbstractDaemon;
+import dk.dma.app.application.AbstractDaemon;
 import dk.dma.app.cassandra.KeySpaceConnection;
 import dk.dma.app.management.ManagedAttribute;
 import dk.dma.app.management.ManagedResource;

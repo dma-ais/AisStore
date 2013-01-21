@@ -25,7 +25,7 @@ import com.google.inject.Injector;
 import dk.dma.ais.packet.AisPackets;
 import dk.dma.ais.store.cassandra.CassandraMessageQueryService;
 import dk.dma.ais.store.query.MessageQueryService;
-import dk.dma.app.AbstractDaemon;
+import dk.dma.app.application.AbstractDaemon;
 import dk.dma.app.cassandra.KeySpaceConnection;
 
 /**
@@ -50,7 +50,6 @@ public class AisQueryTester extends AbstractDaemon {
         // Start a stage that will write each packet to cassandra
 
         long start = System.currentTimeMillis();
-        int count = 0;
         // 219000368
         // mqs.findByMMSI("PT120H", 219000368).streamResults(System.out, AisPackets.OUTPUT_TO_HTML).get();
 

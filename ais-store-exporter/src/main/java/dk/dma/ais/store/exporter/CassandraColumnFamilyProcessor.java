@@ -171,6 +171,7 @@ public class CassandraColumnFamilyProcessor {
         }
     }
 
+    @SuppressWarnings("unused")
     protected void processRow(Path p, IColumnIterator columnIterator, EBlock<AisPacket> producer) throws Exception {
         while (columnIterator.hasNext()) {
             IColumn c = columnIterator.next();

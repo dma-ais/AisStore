@@ -13,11 +13,9 @@ import org.apache.cassandra.db.compaction.OperationType;
 import org.apache.cassandra.io.sstable.SSTableIdentityIterator;
 import org.apache.cassandra.utils.CloseableIterator;
 import org.apache.cassandra.utils.MergeIterator;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 public class CompactionIterable extends AbstractCompactionIterable {
-    private static Logger logger = LoggerFactory.getLogger(CompactionIterable.class);
+    // private static Logger logger = LoggerFactory.getLogger(CompactionIterable.class);
 
     private long row;
 
@@ -41,18 +39,18 @@ public class CompactionIterable extends AbstractCompactionIterable {
     }
 
     protected class Reducer extends MergeIterator.Reducer<IColumnIterator, AbstractCompactedRow> {
-        protected final List<SSTableIdentityIterator> rows = new ArrayList<SSTableIdentityIterator>();
+        protected final List<SSTableIdentityIterator> rows = new ArrayList<>();
 
         public void reduce(IColumnIterator current) {
             rows.add((SSTableIdentityIterator) current);
         }
 
+        @SuppressWarnings("synthetic-access")
         protected AbstractCompactedRow getReduced() {
             assert !rows.isEmpty();
 
             try {
-                AbstractCompactedRow compactedRow = controller.getCompactedRow(new ArrayList<SSTableIdentityIterator>(
-                        rows));
+                AbstractCompactedRow compactedRow = controller.getCompactedRow(new ArrayList<>(rows));
                 if (compactedRow.isEmpty()) {
                     controller.invalidateCachedRow(compactedRow.key);
                     return null;

@@ -39,16 +39,16 @@ public class ColumnFamilySnapshotProcessor implements Closeable {
     final AtomicLong bytesRead = new AtomicLong();
 
     /** The name of the keyspace to use. */
-    private final String keyspace;
+    final String keyspace;
 
     /** The name of the column family to use. */
-    private final String columnFamily;
+    final String columnFamily;
 
     /** The maximum number of bytes we want to read, useful for tests. */
-    private final long maxRead;
+    final long maxRead;
 
     /** The URL to cassandra.yaml */
-    private final String yamlUrl;
+    final String yamlUrl;
 
     public ColumnFamilySnapshotProcessor(String yamlUrl, String keyspace, String columnFamily, long maxRead) {
         this.yamlUrl = requireNonNull(yamlUrl);
