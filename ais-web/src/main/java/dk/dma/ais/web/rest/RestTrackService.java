@@ -95,7 +95,7 @@ public class RestTrackService extends AbstractRestService {
         public void write(AisPacket p, HierarchicalStreamWriter writer, MarshallingContext context) {
             AisMessage m = p.tryGetAisMessage();
             IVesselPositionMessage im = (IVesselPositionMessage) m;
-            Position pos = im.getPos().tryGetGeoLocation();
+            Position pos = im.getPos().getGeoLocation();
             lastPosition = pos;
             lastTimestamp = p.getBestTimestamp();
             w(writer, "timestamp", p.getBestTimestamp());
@@ -111,7 +111,7 @@ public class RestTrackService extends AbstractRestService {
             if (m instanceof IVesselPositionMessage) {
                 AisPosition a = ((IVesselPositionMessage) m).getPos();
                 if (a != null) {
-                    Position pos = a.tryGetGeoLocation();
+                    Position pos = a.getGeoLocation();
                     if (pos != null) {
                         if (sampleDuration == null && samplePositions == null) {
                             return true;
