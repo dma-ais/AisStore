@@ -25,7 +25,7 @@ import dk.dma.ais.store.util.CellPositionMmsi;
 import dk.dma.ais.store.util.CellResolution;
 import dk.dma.ais.store.util.PositionAndTime;
 import dk.dma.app.cassandra.Query;
-import dk.dma.enav.model.geometry.Shape;
+import dk.dma.enav.model.geometry.Area;
 
 /**
  * 
@@ -39,9 +39,9 @@ public interface MessageQueryService {
 
     Query<AisPacket> findByTime(Interval interval);
 
-    Query<AisPacket> findByShape(Shape shape, Date start, Date end);
+    Query<AisPacket> findByShape(Area shape, Date start, Date end);
 
-    Query<AisPacket> findByShape(Shape shape, long timeback, TimeUnit unit);
+    Query<AisPacket> findByShape(Area shape, long timeback, TimeUnit unit);
 
     /**
      * Finds all packets for the specified mmsi number in the given interval.

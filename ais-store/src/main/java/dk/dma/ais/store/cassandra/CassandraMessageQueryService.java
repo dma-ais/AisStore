@@ -40,7 +40,7 @@ import dk.dma.app.cassandra.CassandraRowQueryMessageSupplier;
 import dk.dma.app.cassandra.KeySpaceConnection;
 import dk.dma.app.cassandra.Query;
 import dk.dma.app.util.function.EFunction;
-import dk.dma.enav.model.geometry.Shape;
+import dk.dma.enav.model.geometry.Area;
 
 /**
  * 
@@ -120,7 +120,7 @@ public class CassandraMessageQueryService implements MessageQueryService {
     }
 
     /** {@inheritDoc} */
-    Query<AisPacket> findByShape(Shape shape, final long startMillies, final long endMillies) {
+    Query<AisPacket> findByShape(Area shape, final long startMillies, final long endMillies) {
         return new CassandraRowQueryMessageSupplier<>(connection, FullSchema.MESSAGES_CELL1, 20172,
                 new EFunction<Column<byte[]>, AisPacket>() {
                     @Override
@@ -132,7 +132,7 @@ public class CassandraMessageQueryService implements MessageQueryService {
 
     /** {@inheritDoc} */
     @Override
-    public Query<AisPacket> findByShape(Shape shape, Date start, Date end) {
+    public Query<AisPacket> findByShape(Area shape, Date start, Date end) {
         return findByShape(shape, start.getTime(), end.getTime());
         // return new CassandraRowQueryMessageSupplier<>(connection, FullSchema.MESSAGES_TIME, 2260481,
         // new EFunction<Column<byte[]>, AisPacket>() {
@@ -145,7 +145,7 @@ public class CassandraMessageQueryService implements MessageQueryService {
 
     /** {@inheritDoc} */
     @Override
-    public Query<AisPacket> findByShape(Shape shape, long timeback, TimeUnit unit) {
+    public Query<AisPacket> findByShape(Area shape, long timeback, TimeUnit unit) {
         Date now = new Date();
         return findByShape(shape, TimeUtil.substract(now, timeback, unit), now);
     }
