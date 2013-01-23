@@ -37,7 +37,7 @@ import dk.dma.ais.message.IVesselPositionMessage;
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.web.rest.XStreamOutputStreamSink.OutputType;
 import dk.dma.app.cassandra.Query;
-import dk.dma.app.io.OutputStreamSink;
+import dk.dma.commons.util.io.OutputStreamSink;
 import dk.dma.enav.model.geometry.Position;
 
 /**

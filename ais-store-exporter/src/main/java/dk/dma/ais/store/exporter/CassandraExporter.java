@@ -22,8 +22,8 @@ import org.apache.log4j.varia.NullAppender;
 
 import com.beust.jcommander.Parameter;
 
-import dk.dma.app.management.ManagedAttribute;
-import dk.dma.app.management.ManagedResource;
+import dk.dma.commons.management.ManagedAttribute;
+import dk.dma.commons.management.ManagedResource;
 
 /**
  * 

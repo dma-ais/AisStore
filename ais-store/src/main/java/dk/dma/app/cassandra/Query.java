@@ -25,11 +25,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 
-import dk.dma.app.io.OutputStreamSink;
-import dk.dma.app.util.function.EBlock;
-import dk.dma.app.util.function.ESupplier;
-import dk.dma.app.util.function.Function;
-import dk.dma.app.util.function.Predicate;
+import dk.dma.commons.util.function.EBlock;
+import dk.dma.commons.util.function.ESupplier;
+import dk.dma.commons.util.function.Function;
+import dk.dma.commons.util.function.Predicate;
+import dk.dma.commons.util.io.OutputStreamSink;
 
 /**
  * 

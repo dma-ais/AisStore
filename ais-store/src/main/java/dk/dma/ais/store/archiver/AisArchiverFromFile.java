@@ -29,9 +29,9 @@ import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.reader.AisStreamReader;
 import dk.dma.ais.reader.IAisPacketHandler;
 import dk.dma.ais.store.cassandra.FullSchema;
-import dk.dma.app.application.AbstractDaemon;
 import dk.dma.app.cassandra.KeySpaceConnection;
-import dk.dma.app.service.AbstractBatchedStage;
+import dk.dma.commons.app.AbstractDaemon;
+import dk.dma.commons.service.AbstractBatchedStage;
 
 /**
  * 

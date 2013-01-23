@@ -26,7 +26,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
-import dk.dma.app.service.AbstractBatchedStage;
+import dk.dma.commons.service.AbstractBatchedStage;
 
 /**
  * 

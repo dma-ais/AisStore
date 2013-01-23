@@ -39,7 +39,7 @@ import dk.dma.ais.store.util.TimeUtil;
 import dk.dma.app.cassandra.CassandraRowQueryMessageSupplier;
 import dk.dma.app.cassandra.KeySpaceConnection;
 import dk.dma.app.cassandra.Query;
-import dk.dma.app.util.function.EFunction;
+import dk.dma.commons.util.function.EFunction;
 import dk.dma.enav.model.geometry.Area;
 
 /**

@@ -37,7 +37,7 @@ import org.joda.time.format.ISODateTimeFormat;
 
 import dk.dma.ais.message.AisMessage;
 import dk.dma.ais.packet.AisPacket;
-import dk.dma.app.io.OutputStreamSink;
+import dk.dma.commons.util.io.OutputStreamSink;
 
 /**
  * 

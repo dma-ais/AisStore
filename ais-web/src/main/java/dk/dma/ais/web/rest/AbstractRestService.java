@@ -35,8 +35,8 @@ import dk.dma.ais.store.cassandra.CassandraMessageQueryService;
 import dk.dma.ais.store.query.MessageQueryService;
 import dk.dma.app.cassandra.KeySpaceConnection;
 import dk.dma.app.cassandra.Query;
-import dk.dma.app.io.OutputStreamSink;
-import dk.dma.app.util.function.Predicate;
+import dk.dma.commons.util.function.Predicate;
+import dk.dma.commons.util.io.OutputStreamSink;
 
 /**
  * 

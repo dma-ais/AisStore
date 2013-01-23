@@ -33,7 +33,7 @@ import com.thoughtworks.xstream.io.HierarchicalStreamWriter;
 import com.thoughtworks.xstream.io.json.JsonHierarchicalStreamDriver;
 import com.thoughtworks.xstream.io.xml.XppDriver;
 
-import dk.dma.app.io.OutputStreamSink;
+import dk.dma.commons.util.io.OutputStreamSink;
 
 /**
  * 

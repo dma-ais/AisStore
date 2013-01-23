@@ -25,8 +25,8 @@ import com.google.inject.Injector;
 import dk.dma.ais.packet.AisPackets;
 import dk.dma.ais.store.cassandra.CassandraMessageQueryService;
 import dk.dma.ais.store.query.MessageQueryService;
-import dk.dma.app.application.AbstractDaemon;
 import dk.dma.app.cassandra.KeySpaceConnection;
+import dk.dma.commons.app.AbstractDaemon;
 
 /**
  * 

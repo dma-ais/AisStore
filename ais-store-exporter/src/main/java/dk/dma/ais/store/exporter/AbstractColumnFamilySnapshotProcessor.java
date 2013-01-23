@@ -31,7 +31,7 @@ import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.config.Schema;
 
 import dk.dma.ais.store.cassandra.FullSchema;
-import dk.dma.app.util.FormatUtil;
+import dk.dma.commons.util.FormatUtil;
 
 /**
  * 

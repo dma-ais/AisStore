@@ -27,7 +27,7 @@ import org.apache.cassandra.db.columniterator.IColumnIterator;
 
 import com.google.common.base.Function;
 
-import dk.dma.app.util.function.EBlock;
+import dk.dma.commons.util.function.EBlock;
 
 /**
  * 

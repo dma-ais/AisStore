@@ -28,12 +28,12 @@ import dk.dma.ais.reader.AisReader;
 import dk.dma.ais.reader.IAisPacketHandler;
 import dk.dma.ais.reader.RoundRobinAisTcpReader;
 import dk.dma.ais.store.cassandra.FullSchema;
-import dk.dma.app.application.AbstractDaemon;
 import dk.dma.app.cassandra.KeySpaceConnection;
-import dk.dma.app.management.ManagedAttribute;
-import dk.dma.app.management.ManagedResource;
-import dk.dma.app.service.AbstractBatchedStage;
-import dk.dma.app.service.io.FileWriterService;
+import dk.dma.commons.app.AbstractDaemon;
+import dk.dma.commons.management.ManagedAttribute;
+import dk.dma.commons.management.ManagedResource;
+import dk.dma.commons.service.AbstractBatchedStage;
+import dk.dma.commons.service.io.FileWriterService;
 
 /**
  * 

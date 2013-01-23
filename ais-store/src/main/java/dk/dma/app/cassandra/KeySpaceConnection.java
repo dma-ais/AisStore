@@ -33,7 +33,7 @@ import com.netflix.astyanax.model.ConsistencyLevel;
 import com.netflix.astyanax.query.ColumnFamilyQuery;
 import com.netflix.astyanax.thrift.ThriftFamilyFactory;
 
-import dk.dma.app.service.AbstractBatchedStage;
+import dk.dma.commons.service.AbstractBatchedStage;
 
 /**
  * 

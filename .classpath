@@ -4,7 +4,7 @@
 	<classpathentry kind="src" path="ais-store-exporter/src/main/java"/>
 	<classpathentry kind="src" path="ais-web/src/main/java"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/AisLib"/>
-	<classpathentry combineaccessrules="false" kind="src" path="/dma-app"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/dma-commons"/>
 	<classpathentry kind="var" path="M2_REPO/javax/ws/rs/jsr311-api/1.1.1/jsr311-api-1.1.1.jar"/>
 	<classpathentry kind="var" path="M2_REPO/com/sun/jersey/jersey-server/1.16/jersey-server-1.16.jar"/>
 	<classpathentry kind="var" path="M2_REPO/asm/asm/3.1/asm-3.1.jar"/>
