@@ -23,9 +23,8 @@ import org.joda.time.Interval;
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.util.CellPositionMmsi;
 import dk.dma.ais.store.util.CellResolution;
-import dk.dma.ais.store.util.PositionAndTime;
-import dk.dma.app.cassandra.Query;
 import dk.dma.enav.model.geometry.Area;
+import dk.dma.enav.model.geometry.PositionTime;
 
 /**
  * 
@@ -77,9 +76,9 @@ public interface MessageQueryService {
      *             if time resolution is not either {@link TimeUnit#HOURS} or {@link TimeUnit#DAYS}
      * @throws Exception
      */
-    Query<PositionAndTime> findAllPositions(Date date, TimeUnit timeResolution) throws Exception;
+    Query<PositionTime> findAllPositions(Date date, TimeUnit timeResolution) throws Exception;
 
-    Query<PositionAndTime> findCells(Date date, TimeUnit timeResolution) throws Exception;
+    Query<PositionTime> findCells(Date date, TimeUnit timeResolution) throws Exception;
 
     // uses mmsi_hour or mmsi_day
     Query<CellPositionMmsi> findCells(int mmsi, Date start, Date stop, CellResolution cellResolution) throws Exception;
@@ -93,9 +92,9 @@ public interface MessageQueryService {
     Query<CellPositionMmsi> findInCell(int cellId, CellResolution resolution, long timeback, TimeUnit unit)
             throws Exception;
 
-    Query<PositionAndTime> findPositions(int mmsi, Date date, CellResolution cellResolution, TimeUnit timeResolution)
+    Query<PositionTime> findPositions(int mmsi, Date date, CellResolution cellResolution, TimeUnit timeResolution)
             throws Exception;
 
-    Query<PositionAndTime> findPositions(int mmsi, long timeback, TimeUnit unit, CellResolution resolution,
+    Query<PositionTime> findPositions(int mmsi, long timeback, TimeUnit unit, CellResolution resolution,
             TimeUnit timeResolution) throws Exception;
 }

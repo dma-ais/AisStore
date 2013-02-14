@@ -25,7 +25,6 @@ import com.google.inject.Injector;
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.packet.AisPackets;
 import dk.dma.ais.reader.AisReader;
-import dk.dma.ais.reader.IAisPacketHandler;
 import dk.dma.ais.reader.RoundRobinAisTcpReader;
 import dk.dma.ais.store.cassandra.FullSchema;
 import dk.dma.app.cassandra.KeySpaceConnection;
@@ -34,6 +33,7 @@ import dk.dma.commons.management.ManagedAttribute;
 import dk.dma.commons.management.ManagedResource;
 import dk.dma.commons.service.AbstractBatchedStage;
 import dk.dma.commons.service.io.FileWriterService;
+import dk.dma.enav.util.function.Consumer;
 
 /**
  * 
@@ -87,9 +87,9 @@ public class AisArchiver extends AbstractDaemon {
         // setup AisReaders
         for (String str : sources) {
             AisReader reader = new RoundRobinAisTcpReader().setCommaseparatedHostPort(str);
-            start(AisTool.wrapAisReader(reader, new IAisPacketHandler() {
+            start(AisTool.wrapAisReader(reader, new Consumer<AisPacket>() {
                 @Override
-                public void receivePacket(AisPacket aisPacket) {
+                public void accept(AisPacket aisPacket) {
                     // We use offer because we do not want to block receiving
                     if (!cassandra.getInputQueue().offer(aisPacket)) {
                         if (!fileWriter.getInputQueue().offer(aisPacket)) {

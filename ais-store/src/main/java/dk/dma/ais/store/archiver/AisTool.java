@@ -24,7 +24,7 @@ import com.google.common.util.concurrent.Service;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.reader.AisReader;
-import dk.dma.ais.reader.IAisPacketHandler;
+import dk.dma.enav.util.function.Consumer;
 
 /**
  * 
@@ -32,15 +32,15 @@ import dk.dma.ais.reader.IAisPacketHandler;
  */
 class AisTool {
 
-    static Service wrapAisReader(final AisReader reader, final IAisPacketHandler handler, final CountDownLatch latch) {
+    static Service wrapAisReader(final AisReader reader, final Consumer<AisPacket> handler, final CountDownLatch latch) {
         requireNonNull(reader);
         requireNonNull(handler);
         requireNonNull(latch);
-        reader.registerPacketHandler(new IAisPacketHandler() {
+        reader.registerPacketHandler(new Consumer<AisPacket>() {
 
             @Override
-            public void receivePacket(AisPacket aisPacket) {
-                handler.receivePacket(aisPacket);
+            public void accept(AisPacket aisPacket) {
+                handler.accept(aisPacket);
             }
         });
         return new AbstractExecutionThreadService() {
@@ -56,14 +56,14 @@ class AisTool {
         };
     }
 
-    static Service wrapAisReader(final AisReader reader, final IAisPacketHandler handler) {
+    static Service wrapAisReader(final AisReader reader, final Consumer<AisPacket> handler) {
         requireNonNull(reader);
         requireNonNull(handler);
-        reader.registerPacketHandler(new IAisPacketHandler() {
+        reader.registerPacketHandler(new Consumer<AisPacket>() {
 
             @Override
-            public void receivePacket(AisPacket aisPacket) {
-                handler.receivePacket(aisPacket);
+            public void accept(AisPacket aisPacket) {
+                handler.accept(aisPacket);
             }
         });
         return new AbstractExecutionThreadService() {

@@ -39,8 +39,8 @@ import org.apache.cassandra.io.sstable.SSTableScanner;
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.cassandra.FullSchema;
 import dk.dma.commons.util.FormatUtil;
-import dk.dma.commons.util.function.EBlock;
-import dk.dma.commons.util.function.Function;
+import dk.dma.enav.util.function.EBlock;
+import dk.dma.enav.util.function.Function;
 
 /**
  * Processes Cassandras SSTables.

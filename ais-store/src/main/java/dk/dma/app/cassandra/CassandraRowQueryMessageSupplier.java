@@ -24,8 +24,9 @@ import com.netflix.astyanax.model.Column;
 import com.netflix.astyanax.model.ColumnFamily;
 import com.netflix.astyanax.query.RowQuery;
 
-import dk.dma.commons.util.function.EFunction;
-import dk.dma.commons.util.function.ESupplier;
+import dk.dma.ais.store.query.Query;
+import dk.dma.enav.util.function.EFunction;
+import dk.dma.enav.util.function.ESupplier;
 
 /**
  * 

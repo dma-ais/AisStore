@@ -33,10 +33,10 @@ import dk.dma.ais.message.AisMessage;
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.cassandra.CassandraMessageQueryService;
 import dk.dma.ais.store.query.MessageQueryService;
+import dk.dma.ais.store.query.Query;
 import dk.dma.app.cassandra.KeySpaceConnection;
-import dk.dma.app.cassandra.Query;
-import dk.dma.commons.util.function.Predicate;
 import dk.dma.commons.util.io.OutputStreamSink;
+import dk.dma.enav.util.function.Predicate;
 
 /**
  * 

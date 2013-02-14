@@ -23,6 +23,8 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
+import org.mortbay.log.Log;
+
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
@@ -36,11 +38,11 @@ class CassandraBatchedStagedWriter<T> extends AbstractBatchedStage<T> {
 
     private final KeySpaceConnection connection;
 
-    private final CassandraWriteSink<T> sink;
-
     private volatile long lastWrite;
-    private final long started = System.nanoTime();
+
     private AtomicLong processed = new AtomicLong();
+    private final CassandraWriteSink<T> sink;
+    private final long started = System.nanoTime();
 
     /**
      * @param queueSize
@@ -57,12 +59,21 @@ class CassandraBatchedStagedWriter<T> extends AbstractBatchedStage<T> {
     protected void handleMessages(List<T> messages) {
         MutationBatch m = connection.getKeyspace().prepareMutationBatch();
         for (T t : messages) {
-            sink.process(m, t);
+            try {
+                sink.process(m, t);
+            } catch (RuntimeException e) {
+                // Just in case we cannot process a message
+                Log.warn("Failed to write message: " + t, e);
+            }
         }
         try {
             m.execute();
             sink.onSucces(messages);
-            if (processed.addAndGet(messages.size()) - lastWrite > 100000) {
+            if (lastWrite == 0) {
+                System.out
+                        .println(new Date() + ": Succesfully wrote first batch with " + processed.get() + " messages");
+            }
+            if (processed.addAndGet(messages.size()) - lastWrite > 1000000) {
                 double time = System.nanoTime() - started;
                 double event = processed.get() / time * TimeUnit.MINUTES.toNanos(1);
                 DecimalFormat df = new DecimalFormat("#,###,###,##0.00");

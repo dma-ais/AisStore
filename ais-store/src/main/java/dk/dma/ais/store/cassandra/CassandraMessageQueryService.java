@@ -32,15 +32,15 @@ import com.netflix.astyanax.model.Column;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.query.MessageQueryService;
+import dk.dma.ais.store.query.Query;
 import dk.dma.ais.store.util.CellPositionMmsi;
 import dk.dma.ais.store.util.CellResolution;
-import dk.dma.ais.store.util.PositionAndTime;
 import dk.dma.ais.store.util.TimeUtil;
 import dk.dma.app.cassandra.CassandraRowQueryMessageSupplier;
 import dk.dma.app.cassandra.KeySpaceConnection;
-import dk.dma.app.cassandra.Query;
-import dk.dma.commons.util.function.EFunction;
 import dk.dma.enav.model.geometry.Area;
+import dk.dma.enav.model.geometry.PositionTime;
+import dk.dma.enav.util.function.EFunction;
 
 /**
  * 
@@ -65,7 +65,7 @@ public class CassandraMessageQueryService implements MessageQueryService {
 
     /** {@inheritDoc} */
     @Override
-    public Query<PositionAndTime> findAllPositions(Date date, TimeUnit timeResolution) throws Exception {
+    public Query<PositionTime> findAllPositions(Date date, TimeUnit timeResolution) throws Exception {
         checkAnyOf(timeResolution, TimeUnit.HOURS, TimeUnit.DAYS);
         String postfix;
         if (timeResolution == TimeUnit.HOURS) {
@@ -170,7 +170,7 @@ public class CassandraMessageQueryService implements MessageQueryService {
 
     /** {@inheritDoc} */
     @Override
-    public Query<PositionAndTime> findCells(Date date, TimeUnit timeResolution) throws Exception {
+    public Query<PositionTime> findCells(Date date, TimeUnit timeResolution) throws Exception {
         return null;
     }
 
@@ -278,14 +278,14 @@ public class CassandraMessageQueryService implements MessageQueryService {
 
     /** {@inheritDoc} */
     @Override
-    public Query<PositionAndTime> findPositions(int mmsi, Date date, CellResolution cellResolution,
-            TimeUnit timeResolution) throws Exception {
+    public Query<PositionTime> findPositions(int mmsi, Date date, CellResolution cellResolution, TimeUnit timeResolution)
+            throws Exception {
         return null;
     }
 
     /** {@inheritDoc} */
     @Override
-    public Query<PositionAndTime> findPositions(int mmsi, long timeback, TimeUnit unit, CellResolution resolution,
+    public Query<PositionTime> findPositions(int mmsi, long timeback, TimeUnit unit, CellResolution resolution,
             TimeUnit timeResolution) throws Exception {
         return null;
     }

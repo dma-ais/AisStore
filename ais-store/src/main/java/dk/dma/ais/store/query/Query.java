@@ -13,7 +13,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.app.cassandra;
+package dk.dma.ais.store.query;
 
 import static java.util.Objects.requireNonNull;
 
@@ -25,11 +25,11 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 
-import dk.dma.commons.util.function.EBlock;
-import dk.dma.commons.util.function.ESupplier;
-import dk.dma.commons.util.function.Function;
-import dk.dma.commons.util.function.Predicate;
 import dk.dma.commons.util.io.OutputStreamSink;
+import dk.dma.enav.util.function.EBlock;
+import dk.dma.enav.util.function.ESupplier;
+import dk.dma.enav.util.function.Function;
+import dk.dma.enav.util.function.Predicate;
 
 /**
  * 

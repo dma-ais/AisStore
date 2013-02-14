@@ -35,8 +35,8 @@ import dk.dma.ais.message.AisMessage;
 import dk.dma.ais.message.AisPosition;
 import dk.dma.ais.message.IVesselPositionMessage;
 import dk.dma.ais.packet.AisPacket;
+import dk.dma.ais.store.query.Query;
 import dk.dma.ais.web.rest.XStreamOutputStreamSink.OutputType;
-import dk.dma.app.cassandra.Query;
 import dk.dma.commons.util.io.OutputStreamSink;
 import dk.dma.enav.model.geometry.Position;
 
@@ -47,9 +47,6 @@ import dk.dma.enav.model.geometry.Position;
 @Path("/track")
 public class RestTrackService extends AbstractRestService {
 
-    /**
-     * @throws Exception
-     */
     public RestTrackService() throws Exception {
         super();
     }
@@ -74,6 +71,7 @@ public class RestTrackService extends AbstractRestService {
         return execute(mmsi, info, new Sink(OutputType.XML, info));
     }
 
+    /** A sink that uses XStream to write out the data */
     static class Sink extends XStreamOutputStreamSink<AisPacket> {
         static final DecimalFormat df = new DecimalFormat("###.#####");
 

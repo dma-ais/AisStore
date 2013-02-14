@@ -27,11 +27,11 @@ import com.google.inject.Injector;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.reader.AisStreamReader;
-import dk.dma.ais.reader.IAisPacketHandler;
 import dk.dma.ais.store.cassandra.FullSchema;
 import dk.dma.app.cassandra.KeySpaceConnection;
 import dk.dma.commons.app.AbstractDaemon;
 import dk.dma.commons.service.AbstractBatchedStage;
+import dk.dma.enav.util.function.Consumer;
 
 /**
  * 
@@ -69,9 +69,9 @@ public class AisArchiverFromFile extends AbstractDaemon {
         CountDownLatch cdl = new CountDownLatch(1);
         AisStreamReader r = new AisStreamReader(new BufferedInputStream(new FileInputStream(
                 "/Users/kasperni/Downloads/dump.txt"), 100000));
-        start(AisTool.wrapAisReader(r, new IAisPacketHandler() {
+        start(AisTool.wrapAisReader(r, new Consumer<AisPacket>() {
             @Override
-            public void receivePacket(AisPacket aisPacket) {
+            public void accept(AisPacket aisPacket) {
                 // We use offer because we do not want to block receiving
                 try {
                     cassandra.getInputQueue().put(aisPacket);
