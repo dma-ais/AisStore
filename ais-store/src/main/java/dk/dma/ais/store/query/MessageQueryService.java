@@ -38,9 +38,9 @@ public interface MessageQueryService {
 
     Query<AisPacket> findByTime(Interval interval);
 
-    Query<AisPacket> findByShape(Area shape, Date start, Date end);
+    Query<AisPacket> findByArea(Area shape, Date start, Date end);
 
-    Query<AisPacket> findByShape(Area shape, long timeback, TimeUnit unit);
+    Query<AisPacket> findByArea(Area shape, long timeback, TimeUnit unit);
 
     /**
      * Finds all packets for the specified mmsi number in the given interval.

@@ -37,12 +37,16 @@ import dk.dma.ais.packet.AisPackets;
 import dk.dma.ais.store.query.Query;
 import dk.dma.ais.web.rest.XStreamOutputStreamSink.OutputType;
 import dk.dma.commons.util.io.OutputStreamSink;
+import dk.dma.enav.model.geometry.Area;
+import dk.dma.enav.model.geometry.BoundingBox;
+import dk.dma.enav.model.geometry.CoordinateSystem;
+import dk.dma.enav.model.geometry.Position;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-@Path("aisdata")
+@Path("ais")
 public class RestAisDataService extends AbstractRestService {
 
     /**
@@ -52,19 +56,58 @@ public class RestAisDataService extends AbstractRestService {
         super();
     }
 
+    private boolean writeHeader(UriInfo info) {
+        return !info.getQueryParameters().containsKey("noHeader");
+    }
+
     private Set<Integer> findMmsi(UriInfo info) {
         List<String> mmsi = info.getQueryParameters().get("mmsi");
         return convert(mmsi);
     }
 
+    private String findSeperator(UriInfo info) {
+        List<String> s = info.getQueryParameters().get("separator");
+        if (s == null) {
+            return ";";
+        }
+        return s.get(0);
+    }
+
+    private Area findArea(UriInfo info) {
+        List<String> box = info.getQueryParameters().get("box");
+        if (box != null) {
+            if (box.size() > 1) {
+                throw new UnsupportedOperationException("Only one box can be specified, was " + box);
+            }
+            String s = box.iterator().next();
+            String[] str = s.split(",");
+            if (str.length != 4) {
+                throw new UnsupportedOperationException("A box must contain exactly 4 points, was " + str.length + "("
+                        + s + ")");
+            }
+            double lat1 = Double.parseDouble(str[0]);
+            double lon1 = Double.parseDouble(str[1]);
+            double lat2 = Double.parseDouble(str[2]);
+            double lon2 = Double.parseDouble(str[3]);
+            Position p1 = Position.create(lat1, lon1);
+            Position p2 = Position.create(lat2, lon2);
+            return BoundingBox.create(p1, p2, CoordinateSystem.CARTESIAN);
+        }
+        return null;
+    }
+
     private StreamingOutput execute(UriInfo info, OutputStreamSink<AisPacket> oss) {
         Set<Integer> mmsi = findMmsi(info);
         Interval interval = findInterval(info);
+        Area area = findArea(info);
         Query<AisPacket> q;
-        if (mmsi.size() == 0) {
-            q = mqs.findByShape(null, interval.getStart().toDate(), interval.getEnd().toDate());
-        } else {
+        if (mmsi.size() >= 1) {
             q = mqs.findByMMSI(interval, mmsi.iterator().next());
+        } else if (area != null) {
+            q = mqs.findByArea(area, interval.getStart().toDate(), interval.getEnd().toDate());
+        } else {
+            throw new UnsupportedOperationException(
+                    "Either a mmsinumber such as 'mmsi=123456789' must be specified. Or an area must be specified such as 'box=12.434,45.123,30.12,54.23) (lat1, lon1, lat2, lon2) ");
         }
         return createStreamingOutput(applyFilters(info, q), oss);
     }
@@ -74,6 +117,13 @@ public class RestAisDataService extends AbstractRestService {
     @Produces("text/txt")
     public StreamingOutput raw(@Context UriInfo info) {
         return execute(info, AisPackets.OUTPUT_TO_TEXT);
+    }
+
+    @GET
+    @Path("rawsentences")
+    @Produces("text/txt")
+    public StreamingOutput rawsentences(@Context UriInfo info) {
+        return execute(info, AisPackets.OUTPUT_PREFIXED_SENTENCES);
     }
 
     @GET
@@ -94,7 +144,7 @@ public class RestAisDataService extends AbstractRestService {
     @Path("table")
     @Produces("text/txt")
     public StreamingOutput table(@Context UriInfo info, final @QueryParam("columns") String columns) {
-        return execute(info, new ReflectionBasedTableOutputStreamSink(columns));
+        return execute(info, new ReflectionBasedTableOutputStreamSink(columns, writeHeader(info), findSeperator(info)));
     }
 
     static class Sink extends XStreamOutputStreamSink<AisPacket> {

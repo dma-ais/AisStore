@@ -37,6 +37,18 @@ import dk.dma.enav.util.function.Predicate;
  */
 public abstract class Query<T> implements Iterable<T> {
 
+    public static <T> Query<T> emptyQuery() {
+        return new Query<T>() {
+            protected ESupplier<T> createSupplier() throws Exception {
+                return new ESupplier<T>() {
+                    public T get() throws Exception {
+                        return null;
+                    }
+                };
+            }
+        };
+    }
+
     /** {@inheritDoc} */
     @Override
     public Iterator<T> iterator() {

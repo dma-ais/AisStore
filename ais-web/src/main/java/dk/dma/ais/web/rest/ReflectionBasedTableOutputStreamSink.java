@@ -15,6 +15,8 @@
  */
 package dk.dma.ais.web.rest;
 
+import static java.util.Objects.requireNonNull;
+
 import java.beans.BeanInfo;
 import java.beans.IntrospectionException;
 import java.beans.Introspector;
@@ -33,6 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
 
 import org.joda.time.DateTime;
 import org.joda.time.format.DateTimeFormatter;
+import org.joda.time.format.DateTimeFormatterBuilder;
 import org.joda.time.format.ISODateTimeFormat;
 
 import dk.dma.ais.message.AisMessage;
@@ -58,8 +61,18 @@ public class ReflectionBasedTableOutputStreamSink extends OutputStreamSink<AisPa
     /** A date formatter. */
     private final DateTimeFormatter fmt = ISODateTimeFormat.dateTime();
 
-    ReflectionBasedTableOutputStreamSink(String format) {
+    private final DateTimeFormatter utc = new DateTimeFormatterBuilder().appendDayOfMonth(2).appendLiteral('-')
+            .appendMonthOfYear(2).appendLiteral('-').appendYear(2, 2).appendLiteral(' ').appendHourOfDay(2)
+            .appendLiteral(':').appendMinuteOfHour(2).appendLiteral(':').appendSecondOfMinute(2).toFormatter();
+
+    final byte[] separator;
+
+    final boolean writeHeader;
+
+    ReflectionBasedTableOutputStreamSink(String format, boolean writeHeader, String separator) {
         columns = format.split(";");
+        this.writeHeader = writeHeader;
+        this.separator = requireNonNull(separator).getBytes(StandardCharsets.US_ASCII);
     }
 
     /** {@inheritDoc} */
@@ -74,6 +87,10 @@ public class ReflectionBasedTableOutputStreamSink extends OutputStreamSink<AisPa
                     stream.write(Long.toString(n).getBytes(StandardCharsets.US_ASCII));
                 } else if (c.equals("timestamp")) {
                     stream.write(Long.toString(message.getBestTimestamp()).getBytes(StandardCharsets.US_ASCII));
+                } else if (c.equals("utc")) {
+                    DateTime dateTime = new DateTime(new Date(message.getBestTimestamp()));
+                    String str = utc.print(dateTime);
+                    stream.write(str.getBytes(StandardCharsets.US_ASCII));
                 } else if (c.equals("time")) {
                     DateTime dateTime = new DateTime(new Date(message.getBestTimestamp()));
                     String str = fmt.print(dateTime);
@@ -91,7 +108,7 @@ public class ReflectionBasedTableOutputStreamSink extends OutputStreamSink<AisPa
                     }
                 }
                 if (i < columns.length - 1) {
-                    stream.write(';');
+                    stream.write(separator);
                 }
             }
             stream.write('\n');
@@ -102,13 +119,15 @@ public class ReflectionBasedTableOutputStreamSink extends OutputStreamSink<AisPa
     @Override
     public void header(OutputStream stream) throws IOException {
         // Writes the name of each column as the header
-        for (int i = 0; i < columns.length; i++) {
-            stream.write(columns[i].getBytes(StandardCharsets.US_ASCII));
-            if (i < columns.length - 1) {
-                stream.write(';');
+        if (writeHeader) {
+            for (int i = 0; i < columns.length; i++) {
+                stream.write(columns[i].getBytes(StandardCharsets.US_ASCII));
+                if (i < columns.length - 1) {
+                    stream.write(separator);
+                }
             }
+            stream.write('\n');
         }
-        stream.write('\n');
     }
 
     private Method findGetter(String nameOfColumn, Class<?> type) throws IOException {

@@ -27,6 +27,9 @@ import dk.dma.ais.store.cassandra.CassandraMessageQueryService;
 import dk.dma.ais.store.query.MessageQueryService;
 import dk.dma.app.cassandra.KeySpaceConnection;
 import dk.dma.commons.app.AbstractDaemon;
+import dk.dma.enav.model.geometry.BoundingBox;
+import dk.dma.enav.model.geometry.CoordinateSystem;
+import dk.dma.enav.model.geometry.Position;
 
 /**
  * 
@@ -53,13 +56,25 @@ public class AisQueryTester extends AbstractDaemon {
         // 219000368
         // mqs.findByMMSI("PT120H", 219000368).streamResults(System.out, AisPackets.OUTPUT_TO_HTML).get();
 
-        mqs.findByShape(null, 100, TimeUnit.SECONDS).streamResults(System.out, AisPackets.OUTPUT_TO_HTML).get();
+        BoundingBox bb = BoundingBox.create(Position.create(-40, 15), Position.create(12, 77),
+                CoordinateSystem.CARTESIAN);
+
+        // bb = BoundingBox.create(Position.create(54, 10), Position.create(56, 14), CoordinateSystem.CARTESIAN);
+
+        mqs.findByArea(bb, 50, TimeUnit.DAYS).streamResults(System.out, AisPackets.OUTPUT_TO_HTML).get();
 
         System.out.println(System.currentTimeMillis() - start);
         con.stop();
     }
 
     public static void main(String[] args) throws Exception {
+
+        // System.out.println(Position.create(-40, 15));
+        // System.out.println(bb);
+
         new AisQueryTester().execute(args);
+        // System.out.println(Position.create(55.7200, 12.5700));
+
+        // 55.7200° N, 12.5700° E
     }
 }

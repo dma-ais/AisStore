@@ -17,11 +17,13 @@ package dk.dma.ais.store.cassandra;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+import java.util.Set;
 import java.util.concurrent.TimeUnit;
 
 import org.joda.time.DateTime;
@@ -36,10 +38,13 @@ import dk.dma.ais.store.query.Query;
 import dk.dma.ais.store.util.CellPositionMmsi;
 import dk.dma.ais.store.util.CellResolution;
 import dk.dma.ais.store.util.TimeUtil;
+import dk.dma.app.cassandra.CassandraCombinedRowQueryMessageSupplier;
 import dk.dma.app.cassandra.CassandraRowQueryMessageSupplier;
 import dk.dma.app.cassandra.KeySpaceConnection;
 import dk.dma.enav.model.geometry.Area;
 import dk.dma.enav.model.geometry.PositionTime;
+import dk.dma.enav.model.geometry.grid.Cell;
+import dk.dma.enav.model.geometry.grid.Grid;
 import dk.dma.enav.util.function.EFunction;
 
 /**
@@ -88,6 +93,50 @@ public class CassandraMessageQueryService implements MessageQueryService {
 
     /** {@inheritDoc} */
     @Override
+    public Query<AisPacket> findByArea(Area shape, Date start, Date end) {
+        return findByArea(shape, start.getTime(), end.getTime());
+        // return new CassandraRowQueryMessageSupplier<>(connection, FullSchema.MESSAGES_TIME, 2260481,
+        // new EFunction<Column<byte[]>, AisPacket>() {
+        // @Override
+        // public AisPacket apply(Column<byte[]> t) throws Exception {
+        // return AisPacket.fromByteArray(t.getByteArrayValue());
+        // }
+        // }, null, null);
+    }
+
+    /** {@inheritDoc} */
+    Query<AisPacket> findByArea(Area area, final long startMillies, final long endMillies) {
+        Set<Cell> cells = Grid.CELL1.getCells(area);
+        if (cells.size() == 0) {
+            Query.emptyQuery();
+        }
+        List<CassandraRowQueryMessageSupplier<AisPacket, Integer, byte[]>> list = new ArrayList<>();
+        for (Cell c : cells) {
+            CassandraRowQueryMessageSupplier<AisPacket, Integer, byte[]> s = new CassandraRowQueryMessageSupplier<>(
+                    connection, FullSchema.MESSAGES_CELL1, c.getCellId(), new EFunction<Column<byte[]>, AisPacket>() {
+                        @Override
+                        public AisPacket apply(Column<byte[]> t) throws Exception {
+                            return AisPacket.fromByteArray(t.getByteArrayValue());
+                        }
+                    }, Longs.toByteArray(startMillies), Longs.toByteArray(endMillies));
+            list.add(s);
+        }
+        if (list.size() == 1) {
+            return list.get(0);
+        }
+        System.out.println("Creating a combined query of size " + list.size());
+        return new CassandraCombinedRowQueryMessageSupplier<>(list);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Query<AisPacket> findByArea(Area shape, long timeback, TimeUnit unit) {
+        Date now = new Date();
+        return findByArea(shape, TimeUtil.substract(now, timeback, unit), now);
+    }
+
+    /** {@inheritDoc} */
+    @Override
     public Query<AisPacket> findByMMSI(final Date start, final Date end, int mmsi) {
         return findByMMSI(start.getTime(), end.getTime(), mmsi);
     }
@@ -117,37 +166,6 @@ public class CassandraMessageQueryService implements MessageQueryService {
         }
         Interval parse = Interval.parse(isoXXInterval);
         return findByMMSI(parse.getStartMillis(), parse.getEndMillis(), mmsi);
-    }
-
-    /** {@inheritDoc} */
-    Query<AisPacket> findByShape(Area shape, final long startMillies, final long endMillies) {
-        return new CassandraRowQueryMessageSupplier<>(connection, FullSchema.MESSAGES_CELL1, 20172,
-                new EFunction<Column<byte[]>, AisPacket>() {
-                    @Override
-                    public AisPacket apply(Column<byte[]> t) throws Exception {
-                        return AisPacket.fromByteArray(t.getByteArrayValue());
-                    }
-                }, Longs.toByteArray(startMillies), Longs.toByteArray(endMillies));
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public Query<AisPacket> findByShape(Area shape, Date start, Date end) {
-        return findByShape(shape, start.getTime(), end.getTime());
-        // return new CassandraRowQueryMessageSupplier<>(connection, FullSchema.MESSAGES_TIME, 2260481,
-        // new EFunction<Column<byte[]>, AisPacket>() {
-        // @Override
-        // public AisPacket apply(Column<byte[]> t) throws Exception {
-        // return AisPacket.fromByteArray(t.getByteArrayValue());
-        // }
-        // }, null, null);
-    }
-
-    /** {@inheritDoc} */
-    @Override
-    public Query<AisPacket> findByShape(Area shape, long timeback, TimeUnit unit) {
-        Date now = new Date();
-        return findByShape(shape, TimeUtil.substract(now, timeback, unit), now);
     }
 
     /** {@inheritDoc} */
@@ -240,13 +258,6 @@ public class CassandraMessageQueryService implements MessageQueryService {
         return null;
     }
 
-    /** {@inheritDoc} */
-    @Override
-    public Query<CellPositionMmsi> findInCell(int cellId, CellResolution resolution, Date start, Date end)
-            throws Exception {
-        return null;
-    }
-
     //
     // static AbstractQuery<AisPacket> sortByTime(final AbstractQuery<AisPacket> results) {
     // return new AbstractQuery<AisPacket>() {
@@ -262,6 +273,13 @@ public class CassandraMessageQueryService implements MessageQueryService {
     // }
     // };
     // }
+
+    /** {@inheritDoc} */
+    @Override
+    public Query<CellPositionMmsi> findInCell(int cellId, CellResolution resolution, Date start, Date end)
+            throws Exception {
+        return null;
+    }
 
     /** {@inheritDoc} */
     @Override

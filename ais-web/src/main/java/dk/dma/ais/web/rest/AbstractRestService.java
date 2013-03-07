@@ -15,6 +15,7 @@
  */
 package dk.dma.ais.web.rest;
 
+import java.io.BufferedOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.util.Arrays;
@@ -59,7 +60,7 @@ public abstract class AbstractRestService {
     Interval findInterval(UriInfo info) {
         List<String> intervals = info.getQueryParameters().get("interval");
         if (intervals == null || intervals.size() == 0) {
-            return null;
+            return new Interval(0, Long.MAX_VALUE);
         } else if (intervals.size() > 1) {
             throw new IllegalArgumentException("Multiple interval parameters defined: " + intervals);
         }
@@ -95,7 +96,10 @@ public abstract class AbstractRestService {
         LinkedHashSet<Integer> result = new LinkedHashSet<>();
         if (params != null) {
             for (String s : params) {
-                result.add(Integer.parseInt(s));
+                String[] ss = s.split(",");
+                for (String sss : ss) {
+                    result.add(Integer.parseInt(sss));
+                }
             }
         }
         return result;
@@ -106,7 +110,9 @@ public abstract class AbstractRestService {
             @Override
             public void write(OutputStream paramOutputStream) throws IOException, WebApplicationException {
                 try {
-                    query.streamResults(paramOutputStream, sink).get();
+                    try (BufferedOutputStream bos = new BufferedOutputStream(paramOutputStream);) {
+                        query.streamResults(bos, sink).get();
+                    }
                     paramOutputStream.close();
                 } catch (RuntimeException | Error e) {
                     throw e;
