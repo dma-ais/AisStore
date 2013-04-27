@@ -1,17 +1,17 @@
-/*
- * Copyright (c) 2008 Kasper Nielsen.
+/* Copyright (c) 2011 Danish Maritime Authority
  *
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
- * You may obtain a copy of the License at
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
  *
- *     http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software
- * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
- * limitations under the License.
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 package dk.dma.ais.store.cassandra;
 
@@ -43,23 +43,35 @@ public class FullSchema extends CassandraWriteSink<AisPacket> {
 
     public static final FullSchema INSTANCE = new FullSchema();
 
-    public final static ColumnFamily<Integer, byte[]> MESSAGES_CELL1 = new ColumnFamily<>("messages_cell1",
+    public static final ColumnFamily<Integer, byte[]> MESSAGES_CELL1 = new ColumnFamily<>("messages_cell1",
             IntegerSerializer.get(), BytesArraySerializer.get());
 
-    public final static ColumnFamily<Integer, byte[]> MESSAGES_CELL10 = new ColumnFamily<>("messages_cell10",
+    public static final ColumnFamily<Integer, byte[]> MESSAGES_CELL10 = new ColumnFamily<>("messages_cell10",
             IntegerSerializer.get(), BytesArraySerializer.get());
 
-    public final static ColumnFamily<Integer, byte[]> MESSAGES_MMSI = new ColumnFamily<>("messages_mmsi",
+    public static final ColumnFamily<Integer, byte[]> MESSAGES_MMSI = new ColumnFamily<>("messages_mmsi",
             IntegerSerializer.get(), BytesArraySerializer.get());
 
-    public final static ColumnFamily<Integer, byte[]> MESSAGES_TIME = new ColumnFamily<>("messages_time",
+    public static final ColumnFamily<Integer, byte[]> MESSAGES_TIME = new ColumnFamily<>("messages_time",
             IntegerSerializer.get(), BytesArraySerializer.get());
 
-    public final static ColumnFamily<Integer, String> MMSI = new ColumnFamily<>("mmsi", IntegerSerializer.get(),
+    public static final ColumnFamily<Integer, String> MMSI = new ColumnFamily<>("mmsi", IntegerSerializer.get(),
             StringSerializer.get());
 
-    public final static ColumnFamily<String, byte[]> POSITIONS = new ColumnFamily<>("positions",
+    public static final ColumnFamily<String, byte[]> POSITIONS = new ColumnFamily<>("positions",
             StringSerializer.get(), BytesArraySerializer.get());
+
+    public void process(MutationBatch mb, AisPacket packet) {
+        AisMessage message = packet.tryGetAisMessage();
+        long ts = packet.getTimestamp().getTime();
+
+        messagesTime(mb, packet, message, ts);
+        messagesMmsi(mb, packet, message, ts);
+        messagesCell1(mb, packet, message, ts);
+        messagesCell10(mb, packet, message, ts);
+        positions(mb, packet, message, ts);
+        // mmsi(mb, packet, message, ts);
+    }
 
     static void messagesCell1(MutationBatch mb, AisPacket packet, AisMessage message, long ts) {
         if (message instanceof IPositionMessage) {
@@ -94,10 +106,6 @@ public class FullSchema extends CassandraWriteSink<AisPacket> {
             byte[] column = Bytes.concat(Longs.toByteArray(ts), packet.calculateHash128());
             r.putColumn(column, packet.toByteArray());
         }
-    }
-
-    public static void main(String[] args) {
-        System.out.println(TimeFormatter.MIN10.getAsInt(System.currentTimeMillis()));
     }
 
     static void messagesTime(MutationBatch mb, AisPacket packet, AisMessage message, long ts) {
@@ -178,18 +186,6 @@ public class FullSchema extends CassandraWriteSink<AisPacket> {
 
             }
         }
-    }
-
-    public void process(MutationBatch mb, AisPacket packet) {
-        AisMessage message = packet.tryGetAisMessage();
-        long ts = packet.getTimestamp().getTime();
-
-        messagesTime(mb, packet, message, ts);
-        messagesMmsi(mb, packet, message, ts);
-        messagesCell1(mb, packet, message, ts);
-        messagesCell10(mb, packet, message, ts);
-        positions(mb, packet, message, ts);
-        // mmsi(mb, packet, message, ts);
     }
 
 }
