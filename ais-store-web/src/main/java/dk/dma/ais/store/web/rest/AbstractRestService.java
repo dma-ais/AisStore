@@ -104,7 +104,7 @@ public abstract class AbstractRestService {
     static <T> StreamingOutput createStreamingOutput(final Query<T> query, final OutputStreamSink<T> sink) {
         return new StreamingOutput() {
             @Override
-            public void write(OutputStream paramOutputStream) throws IOException, WebApplicationException {
+            public void write(OutputStream paramOutputStream) throws IOException {
                 try {
                     try (BufferedOutputStream bos = new BufferedOutputStream(paramOutputStream);) {
                         query.streamResults(bos, sink).get();

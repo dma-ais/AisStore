@@ -73,7 +73,7 @@ public class RestTrackService extends AbstractRestService {
 
     /** A sink that uses XStream to write out the data */
     static class Sink extends XStreamOutputStreamSink<AisPacket> {
-        static final DecimalFormat df = new DecimalFormat("###.#####");
+        static final DecimalFormat DF = new DecimalFormat("###.#####");
 
         Position lastPosition;
         Long lastTimestamp;
@@ -97,8 +97,8 @@ public class RestTrackService extends AbstractRestService {
             lastPosition = pos;
             lastTimestamp = p.getBestTimestamp();
             w(writer, "timestamp", p.getBestTimestamp());
-            w(writer, "lon", df.format(pos.getLongitude()));
-            w(writer, "lat", df.format(pos.getLatitude()));
+            w(writer, "lon", DF.format(pos.getLongitude()));
+            w(writer, "lat", DF.format(pos.getLatitude()));
             w(writer, "sog", im.getSog());
             w(writer, "cog", im.getCog());
             w(writer, "heading", im.getTrueHeading());

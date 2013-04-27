@@ -143,7 +143,7 @@ public class RestAisDataService extends AbstractRestService {
     @GET
     @Path("table")
     @Produces("text/txt")
-    public StreamingOutput table(@Context UriInfo info, final @QueryParam("columns") String columns) {
+    public StreamingOutput table(@Context UriInfo info, @QueryParam("columns") final String columns) {
         return execute(info, new ReflectionBasedTableOutputStreamSink(columns, writeHeader(info), findSeperator(info)));
     }
 

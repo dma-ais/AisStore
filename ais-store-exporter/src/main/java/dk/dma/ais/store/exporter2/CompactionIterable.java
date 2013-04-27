@@ -34,7 +34,7 @@ public class CompactionIterable extends AbstractCompactionIterable {
 
     private long row;
 
-    private static final Comparator<OnDiskAtomIterator> comparator = new Comparator<OnDiskAtomIterator>() {
+    private static final Comparator<OnDiskAtomIterator> COMPARATOR = new Comparator<OnDiskAtomIterator>() {
         public int compare(OnDiskAtomIterator i1, OnDiskAtomIterator i2) {
             return i1.getKey().compareTo(i2.getKey());
         }
@@ -46,7 +46,7 @@ public class CompactionIterable extends AbstractCompactionIterable {
     }
 
     public CloseableIterator<AbstractCompactedRow> iterator() {
-        return MergeIterator.get(scanners, comparator, new Reducer());
+        return MergeIterator.get(scanners, COMPARATOR, new Reducer());
     }
 
     public String toString() {
