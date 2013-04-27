@@ -188,7 +188,7 @@ public abstract class Query<T> implements Iterable<T> {
         t.start();
     }
 
-    static abstract class InternalQuery<T> extends Query<T> {
+    abstract static class InternalQuery<T> extends Query<T> {
         protected ESupplier<T> createSupplier() {
             throw new Error();// Should never been classed
         }
