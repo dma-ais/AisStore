@@ -23,7 +23,7 @@ import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.FutureTask;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.cassandra.db.columniterator.IColumnIterator;
+import org.apache.cassandra.db.columniterator.OnDiskAtomIterator;
 
 import com.google.common.base.Function;
 
@@ -66,11 +66,11 @@ public class ColumnFamilySnapshotProcessor implements Closeable {
         return new ColumnFamilySnapshotProcessor(yamlUrl, keyspace, columnFamily, maxRead);
     }
 
-    public <T> Job processAll(Function<IColumnIterator, T> mapper, BlockingQueue<T> queue) {
+    public <T> Job processAll(Function<OnDiskAtomIterator, T> mapper, BlockingQueue<T> queue) {
         return null;
     }
 
-    public Job processAll(EBlock<IColumnIterator> processor) {
+    public Job processAll(EBlock<OnDiskAtomIterator> processor) {
         return null;
     }
 

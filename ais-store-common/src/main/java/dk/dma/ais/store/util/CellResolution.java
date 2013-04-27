@@ -13,17 +13,29 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package dk.dma.ais.store.exporter2;
+package dk.dma.ais.store.util;
 
-import org.apache.cassandra.db.columniterator.OnDiskAtomIterator;
+import dk.dma.enav.model.geometry.Position;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class RowProcessor {
+public enum CellResolution {
+    CELL10(10), CELL1(1), CELL01(0.1), CELL001(0.01);
+    private final double degress;
 
-    public void process(OnDiskAtomIterator columnIterator) {
-
+    CellResolution(double degress) {
+        this.degress = degress;
     }
+
+    public double getDegress() {
+        return degress;
+    }
+
+    public int getCell(Position position) {
+        // bigger cellsize than 0.01 cannot be supported. unless we change the cellsize to long
+        return (int) position.getCell(degress);
+    }
+
 }

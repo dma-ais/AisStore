@@ -21,12 +21,12 @@ import java.nio.file.Path;
 import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.cassandra.db.columniterator.IColumnIterator;
+import org.apache.cassandra.db.columniterator.OnDiskAtomIterator;
+import org.apache.cassandra.db.compaction.ICompactionScanner;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.io.sstable.Descriptor;
 import org.apache.cassandra.io.sstable.SSTableReader;
-import org.apache.cassandra.io.sstable.SSTableScanner;
 
 /**
  * 
@@ -52,7 +52,7 @@ class SSTableProcessor implements Callable<Void> {
 
     public Void call() throws Exception {
         SSTableReader reader = SSTableReader.open(Descriptor.fromFilename(p.toString()));
-        SSTableScanner scanner = reader.getDirectScanner(range);
+        ICompactionScanner scanner = reader.getDirectScanner(range);
         long sizeOnDisk = scanner.getLengthInBytes();
         System.out.println("Processing " + p + " [size = " + sizeOnDisk + ", uncompressed = "
                 + reader.uncompressedLength() + "]");
@@ -60,7 +60,7 @@ class SSTableProcessor implements Callable<Void> {
         try {
             long previousPosition = 0;
             while (scanner.hasNext()) {
-                IColumnIterator columnIterator = scanner.next();
+                OnDiskAtomIterator columnIterator = scanner.next();
                 try {
                     rowProcessor.process(columnIterator);
                 } finally {

@@ -45,14 +45,8 @@
   <dependencies>
     <dependency>
       <groupId>dk.dma.ais.store</groupId>
-      <artifactId>ais-store</artifactId>
+      <artifactId>ais-store-core</artifactId>
       <version>${project.version}</version>
-      <exclusions>
-        <exclusion>
-          <groupId>com.google.guava</groupId>
-          <artifactId>guava</artifactId>
-        </exclusion>
-      </exclusions>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>

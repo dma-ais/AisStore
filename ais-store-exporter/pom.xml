@@ -9,47 +9,11 @@
     <version>0.1-SNAPSHOT</version>
   </parent>
 
-  <artifactId>ais-store</artifactId>
-  <name>AisStore</name>
-  <description>AisStore</description>
-
-  <build>
-    <plugins>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-assembly-plugin</artifactId>
-        <configuration>
-          <descriptor>src/assembly/bin.xml</descriptor>
-          <finalName>ais-store-${project.version}</finalName>
-        </configuration>
-        <executions>
-          <execution>
-            <phase>package</phase>
-            <goals>
-              <goal>single</goal>
-            </goals>
-          </execution>
-        </executions>
-      </plugin>
-    </plugins>
-  </build>
+  <artifactId>ais-store-exporter</artifactId>
+  <name>AisStore Exporter</name>
+  <description>AisStore Exporter</description>
 
   <dependencies>
-    <dependency>
-      <groupId>com.netflix.astyanax</groupId>
-      <artifactId>astyanax</artifactId>
-      <version>1.0.6</version>
-    </dependency>
-    <dependency>
-      <groupId>org.apache.cassandra</groupId>
-      <artifactId>cassandra-all</artifactId>
-      <version>1.1.6</version>
-    </dependency>
-    <dependency>
-      <groupId>org.xerial.snappy</groupId>
-      <artifactId>snappy-java</artifactId>
-      <version>1.0.5-M2</version>
-    </dependency>
 
     <dependency>
       <groupId>dk.dma.ais</groupId>
@@ -62,7 +26,13 @@
       <artifactId>dma-app</artifactId>
       <version>0.1-SNAPSHOT</version>
     </dependency>
+    <dependency>
+      <groupId>${project.groupId}</groupId>
+      <artifactId>ais-store-common</artifactId>
+      <version>${project.version}</version>
+    </dependency>
 
+    
   </dependencies>
 
 </project>

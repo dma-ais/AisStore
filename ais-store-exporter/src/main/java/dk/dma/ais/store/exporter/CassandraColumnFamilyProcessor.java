@@ -27,11 +27,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.cassandra.config.ConfigurationException;
+import javax.naming.ConfigurationException;
+
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.db.IColumn;
-import org.apache.cassandra.db.columniterator.IColumnIterator;
+import org.apache.cassandra.db.OnDiskAtom;
+import org.apache.cassandra.db.columniterator.OnDiskAtomIterator;
 import org.apache.cassandra.io.sstable.Descriptor;
 import org.apache.cassandra.io.sstable.SSTableReader;
 import org.apache.cassandra.io.sstable.SSTableScanner;
@@ -153,7 +155,7 @@ public class CassandraColumnFamilyProcessor {
         try {
             long previousPosition = 0;
             while (scanner.hasNext()) {
-                IColumnIterator columnIterator = scanner.next();
+                OnDiskAtomIterator columnIterator = scanner.next();
                 try {
                     processRow(p, columnIterator, producer);
                 } finally {
@@ -172,11 +174,12 @@ public class CassandraColumnFamilyProcessor {
     }
 
     @SuppressWarnings("unused")
-    protected void processRow(Path p, IColumnIterator columnIterator, EBlock<AisPacket> producer) throws Exception {
+    protected void processRow(Path p, OnDiskAtomIterator columnIterator, EBlock<AisPacket> producer) throws Exception {
         while (columnIterator.hasNext()) {
-            IColumn c = columnIterator.next();
+            OnDiskAtom c = columnIterator.next();
+            IColumn ic = (IColumn) c;
             if (Arrays.equals(MESSAGE_COLUMN, c.name().array())) {
-                byte[] value = c.value().array();
+                byte[] value = ic.value().array();
                 String msg = new String(value);
                 // AisPacket m = AisPacket.from(msg, 1);
                 // producer.process(m);
