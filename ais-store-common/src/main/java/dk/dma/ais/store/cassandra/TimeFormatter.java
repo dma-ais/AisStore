@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.ais.store.util;
+package dk.dma.ais.store.cassandra;
 
 import java.sql.Date;
 import java.util.Arrays;
@@ -30,7 +30,7 @@ import com.google.common.primitives.UnsignedBytes;
  * 
  * @author Kasper Nielsen
  */
-public enum TimeFormatter {
+enum TimeFormatter {
     DAY100(100 * 24 * 60 * 60 * 1000), DAY(24 * 60 * 60 * 1000), HOUR(60 * 60 * 1000), MIN10(10 * 60 * 1000), MIN(
             60 * 1000), SECOND(1000);
 

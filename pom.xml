@@ -41,7 +41,7 @@
     <module>ais-store-archiver</module>
     <module>ais-store-exporter</module>
     <module>ais-store-web</module>
-<!--     <module>distribution</module>  -->
+    <module>distribution</module>
   </modules>
 
   <repositories>

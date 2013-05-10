@@ -1,11 +1,10 @@
-AisWeb
+AisStore Web
 ========
 
-REST
-=========
-AisWeb is a simple REST based webfrontend to access current and historic Ais data.
-It allows filtering of ais data based on time, mmsi numbers and area of interest.
-Futhermore it supports output formats such as CSV, JSON, raw format or XML.
+
+AisStore Web is a simple REST based Web front-end to access current and historic AIS data.
+It allows filtering of ais data based on time, MMSI numbers and area of interest.
+Furthermore it supports output formats such as CSV, JSON, raw format or XML.
 
 Getting Started
 ===============

@@ -23,15 +23,33 @@
       <groupId>com.netflix.astyanax</groupId>
       <artifactId>astyanax-cassandra</artifactId>
       <version>${astyanaxVersion}</version>
+      <exclusions>
+        <exclusion>
+          <groupId>com.google.guava</groupId>
+          <artifactId>guava</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.apache.cassandra</groupId>
+          <artifactId>cassandra-all</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.xerial.snappy</groupId>
+          <artifactId>snappy-java</artifactId>
+        </exclusion>
+        <exclusion>
+          <groupId>org.jboss.netty</groupId>
+          <artifactId>netty</artifactId>
+        </exclusion>
+      </exclusions>
     </dependency>
-    
+
     <dependency>
       <groupId>com.netflix.astyanax</groupId>
       <artifactId>astyanax-thrift</artifactId>
       <version>${astyanaxVersion}</version>
     </dependency>
-    
-    
+
+
     <dependency>
       <groupId>org.apache.cassandra</groupId>
       <artifactId>cassandra-all</artifactId>
@@ -41,6 +59,10 @@
           <groupId>com.google.guava</groupId>
           <artifactId>guava</artifactId>
         </exclusion>
+        <exclusion>
+          <groupId>org.mortbay.jetty</groupId>
+          <artifactId>servlet-api</artifactId>
+        </exclusion>        
       </exclusions>
     </dependency>
     <dependency>
@@ -48,7 +70,11 @@
       <artifactId>snappy-java</artifactId>
       <version>1.1.0-M3</version>
     </dependency>
-
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+      <version>14.0.1</version>
+    </dependency>
     <dependency>
       <groupId>dk.dma.ais</groupId>
       <artifactId>ais-communication</artifactId>
@@ -58,6 +84,12 @@
     <dependency>
       <groupId>dk.dma.commons</groupId>
       <artifactId>dma-commons-app</artifactId>
+      <version>0.1-SNAPSHOT</version>
+    </dependency>
+
+    <dependency>
+      <groupId>dk.dma.commons</groupId>
+      <artifactId>dma-commons-tracker</artifactId>
       <version>0.1-SNAPSHOT</version>
     </dependency>
 

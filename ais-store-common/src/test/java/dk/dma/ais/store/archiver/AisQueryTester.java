@@ -43,10 +43,6 @@ public class AisQueryTester extends AbstractDaemon {
 
     /** {@inheritDoc} */
     @Override
-    protected void externalShutdown() {}
-
-    /** {@inheritDoc} */
-    @Override
     protected void runDaemon(Injector injector) throws Exception {
         // Setup keyspace for cassandra
         KeySpaceConnection con = start(KeySpaceConnection.connect("aisdata", cassandraSeeds));

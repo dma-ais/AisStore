@@ -19,6 +19,9 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.concurrent.CountDownLatch;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 import com.google.common.util.concurrent.Service;
 
@@ -27,10 +30,12 @@ import dk.dma.ais.reader.AisReader;
 import dk.dma.enav.util.function.Consumer;
 
 /**
+ * Just some wrappers from AisReaders.
  * 
  * @author Kasper Nielsen
  */
-class AisTool {
+class ArchiverUtil {
+    static final Logger LOG = LoggerFactory.getLogger(ArchiverUtil.class);
 
     static Service wrapAisReader(final AisReader reader, final Consumer<AisPacket> handler, final CountDownLatch latch) {
         requireNonNull(reader);
@@ -44,6 +49,17 @@ class AisTool {
             }
         });
         return new AbstractExecutionThreadService() {
+            @Override
+            protected void triggerShutdown() {
+                LOG.info("Trying to stop reader " + reader.getSourceId());
+                reader.stopReader();
+                LOG.info("Trying to join reader thread" + reader.getSourceId());
+                try {
+                    reader.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
 
             @Override
             protected void run() throws Exception {
@@ -67,6 +83,17 @@ class AisTool {
             }
         });
         return new AbstractExecutionThreadService() {
+            @Override
+            protected void triggerShutdown() {
+                LOG.info("Trying to stop reader " + reader);
+                reader.stopReader();
+                LOG.info("Trying to join reader thread" + reader);
+                try {
+                    reader.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
 
             @Override
             protected void run() throws Exception {

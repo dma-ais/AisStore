@@ -13,28 +13,13 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.ais.store.util;
-
-import java.util.Calendar;
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
+package dk.dma.ais.store.cassandra;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class TimeUtil {
-
-    public static Date substract(Date date, long durationToSubstract, TimeUnit unit) {
-        long result = unit.toSeconds(durationToSubstract);
-        if (result >= Integer.MAX_VALUE) {
-            throw new IllegalArgumentException("Cannot substract " + durationToSubstract);
-        }
-        Calendar c = Calendar.getInstance();
-        c.setTime(date);
-        c.add(Calendar.SECOND, -(int) result);
-        return c.getTime();
-    }
+class TimeUtil {
 
     public static int daysSinceEpoch(long epochTime) {
         return hoursSinceEpoch(epochTime) / 24;

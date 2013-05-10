@@ -18,6 +18,7 @@ package dk.dma.ais.store.archiver;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import java.util.Map;
 
 import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
@@ -25,7 +26,7 @@ import com.google.inject.Injector;
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.packet.AisPackets;
 import dk.dma.ais.reader.AisReader;
-import dk.dma.ais.reader.RoundRobinAisTcpReader;
+import dk.dma.ais.reader.AisTcpReader;
 import dk.dma.ais.store.cassandra.FullSchema;
 import dk.dma.commons.app.AbstractDaemon;
 import dk.dma.commons.management.ManagedAttribute;
@@ -42,52 +43,61 @@ import dk.dma.enav.util.function.Consumer;
 @ManagedResource
 public class AisArchiver extends AbstractDaemon {
 
+    /** The file naming scheme for writing backup files. */
+    static final String BACKUP_FORMAT = "'ais-store-failed' yyyy.MM.dd HH:mm'.txt.zip'";
+
+    /** The number of packets we try to write at a time. */
+    static final int BATCH_SIZE = 500;
+
     @Parameter(names = "-backup", description = "The backup directory")
     File backup = new File("./aisbackup");
 
-    @Parameter(names = "-backupformat", description = "The backup Format")
-    String backupFormat = "yyyy/MM-dd/'ais-store-failed' yyyy.MM.dd HH:mm'.txt.zip'";
+    @Parameter(names = "-database", description = "The cassandra database to write data to")
+    String cassandraDatabase = "aisdata";
 
-    @Parameter(names = "-store", description = "A list of cassandra hosts that can store the data")
-    List<String> cassandraSeeds = Arrays.asList("10.10.5.201");
+    @Parameter(names = "-hosts", description = "A list of cassandra hosts that can store the data")
+    List<String> cassandraSeeds = Arrays.asList("localhost");
 
-    @Parameter(names = "-source", description = "A list of AIS sources")
-    List<String> sources = Arrays.asList("ais163.sealan.dk:65262,ais167.sealan.dk:65261",
-            "iala63.sealan.dk:4712,iala68.sealan.dk:4712", "10.10.5.144:65061");
-    // List<String> sources = Arrays.asList("ais163.sealan.dk:65262");
+    /** The stage that is responsible for writing the package */
+    volatile AbstractBatchedStage<AisPacket> mainStage;
 
-    private volatile AbstractBatchedStage<AisPacket> s;
-
-    /** {@inheritDoc} */
-    @Override
-    protected void externalShutdown() {}
+    @Parameter(description = "A list of AIS sources (sourceName=host:port,host:port sourceName=host:port ...")
+    List<String> sources;
 
     @ManagedAttribute
     public long getNumberOfProcessedPackages() {
-        return s == null ? 0 : s.getNumberOfMessagesProcessed();
+        AbstractBatchedStage<AisPacket> mainStage = this.mainStage;
+        return mainStage == null ? 0 : mainStage.getNumberOfMessagesProcessed();
+    }
+
+    @ManagedAttribute
+    public int getNumberOfOutstandingPackets() {
+        AbstractBatchedStage<AisPacket> mainStage = this.mainStage;
+        return mainStage == null ? 0 : mainStage.getSize();
     }
 
     /** {@inheritDoc} */
     @Override
     protected void runDaemon(Injector injector) throws Exception {
+        // setup an AisReader for each source
+        Map<String, AisTcpReader> readers = AisTcpReader.parseSourceList(sources);
 
-        // Should check that key space exists
-
-        // Start the backup filestage that will write files to disk if disconnected
+        // Starts the backup service that will write files to disk if disconnected
         final AbstractBatchedStage<AisPacket> fileWriter = start(FileWriterService.dateService(backup.toPath(),
-                backupFormat, AisPackets.OUTPUT_TO_TEXT));
+                BACKUP_FORMAT, AisPackets.OUTPUT_TO_TEXT));
 
         // Setup keyspace for cassandra
-        KeySpaceConnection con = start(KeySpaceConnection.connect("aisdata", cassandraSeeds));
+        KeySpaceConnection con = start(KeySpaceConnection.connect(cassandraDatabase, cassandraSeeds));
 
         // Start a stage that will write each packet to cassandra
-        // We write batches of 1000 events at a time
-        final AbstractBatchedStage<AisPacket> cassandra = s = start(con.createdBatchedStage(500, FullSchema.INSTANCE));
+        final AbstractBatchedStage<AisPacket> cassandra = mainStage = start(con.createdBatchedStage(BATCH_SIZE,
+                new FullSchema()));
 
-        // setup AisReaders
-        for (String str : sources) {
-            AisReader reader = new RoundRobinAisTcpReader().setCommaseparatedHostPort(str);
-            start(AisTool.wrapAisReader(reader, new Consumer<AisPacket>() {
+        // Start the thread that will read each file from the backup queue
+        start(new ReadFromBackupService(this));
+
+        for (AisReader reader : readers.values()) {
+            start(ArchiverUtil.wrapAisReader(reader, new Consumer<AisPacket>() {
                 @Override
                 public void accept(AisPacket aisPacket) {
                     // We use offer because we do not want to block receiving
@@ -103,6 +113,8 @@ public class AisArchiver extends AbstractDaemon {
 
     public static void main(String[] args) throws Exception {
         // args = new String[] { "-source", "ais163.sealan.dk:65262", "-store", "localhost" };
+        args = new String[] { "src1=ais163.sealan.dk:65262,ais167.sealan.dk:65261",
+                "src2=iala63.sealan.dk:4712,iala68.sealan.dk:4712", "src3=10.10.5.144:65061" };
         new AisArchiver().execute(args);
     }
 }

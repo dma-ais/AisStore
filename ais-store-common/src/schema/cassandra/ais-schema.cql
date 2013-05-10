@@ -1,11 +1,15 @@
-drop keyspace aisdata
 drop column family messages_time;
 drop column family messages_cell1;
 drop column family messages_cell10;
 drop column family messages_mmsi;
 drop column family positions;
 
-create keyspace aisdata with placement_strategy = 'org.apache.cassandra.locator.SimpleStrategy' and strategy_options = {replication_factor:2};
+
+drop keyspace aisdata;
+
+
+
+create keyspace aisdata with placement_strategy = 'org.apache.cassandra.locator.SimpleStrategy' and strategy_options = {replication_factor:1};
 
 use aisdata; 
 CREATE COLUMN FAMILY messages_time WITH key_validation_class= IntegerType and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:1024};
@@ -15,7 +19,7 @@ CREATE COLUMN FAMILY messages_mmsi WITH key_validation_class= IntegerType and co
 CREATE COLUMN FAMILY positions WITH key_validation_class= AsciiType and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:128};
 
 
-CREATE COLUMN FAMILY counters with default_validation_class=CounterColumnType
+CREATE COLUMN FAMILY counters with default_validation_class=CounterColumnType;
 
 
 DROP TABLE mmsi;

@@ -15,13 +15,12 @@
  */
 package dk.dma.ais.store;
 
+import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.TimeUnit;
 
 import org.joda.time.DateTime;
 import org.joda.time.Interval;
-
-import dk.dma.ais.store.util.TimeUtil;
 
 /**
  * 
@@ -42,6 +41,17 @@ public class AisQueries {
 
     public static Interval toInterval(long timeback, TimeUnit unit) {
         Date now = new Date();
-        return toInterval(TimeUtil.substract(now, timeback, unit), now);
+        return toInterval(substract(now, timeback, unit), now);
+    }
+
+    static Date substract(Date date, long durationToSubstract, TimeUnit unit) {
+        long result = unit.toSeconds(durationToSubstract);
+        if (result >= Integer.MAX_VALUE) {
+            throw new IllegalArgumentException("Cannot substract " + durationToSubstract);
+        }
+        Calendar c = Calendar.getInstance();
+        c.setTime(date);
+        c.add(Calendar.SECOND, -(int) result);
+        return c.getTime();
     }
 }
