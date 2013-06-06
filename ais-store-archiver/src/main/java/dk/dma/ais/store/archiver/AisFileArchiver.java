@@ -70,7 +70,7 @@ public class AisFileArchiver extends AbstractDaemon {
                 public void accept(AisPacket aisPacket) {
                     // We use offer because we do not want to block receiving
                     if (!fileWriter.getInputQueue().offer(aisPacket)) {
-                        System.err.println("Could not persist packet, dropping it");
+                        LOG.error("Could not persist packet, dropping it");
                     }
                 }
             }));
