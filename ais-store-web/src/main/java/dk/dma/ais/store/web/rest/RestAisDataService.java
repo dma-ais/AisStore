@@ -67,10 +67,7 @@ public class RestAisDataService extends AbstractRestService {
 
     private String findSeperator(UriInfo info) {
         List<String> s = info.getQueryParameters().get("separator");
-        if (s == null) {
-            return ";";
-        }
-        return s.get(0);
+        return s == null ? ";" : s.get(0);
     }
 
     private Area findArea(UriInfo info) {
