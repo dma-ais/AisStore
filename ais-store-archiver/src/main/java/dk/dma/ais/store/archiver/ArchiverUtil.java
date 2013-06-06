@@ -91,7 +91,7 @@ class ArchiverUtil {
                 try {
                     reader.join();
                 } catch (InterruptedException e) {
-                    e.printStackTrace();
+                    LOG.error("Interrupted while waiting for shutdown", e);
                 }
             }
 

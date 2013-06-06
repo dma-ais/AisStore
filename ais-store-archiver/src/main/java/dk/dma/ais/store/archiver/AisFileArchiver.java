@@ -70,7 +70,7 @@ public class AisFileArchiver extends AbstractDaemon {
                 public void accept(AisPacket aisPacket) {
                     // We use offer because we do not want to block receiving
                     if (!fileWriter.getInputQueue().offer(aisPacket)) {
-                        System.err.println("Could not persist packet, dropping it");
+                        LOG.error("Could not persist packet, dropping it");
                     }
                 }
             }));
@@ -84,8 +84,7 @@ public class AisFileArchiver extends AbstractDaemon {
         // };
         // args = new String[] { "src2=iala63.sealan.dk:4712", "src3=10.10.5.144:65061" };
         if (args.length == 0) {
-            System.err
-                    .println("No sources specified as arguments (sourceName=host:port,host:port sourceName=host:port ...)");
+            LOG.error("No sources specified as arguments (sourceName=host:port,host:port sourceName=host:port ...)");
             System.exit(1);
         }
         new AisFileArchiver().execute(args);
