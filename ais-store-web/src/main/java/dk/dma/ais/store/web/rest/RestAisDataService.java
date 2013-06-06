@@ -114,21 +114,21 @@ public class RestAisDataService extends AbstractRestService {
 
     @GET
     @Path("raw")
-    @Produces("text/txt")
+    @Produces("text/plain")
     public StreamingOutput raw(@Context UriInfo info) {
         return execute(info, AisPackets.OUTPUT_TO_TEXT);
     }
 
     @GET
     @Path("rawsentences")
-    @Produces("text/txt")
+    @Produces("text/plain")
     public StreamingOutput rawsentences(@Context UriInfo info) {
         return execute(info, AisPackets.OUTPUT_PREFIXED_SENTENCES);
     }
 
     @GET
     @Path("xml")
-    @Produces("text/xml")
+    @Produces("text/plain")
     public StreamingOutput xml(@Context UriInfo info) {
         return execute(info, new Sink(OutputType.XML));
     }
@@ -142,7 +142,7 @@ public class RestAisDataService extends AbstractRestService {
 
     @GET
     @Path("table")
-    @Produces("text/txt")
+    @Produces("text/plain")
     public StreamingOutput table(@Context UriInfo info, @QueryParam("columns") final String columns) {
         return execute(info, new ReflectionBasedTableOutputStreamSink(columns, writeHeader(info), findSeperator(info)));
     }
