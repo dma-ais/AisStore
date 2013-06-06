@@ -80,12 +80,8 @@ public class AisFileArchiver extends AbstractDaemon {
     public static void main(String[] args) throws Exception {
         // args = new String[] { "src1=ais163.sealan.dk:65262,ais167.sealan.dk:65261",
         // "src2=iala63.sealan.dk:4712,iala68.sealan.dk:4712", "src3=10.10.5.144:65061" };
-        // args = new String[] { "src1=ais163.sealan.dk:65262", "src2=iala63.sealan.dk:4712", "src3=10.10.5.144:65061"
-        // };
-        // args = new String[] { "src2=iala63.sealan.dk:4712", "src3=10.10.5.144:65061" };
         if (args.length == 0) {
-            System.err
-                    .println("No sources specified as arguments (sourceName=host:port,host:port sourceName=host:port ...)");
+            System.err.println("Must specify at least 1 source (sourceName=host:port,host:port sourceName=host:port)");
             System.exit(1);
         }
         new AisFileArchiver().execute(args);
