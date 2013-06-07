@@ -2,10 +2,8 @@ AisStore
 -------------------------------------------------------------------------------
 AisStore is an online high-available database capable of archiving multiple terabytes of AIS-data with an insert rate of at least 100.000 messages/minute. 
 Besides the archiving mechanism is features an AIS-data export tool that is limited only by disk-read speed. 
-It also provides simple analytical capabilities based on
-time, geography and identity. Furthermore queries based on smaller time intervals,
+It also provides simple analytical capabilities based on time, geography and identity. Furthermore queries based on smaller time intervals,
 limited geographical areas, or single ships can be performed in real-time (less than 1 second).
-
 
 Build Instructions
 -------------------------------------------------------------------------------

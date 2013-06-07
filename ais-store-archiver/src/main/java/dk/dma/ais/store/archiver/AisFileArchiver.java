@@ -47,7 +47,7 @@ public class AisFileArchiver extends AbstractDaemon {
     File backup = new File("aisarchive");
 
     @Parameter(names = "-fileformat", description = "The backup Format")
-    String backupFormat = "yyyy/MM-dd/'aisarchive' yyyy.MM.dd HH:mm'.txt.zip'";
+    String backupFormat = "yyyy/MM-dd/'aisarchive' yyyy.MM.dd HH.mm'.txt.zip'";
 
     @Parameter(description = "A list of AIS sources (sourceName=host:port,host:port sourceName=host:port ...")
     List<String> sources;
