@@ -15,6 +15,6 @@
   <description>AisStore distribution parent module</description>
 
   <modules>
-    <module>as-filearchiver</module>
+    <module>aisstore</module>
   </modules>
 </project>

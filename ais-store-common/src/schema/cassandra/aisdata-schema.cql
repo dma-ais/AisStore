@@ -1,12 +1,22 @@
 #CQL3
 DROP KEYSPACE aisdata;
 
-CREATE KEYSPACE aisdata WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1};
+CREATE KEYSPACE aisdata 
+       WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1};
+
 USE aisdata;
 
-CREATE TABLE messages_time (user int PRIMARY KEY) with compression={'sstable_compression':'DeflateCompressor', 'chunk_length_kb':1024};
-CREATE TABLE messages_cell1 (user int PRIMARY KEY) with compression={'sstable_compression':'DeflateCompressor', 'chunk_length_kb':256};
-CREATE TABLE messages_mmsi (user int PRIMARY KEY) with compression={'sstable_compression':'DeflateCompressor', 'chunk_length_kb':256};
+CREATE TABLE messages_time (user int PRIMARY KEY) 
+  WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':1024} AND
+       comment     = 'Contains AIS data ordered by receive time. Each row containing 10 minutes of data';
+       
+CREATE TABLE messages_cell1 (user int PRIMARY KEY) 
+  WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':256} AND
+       comment     = 'Contains AIS data ordered by the cell id';
+      
+CREATE TABLE messages_mmsi (user int PRIMARY KEY) 
+  WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':256} AND
+       comment     = 'Contains AIS data ordered by mmsi number';
 CREATE TABLE positions (user ascii PRIMARY KEY) with compression={'sstable_compression':'DeflateCompressor', 'chunk_length_kb':128};
 
  

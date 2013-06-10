@@ -41,7 +41,7 @@ import dk.dma.enav.util.function.Consumer;
  * @author Kasper Nielsen
  */
 @ManagedResource
-public class AisArchiver extends AbstractDaemon {
+public class Store extends AbstractDaemon {
 
     /** The file naming scheme for writing backup files. */
     static final String BACKUP_FORMAT = "'ais-store-failed' yyyy.MM.dd HH:mm'.txt.zip'";
@@ -94,7 +94,7 @@ public class AisArchiver extends AbstractDaemon {
                 new FullSchema()));
 
         // Start the thread that will read each file from the backup queue
-        start(new ReadFromBackupService(this));
+        start(new FileImport(this));
 
         for (AisReader reader : readers.values()) {
             start(ArchiverUtil.wrapAisReader(reader, new Consumer<AisPacket>() {
@@ -115,6 +115,6 @@ public class AisArchiver extends AbstractDaemon {
         // args = new String[] { "-source", "ais163.sealan.dk:65262", "-store", "localhost" };
         args = new String[] { "src1=ais163.sealan.dk:65262,ais167.sealan.dk:65261",
                 "src2=iala63.sealan.dk:4712,iala68.sealan.dk:4712", "src3=10.10.5.144:65061" };
-        new AisArchiver().execute(args);
+        new Store().execute(args);
     }
 }

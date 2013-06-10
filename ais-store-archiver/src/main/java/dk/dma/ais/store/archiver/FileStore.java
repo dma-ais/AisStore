@@ -39,24 +39,29 @@ import dk.dma.enav.util.function.Consumer;
  * 
  * @author Kasper Nielsen
  */
-public class AisFileArchiver extends AbstractDaemon {
+class FileStore extends AbstractDaemon {
 
-    static final Logger LOG = LoggerFactory.getLogger(AisFileArchiver.class);
+    /** The logger. */
+    static final Logger LOGGER = LoggerFactory.getLogger(FileStore.class);
 
     @Parameter(names = "-directory", description = "The backup directory")
-    File backup = new File("aisarchive");
+    File backup = new File("aisfilestore");
 
     @Parameter(names = "-fileformat", description = "The backup Format")
     String backupFormat = "yyyy/MM-dd/'aisarchive' yyyy.MM.dd HH.mm'.txt.zip'";
 
-    @Parameter(description = "A list of AIS sources (sourceName=host:port,host:port sourceName=host:port ...")
+    @Parameter(description = "filestore [A list of AIS sources (sourceName=host:port,host:port sourceName=host:port ...]")
     List<String> sources;
+
+    FileStore() {
+        super("AisStore");
+    }
 
     /** {@inheritDoc} */
     @Override
     protected void runDaemon(Injector injector) throws Exception {
-        LOG.info("Starting file archiver with sources = " + sources);
-        LOG.info("Archived files are written to " + backup.toPath().toAbsolutePath());
+        LOGGER.info("Starting file archiver with sources = " + sources);
+        LOGGER.info("Archived files are written to " + backup.toPath().toAbsolutePath());
         // setup an AisReader for each source
         Map<String, AisTcpReader> readers = AisTcpReader.parseSourceList(sources);
 
@@ -70,7 +75,7 @@ public class AisFileArchiver extends AbstractDaemon {
                 public void accept(AisPacket aisPacket) {
                     // We use offer because we do not want to block receiving
                     if (!fileWriter.getInputQueue().offer(aisPacket)) {
-                        LOG.error("Could not persist packet, dropping it");
+                        LOGGER.error("Could not persist packet, dropping it");
                     }
                 }
             }));
@@ -84,6 +89,6 @@ public class AisFileArchiver extends AbstractDaemon {
             System.err.println("Must specify at least 1 source (sourceName=host:port,host:port sourceName=host:port)");
             System.exit(1);
         }
-        new AisFileArchiver().execute(args);
+        new FileStore().execute(args);
     }
 }

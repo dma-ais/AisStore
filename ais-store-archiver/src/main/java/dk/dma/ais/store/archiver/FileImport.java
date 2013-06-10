@@ -34,12 +34,12 @@ import dk.dma.ais.packet.AisPackets;
  * 
  * @author Kasper Nielsen
  */
-public class ReadFromBackupService extends AbstractExecutionThreadService {
+class FileImport extends AbstractExecutionThreadService {
 
     /** The archiver. */
-    private final AisArchiver archiver;
+    private final Store archiver;
 
-    ReadFromBackupService(AisArchiver archiver) {
+    FileImport(Store archiver) {
         this.archiver = requireNonNull(archiver);
     }
 
@@ -76,7 +76,7 @@ public class ReadFromBackupService extends AbstractExecutionThreadService {
                 AisPacket p;
                 while ((p = packets.peek()) != null) {
                     // We only add elements if the queue is not to clogged
-                    if (archiver.getNumberOfOutstandingPackets() > 10 * AisArchiver.BATCH_SIZE
+                    if (archiver.getNumberOfOutstandingPackets() > 10 * Store.BATCH_SIZE
                             || !archiver.mainStage.getInputQueue().offer(p)) {
                         break;// Lets sleep a little before adding more packets to the queue
                     }
@@ -97,4 +97,9 @@ public class ReadFromBackupService extends AbstractExecutionThreadService {
             }
         }
     }
+
+    /**
+     * @param args
+     */
+    public static void main(String[] args) {}
 }

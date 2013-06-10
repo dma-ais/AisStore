@@ -26,6 +26,11 @@ ais-store-exporter   Contains the bulk AIS-data command line exporter
 ais-store-web        Contains the REST-based query front end
 
 
+Setting up Cassandra
+-------------------------------------------------------------------------------
+Follow the standard guidelines for installing Cassandra.
+
+
 
 AIS Store Archiver
 -------------------------------------------------------------------------------
