@@ -48,7 +48,7 @@ class FileStore extends AbstractDaemon {
     File backup = new File("aisfilestore");
 
     @Parameter(names = "-fileformat", description = "The backup Format")
-    String backupFormat = "yyyy/MM-dd/'aisarchive' yyyy.MM.dd HH.mm'.txt.zip'";
+    String backupFormat = "yyyy/MM-dd/'aisarchive' yyyy-MM-dd HHmm'.txt.zip'";
 
     @Parameter(description = "filestore [A list of AIS sources (sourceName=host:port,host:port sourceName=host:port ...]")
     List<String> sources;
