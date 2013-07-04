@@ -22,11 +22,13 @@ import java.util.concurrent.Callable;
 import java.util.concurrent.atomic.AtomicLong;
 
 import org.apache.cassandra.db.columniterator.OnDiskAtomIterator;
-import org.apache.cassandra.db.compaction.ICompactionScanner;
 import org.apache.cassandra.dht.Range;
 import org.apache.cassandra.dht.Token;
 import org.apache.cassandra.io.sstable.Descriptor;
 import org.apache.cassandra.io.sstable.SSTableReader;
+import org.apache.cassandra.io.sstable.SSTableScanner;
+
+import com.google.common.util.concurrent.RateLimiter;
 
 /**
  * 
@@ -52,7 +54,8 @@ class SSTableProcessor implements Callable<Void> {
 
     public Void call() throws Exception {
         SSTableReader reader = SSTableReader.open(Descriptor.fromFilename(p.toString()));
-        ICompactionScanner scanner = reader.getDirectScanner(range);
+        SSTableScanner scanner = reader.getDirectScanner(RateLimiter.create(Double.MAX_VALUE));
+        // ICompactionScanner scanner = reader.getDirectScanner(range);
         long sizeOnDisk = scanner.getLengthInBytes();
         System.out.println("Processing " + p + " [size = " + sizeOnDisk + ", uncompressed = "
                 + reader.uncompressedLength() + "]");

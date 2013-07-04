@@ -16,8 +16,9 @@
 package dk.dma.ais.store.archiver;
 
 import java.io.File;
+import java.io.IOException;
 import java.util.List;
-import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,8 +31,12 @@ import dk.dma.ais.packet.AisPackets;
 import dk.dma.ais.reader.AisReader;
 import dk.dma.ais.reader.AisTcpReader;
 import dk.dma.commons.app.AbstractDaemon;
+import dk.dma.commons.management.ManagedAttribute;
+import dk.dma.commons.management.ManagedOperation;
+import dk.dma.commons.management.ManagedResource;
 import dk.dma.commons.service.AbstractBatchedStage;
 import dk.dma.commons.service.io.FileWriterService;
+import dk.dma.commons.util.io.IoUtil;
 import dk.dma.enav.util.function.Consumer;
 
 /**
@@ -39,7 +44,8 @@ import dk.dma.enav.util.function.Consumer;
  * 
  * @author Kasper Nielsen
  */
-class FileStore extends AbstractDaemon {
+@ManagedResource
+public class FileStore extends AbstractDaemon {
 
     /** The logger. */
     static final Logger LOGGER = LoggerFactory.getLogger(FileStore.class);
@@ -50,11 +56,30 @@ class FileStore extends AbstractDaemon {
     @Parameter(names = "-fileformat", description = "The backup Format")
     String backupFormat = "yyyy/MM-dd/'aisarchive' yyyy-MM-dd HHmm'.txt.zip'";
 
+    AbstractBatchedStage<AisPacket> fileWriter;
+
+    final ConcurrentHashMap<String, AisTcpReader> readers = new ConcurrentHashMap<>();
+
     @Parameter(description = "filestore [A list of AIS sources (sourceName=host:port,host:port sourceName=host:port ...]")
     List<String> sources;
 
     FileStore() {
         super("AisStore");
+    }
+
+    @ManagedOperation
+    public void addReader(String sourceName, String value) {
+
+    }
+
+    @ManagedAttribute
+    public String getDirectory() {
+        return backup.getAbsolutePath();
+    }
+
+    @ManagedOperation
+    public long getStoreSize() throws IOException {
+        return IoUtil.recursiveSizeOf(backup.toPath());
     }
 
     /** {@inheritDoc} */
@@ -63,23 +88,26 @@ class FileStore extends AbstractDaemon {
         LOGGER.info("Starting file archiver with sources = " + sources);
         LOGGER.info("Archived files are written to " + backup.toPath().toAbsolutePath());
         // setup an AisReader for each source
-        Map<String, AisTcpReader> readers = AisTcpReader.parseSourceList(sources);
+        readers.putAll(AisTcpReader.parseSourceList(sources));
 
         // Starts the backup service that will write files to disk if disconnected
-        final AbstractBatchedStage<AisPacket> fileWriter = start(FileWriterService.dateService(backup.toPath(),
-                backupFormat, AisPackets.OUTPUT_TO_TEXT));
+        fileWriter = start(FileWriterService.dateService(backup.toPath(), backupFormat, AisPackets.OUTPUT_TO_TEXT));
 
         for (AisReader reader : readers.values()) {
-            start(ArchiverUtil.wrapAisReader(reader, new Consumer<AisPacket>() {
-                @Override
-                public void accept(AisPacket aisPacket) {
-                    // We use offer because we do not want to block receiving
-                    if (!fileWriter.getInputQueue().offer(aisPacket)) {
-                        LOGGER.error("Could not persist packet, dropping it");
-                    }
-                }
-            }));
+            startReader(reader);
         }
+    }
+
+    private void startReader(AisReader reader) {
+        start(ArchiverUtil.wrapAisReader(reader, new Consumer<AisPacket>() {
+            @Override
+            public void accept(AisPacket aisPacket) {
+                // We use offer because we do not want to block receiving
+                if (fileWriter != null && !fileWriter.getInputQueue().offer(aisPacket)) {
+                    LOGGER.error("Could not persist packet, dropping it");
+                }
+            }
+        }));
     }
 
     public static void main(String[] args) throws Exception {

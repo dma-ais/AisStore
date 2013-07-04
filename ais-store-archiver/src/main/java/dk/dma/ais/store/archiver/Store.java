@@ -27,13 +27,13 @@ import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.packet.AisPackets;
 import dk.dma.ais.reader.AisReader;
 import dk.dma.ais.reader.AisTcpReader;
-import dk.dma.ais.store.cassandra.FullSchema;
+import dk.dma.ais.store.cassandra.CassandraAisStoreSchema;
+import dk.dma.ais.store.cassandra.support.KeySpaceConnection;
 import dk.dma.commons.app.AbstractDaemon;
 import dk.dma.commons.management.ManagedAttribute;
 import dk.dma.commons.management.ManagedResource;
 import dk.dma.commons.service.AbstractBatchedStage;
 import dk.dma.commons.service.io.FileWriterService;
-import dk.dma.db.cassandra.KeySpaceConnection;
 import dk.dma.enav.util.function.Consumer;
 
 /**
@@ -50,7 +50,7 @@ public class Store extends AbstractDaemon {
     static final int BATCH_SIZE = 500;
 
     @Parameter(names = "-backup", description = "The backup directory")
-    File backup = new File("./aisbackup");
+    File backup = new File("aisbackup");
 
     @Parameter(names = "-database", description = "The cassandra database to write data to")
     String cassandraDatabase = "aisdata";
@@ -91,7 +91,7 @@ public class Store extends AbstractDaemon {
 
         // Start a stage that will write each packet to cassandra
         final AbstractBatchedStage<AisPacket> cassandra = mainStage = start(con.createdBatchedStage(BATCH_SIZE,
-                new FullSchema()));
+                new CassandraAisStoreSchema()));
 
         // Start the thread that will read each file from the backup queue
         start(new FileImport(this));
@@ -113,8 +113,8 @@ public class Store extends AbstractDaemon {
 
     public static void main(String[] args) throws Exception {
         // args = new String[] { "-source", "ais163.sealan.dk:65262", "-store", "localhost" };
-        args = new String[] { "src1=ais163.sealan.dk:65262,ais167.sealan.dk:65261",
-                "src2=iala63.sealan.dk:4712,iala68.sealan.dk:4712", "src3=10.10.5.144:65061" };
+        // args = new String[] { "src1=ais163.sealan.dk:65262,ais167.sealan.dk:65261",
+        // "src2=iala63.sealan.dk:4712,iala68.sealan.dk:4712", "src3=10.10.5.144:65061" };
         new Store().execute(args);
     }
 }

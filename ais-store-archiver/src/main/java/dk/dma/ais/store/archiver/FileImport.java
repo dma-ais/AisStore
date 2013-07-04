@@ -29,12 +29,12 @@ import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.packet.AisPackets;
 
 /**
- * This class is responsible for reading backup files that are written when access to Cassandra is down.
+ * This class is responsible for reading text based ais files.
  * 
  * 
  * @author Kasper Nielsen
  */
-class FileImport extends AbstractExecutionThreadService {
+public class FileImport extends AbstractExecutionThreadService {
 
     /** The archiver. */
     private final Store archiver;
@@ -58,42 +58,45 @@ class FileImport extends AbstractExecutionThreadService {
         // Run in a loop until shutdown
         while (isRunning()) {
             Thread.sleep(1000); // Sleep for a bit
-
-            try {
-                // If we have no packets queued up. Let's see if there are files we can process
-                if (packets.size() == 0) {
-                    try (DirectoryStream<Path> ds = Files.newDirectoryStream(backupDirectory)) {
-                        for (Path p : ds) {
-                            // Add all the packets in the current file to packets
-                            packets.addAll(AisPackets.readFromFile(p));
-                            backupFile = p;
-                            break;
+            if (Files.exists(backupDirectory)) {
+                try {
+                    // If we have no packets queued up. Let's see if there are files we can process
+                    if (packets.size() == 0) {
+                        try (DirectoryStream<Path> ds = Files.newDirectoryStream(backupDirectory)) {
+                            for (Path p : ds) {
+                                // Add all the packets in the current file to packets
+                                // Vi kan potentielt have meget store filer. Vi bliver noedt til at
+                                // streame fra filer istedet for
+                                packets.addAll(AisPackets.readFromFile(p));
+                                backupFile = p;
+                                break;
+                            }
                         }
                     }
-                }
 
-                // Keep reading packets from the list and add it to the cassandra queue (if it is not clogged)
-                AisPacket p;
-                while ((p = packets.peek()) != null) {
-                    // We only add elements if the queue is not to clogged
-                    if (archiver.getNumberOfOutstandingPackets() > 10 * Store.BATCH_SIZE
-                            || !archiver.mainStage.getInputQueue().offer(p)) {
-                        break;// Lets sleep a little before adding more packets to the queue
+                    // Keep reading packets from the list and add it to the cassandra queue (if it is not clogged)
+                    AisPacket p;
+                    while ((p = packets.peek()) != null) {
+                        // We only add elements if the queue is not to clogged
+                        if (archiver.getNumberOfOutstandingPackets() > 10 * Store.BATCH_SIZE
+                                || !archiver.mainStage.getInputQueue().offer(p)) {
+                            break;// Lets sleep a little before adding more packets to the queue
+                        }
+                        packets.remove();// remove the peaked element
                     }
-                    packets.remove();// remove the peaked element
-                }
 
-                // If all packets have been processed from the current backup file. Delete it
-                if (packets.size() == 0 && backupFile != null) {
-                    try {
-                        Files.delete(backupFile);// empty file
-                    } catch (IOException e) {
-                        // Okay not great. Because we will keep reading the same file
+                    // If all packets have been processed from the current backup file. Delete it
+                    if (packets.size() == 0 && backupFile != null) {
+                        try {
+                            Files.delete(backupFile);// empty file
+                        } catch (IOException e) {
+                            // Okay not great. Because we will keep reading the same file
+                        }
+                        backupFile = null; // file has been deleted
                     }
-                    backupFile = null; // file has been deleted
+                } catch (Exception e) {
+                    e.printStackTrace();
                 }
-            } catch (Exception e) {
-                e.printStackTrace();
             }
         }
     }

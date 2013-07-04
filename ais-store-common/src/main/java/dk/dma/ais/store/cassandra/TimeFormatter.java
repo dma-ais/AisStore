@@ -19,8 +19,6 @@ import java.sql.Date;
 import java.util.Arrays;
 import java.util.concurrent.ThreadLocalRandom;
 
-import org.apache.cassandra.utils.Hex;
-
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Ints;
 import com.google.common.primitives.Longs;
@@ -91,7 +89,6 @@ enum TimeFormatter {
 
         System.out.println();
         // System.out.println(MIN.fromCompactReminder(prefix, reminder)(1523423423L));
-        System.out.println(Hex.bytesToHex(MIN.getCompactReminder(1523423423L)));
         System.out.println("bye");
     }
 }

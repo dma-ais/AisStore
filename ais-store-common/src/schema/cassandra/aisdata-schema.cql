@@ -6,19 +6,17 @@ CREATE KEYSPACE aisdata
 
 USE aisdata;
 
-CREATE TABLE messages_time (user int PRIMARY KEY) 
+CREATE TABLE messages_time (timeblock int PRIMARY KEY) 
   WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':1024} AND
        comment     = 'Contains AIS data ordered by receive time. Each row containing 10 minutes of data';
        
-CREATE TABLE messages_cell1 (user int PRIMARY KEY) 
+CREATE TABLE messages_cell1 (cellid int PRIMARY KEY) 
   WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':256} AND
        comment     = 'Contains AIS data ordered by the cell id';
       
-CREATE TABLE messages_mmsi (user int PRIMARY KEY) 
+CREATE TABLE messages_mmsi (mmsi int PRIMARY KEY) 
   WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':256} AND
        comment     = 'Contains AIS data ordered by mmsi number';
-CREATE TABLE positions (user ascii PRIMARY KEY) with compression={'sstable_compression':'DeflateCompressor', 'chunk_length_kb':128};
-
  
 CREATE TABLE mmsi (
   mmsi int PRIMARY KEY,
@@ -28,42 +26,6 @@ CREATE TABLE mmsi (
   last_position_timestamp bigint,
   last_position_timehour int,
   last_position_timeminute int,
-  last_position_timesecond int,
+  last_position_timesecond int
   ) WITH comment='Latest mmsi Data';
- 
- 
- 
- 
- 
-CREATE TABLE messages_time (user int PRIMARY KEY)
-with compression_options={'sstable_compression':'DeflateCompressor', 'chunk_length_kb':1024};
 
-
-WITH key_validation_class= IntegerType and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:1024};
- 
- 
-CREATE COLUMN FAMILY messages_time WITH key_validation_class= IntegerType and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:1024};
-CREATE COLUMN FAMILY messages_cell10 WITH key_validation_class= IntegerType and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:1024};
-CREATE COLUMN FAMILY messages_cell1 WITH key_validation_class= IntegerType and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:256};
-CREATE COLUMN FAMILY messages_mmsi WITH key_validation_class= IntegerType and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:256};
-CREATE COLUMN FAMILY positions WITH key_validation_class= AsciiType and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:128};
-
-
-CREATE COLUMN FAMILY counters with default_validation_class=CounterColumnType;
-
-
-DROP TABLE mmsi;
-
-CREATE INDEX mmsi_last_position_timehour
-  ON mmsi (last_position_timehour);
-CREATE INDEX mmsi_last_position_timeminute
-  ON mmsi (last_position_timeminute);
-CREATE INDEX mmsi_last_position_timesecond
-  ON mmsi (last_position_timesecond);
-CREATE INDEX mmsi_last_position_cell001
-  ON mmsi (last_position_cell001);
-CREATE INDEX mmsi_last_position_cell01
-  ON mmsi (last_position_cell01);
-CREATE INDEX mmsi_last_position_cell1
-  ON mmsi (last_position_cell1);
-  

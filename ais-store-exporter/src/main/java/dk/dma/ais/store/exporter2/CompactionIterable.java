@@ -83,7 +83,7 @@ public class CompactionIterable extends AbstractCompactionIterable {
                         n += scanner.getCurrentPosition();
                     }
                     bytesRead = n;
-                    controller.mayThrottle(bytesRead);
+                    // controller.mayThrottle(bytesRead);
                 }
             }
         }

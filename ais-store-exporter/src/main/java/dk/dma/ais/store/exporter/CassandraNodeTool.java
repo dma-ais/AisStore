@@ -24,7 +24,7 @@ import java.util.List;
 
 import org.apache.cassandra.tools.NodeCmd;
 
-import dk.dma.ais.store.cassandra.FullSchema;
+import dk.dma.ais.store.cassandra.CassandraAisStoreSchema;
 
 /**
  * Writing a snapshot takes a couple of tricks. Because someone decided it would be a good idea using System.exit(0) in
@@ -64,7 +64,7 @@ class CassandraNodeTool {
     }
 
     void takeSnapshot(String keyspace, String snapshotName) throws Exception {
-        execute("snapshot", requireNonNull(keyspace), "-cf", FullSchema.MESSAGES_TIME.getName(), "-t",
+        execute("snapshot", requireNonNull(keyspace), "-cf", CassandraAisStoreSchema.MESSAGES_TIME.getName(), "-t",
                 requireNonNull(snapshotName));
     }
 

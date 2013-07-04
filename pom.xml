@@ -16,9 +16,9 @@
   <description>AisStore parent module</description>
 
   <properties>
-    <jettyVersion>9.0.2.v20130417</jettyVersion>
-    <cassandraVersion>1.2.4</cassandraVersion>
-    <astyanaxVersion>1.56.37</astyanaxVersion>
+    <cassandraVersion>1.2.6</cassandraVersion>
+    <metricsVersion>3.0.0</metricsVersion>
+    <astyanaxVersion>1.56.42</astyanaxVersion>
   </properties>
   
   <scm>
@@ -40,8 +40,7 @@
     <module>ais-store-common</module>
     <module>ais-store-archiver</module>
     <module>ais-store-exporter</module>
-    <module>ais-store-web</module>
-    <module>distribution</module>
+    <module>ais-store-cli</module>
   </modules>
 
   <repositories>

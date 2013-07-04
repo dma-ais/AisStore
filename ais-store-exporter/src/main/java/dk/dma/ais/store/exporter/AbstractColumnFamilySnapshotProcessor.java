@@ -30,7 +30,7 @@ import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.exceptions.ConfigurationException;
 
-import dk.dma.ais.store.cassandra.FullSchema;
+import dk.dma.ais.store.cassandra.CassandraAisStoreSchema;
 import dk.dma.commons.util.FormatUtil;
 
 /**
@@ -114,13 +114,13 @@ public class AbstractColumnFamilySnapshotProcessor {
     @SuppressWarnings("unused")
     protected void processDataFileLocations(String snapshotName) throws Exception {
         for (String s : DatabaseDescriptor.getAllDataFileLocations()) {
-            Path snapshots = Paths.get(s).resolve(keyspace).resolve(FullSchema.MESSAGES_TIME.getName())
+            Path snapshots = Paths.get(s).resolve(keyspace).resolve(CassandraAisStoreSchema.MESSAGES_TIME.getName())
                     .resolve("snapshots").resolve(snapshotName);
             // iterable through all data files (xxxx-Data)
             // if the dataformat changes hf needs to be upgraded to the current versino
             // http://svn.apache.org/repos/asf/cassandra/trunk/src/java/org/apache/cassandra/io/sstable/Descriptor.java
             try (DirectoryStream<Path> ds = Files.newDirectoryStream(snapshots, keyspace + "-"
-                    + FullSchema.MESSAGES_TIME.getName() + "-hf-*-Data.db")) {
+                    + CassandraAisStoreSchema.MESSAGES_TIME.getName() + "-hf-*-Data.db")) {
                 for (Path p : ds) { // for each data file
                     // processDataFile(p, null);
                     if (bytesRead.get() > maxRead) {

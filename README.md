@@ -1,4 +1,4 @@
-AisStore
+AisStore (Updated 4. July 2013)
 -------------------------------------------------------------------------------
 AisStore is an online high-available database capable of archiving multiple terabytes of AIS-data with an insert rate of at least 100.000 messages/minute. 
 Besides the archiving mechanism is features an AIS-data export tool that is limited only by disk-read speed. 
@@ -13,8 +13,7 @@ Prerequisites: Java 1.7 + Maven 3
 > git clone git@github.com:cakeframework/cake.git
 > cd cake
 > mvn install
-You can find the resulting jar file as singlejar/target/cake-xxxx.jar
-
+You can find the command line interface jar to AisStore in ais-store-cli/target/ais-store-cli-xxxx.jar
 
 Source Code Organization
 -------------------------------------------------------------------------------
@@ -22,30 +21,15 @@ The project is organized in the following directories
 
 ais-store-common     Contains common classes for AisStore
 ais-store-archiver   Contains the archiver responsible for storing AIS-data
-ais-store-exporter   Contains the bulk AIS-data command line exporter
-ais-store-web        Contains the REST-based query front end
-
-
+ais-store-exporter   Contains the AIS-data exporter
+ais-store-cli        Contains the command line interface to the rest of the services
 
 AIS Store Archiver
 -------------------------------------------------------------------------------
 
+
 AIS Store Exporter
 -------------------------------------------------------------------------------
-
-AIS Store Web
--------------------------------------------------------------------------------
-The main responsibility of the web module is to provide a REST based query interface to the data in AisStore.
-
-How to start it.
-
-
-
-Current status
-========
-The code needs to be cleanup. It was just a prototype being checked in
-
-
 
 
 
