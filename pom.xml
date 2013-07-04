@@ -22,9 +22,9 @@
   </properties>
   
   <scm>
-    <connection>scm:git:git@github.com:dma-dk/AisStore.git</connection>
-    <developerConnection>scm:git:git@github.com:dma-dk/AisStore.git</developerConnection>
-    <url>https://github.com/dma-dk/AisStore</url>
+    <connection>scm:git:git@github.com:dma-ais/AisStore.git</connection>
+    <developerConnection>scm:git:git@github.com:dma-ais/AisStore.git</developerConnection>
+    <url>https://github.com/dma-ais/AisStore</url>
   </scm>
 
   <dependencies>
