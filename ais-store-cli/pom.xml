@@ -35,9 +35,7 @@
               <transformers>
                 <transformer
                   implementation="org.apache.maven.plugins.shade.resource.ManifestResourceTransformer">
-                  <!--
-                  <mainClass>dk.dma.ais.store.archiver.AisStore</mainClass> -->
-                  <mainClass>test.Main</mainClass>
+                  <mainClass>dk.dma.ais.store.Main</mainClass>
                 </transformer>
               </transformers>
             </configuration>

@@ -24,7 +24,7 @@ import dk.dma.ais.store.archiver.FileStore;
 import dk.dma.ais.store.archiver.Store;
 
 /**
- * The main entry point to the AisStore functionality.
+ * The command line interface to AisStore.
  * 
  * @author Kasper Nielsen
  */
@@ -61,10 +61,10 @@ public class Main {
     static void printError(String errorMessage) {
         System.out.println(errorMessage);
         System.out.println("The available AisStore commands are:");
-        System.out.println("    store        Reads data from datasources and stores data into Cassandra");
-        System.out.println("    fileimport   Reads data from files and stores data into Cassandra");
-        System.out.println("    fileexport   Exports data from Cassandra into files");
-        System.out.println("    filestore    Reads data from datasources and stores data into files");
+        System.out.println("    store        Reads data from AIS datasources and stores data into Cassandra");
+        System.out.println("    fileimport   Reads data from text files and stores data into Cassandra");
+        System.out.println("    fileexport   Exports data from Cassandra into text files");
+        System.out.println("    filestore    Reads data from AIS datasources and stores data into text files");
         System.exit(1);
     }
 }
