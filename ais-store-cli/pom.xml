@@ -17,7 +17,7 @@
 
   <packaging>jar</packaging>
   <modelVersion>4.0.0</modelVersion>
-  <artifactId>aisstore-cli</artifactId>
+  <artifactId>ais-store-cli</artifactId>
   <name>AisStore CLI</name>
   <build>
     <plugins>

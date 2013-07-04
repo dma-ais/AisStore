@@ -37,9 +37,9 @@ import dk.dma.ais.packet.AisPackets;
 public class FileImport extends AbstractExecutionThreadService {
 
     /** The archiver. */
-    private final Store archiver;
+    private final Archiver archiver;
 
-    FileImport(Store archiver) {
+    FileImport(Archiver archiver) {
         this.archiver = requireNonNull(archiver);
     }
 
@@ -78,7 +78,7 @@ public class FileImport extends AbstractExecutionThreadService {
                     AisPacket p;
                     while ((p = packets.peek()) != null) {
                         // We only add elements if the queue is not to clogged
-                        if (archiver.getNumberOfOutstandingPackets() > 10 * Store.BATCH_SIZE
+                        if (archiver.getNumberOfOutstandingPackets() > 10 * Archiver.BATCH_SIZE
                                 || !archiver.mainStage.getInputQueue().offer(p)) {
                             break;// Lets sleep a little before adding more packets to the queue
                         }

@@ -45,10 +45,10 @@ import dk.dma.enav.util.function.Consumer;
  * @author Kasper Nielsen
  */
 @ManagedResource
-public class FileStore extends AbstractDaemon {
+public class FileDump extends AbstractDaemon {
 
     /** The logger. */
-    static final Logger LOGGER = LoggerFactory.getLogger(FileStore.class);
+    static final Logger LOGGER = LoggerFactory.getLogger(FileDump.class);
 
     @Parameter(names = "-directory", description = "The backup directory")
     File backup = new File("aisfilestore");
@@ -63,7 +63,7 @@ public class FileStore extends AbstractDaemon {
     @Parameter(description = "filestore [A list of AIS sources (sourceName=host:port,host:port sourceName=host:port ...]")
     List<String> sources;
 
-    FileStore() {
+    FileDump() {
         super("AisStore");
     }
 
@@ -117,6 +117,6 @@ public class FileStore extends AbstractDaemon {
             System.err.println("Must specify at least 1 source (sourceName=host:port,host:port sourceName=host:port)");
             System.exit(1);
         }
-        new FileStore().execute(args);
+        new FileDump().execute(args);
     }
 }

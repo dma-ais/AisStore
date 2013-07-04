@@ -15,13 +15,11 @@
  */
 package dk.dma.ais.store;
 
-import java.util.ArrayList;
-import java.util.Arrays;
-
 import dk.dma.ais.store.archiver.FileExport;
 import dk.dma.ais.store.archiver.FileImport;
-import dk.dma.ais.store.archiver.FileStore;
-import dk.dma.ais.store.archiver.Store;
+import dk.dma.ais.store.archiver.Archiver;
+import dk.dma.commons.app.CliCommandList;
+import dk.dma.commons.app.CliCommandList.Command;
 
 /**
  * The command line interface to AisStore.
@@ -31,40 +29,25 @@ import dk.dma.ais.store.archiver.Store;
 public class Main {
 
     public static void main(String[] args) throws Exception {
-        // Commands with different options are not supported by JCommander
-        // So we have to write some custom code.
-        ArrayList<String> list = new ArrayList<>(Arrays.asList(args));
-        int cmdIndex = 0;
-        for (;; cmdIndex++) {
-            if (cmdIndex == list.size()) {
-                printError("No command specified");
-            } else if (!list.get(cmdIndex).startsWith("-")) {
-                break;
+        CliCommandList c = new CliCommandList("AisStore");
+        c.add("archive", "Reads data from AIS datasources and stores data into Cassandra", new Command() {
+            public void execute(String[] args) throws Exception {
+                Archiver.main(args);
             }
-        }
-        String command = list.get(cmdIndex);
-        list.remove(cmdIndex);
-        args = list.toArray(new String[list.size()]);
-        if (command.equals("store")) {
-            Store.main(args);
-        } else if (command.equals("fileimport")) {
-            FileImport.main(args);
-        } else if (command.equals("fileexport")) {
-            FileExport.main(args);
-        } else if (command.equals("filestore")) {
-            FileStore.main(args);
-        } else {
-            printError("Unknown command specified: " + command);
-        }
-    }
+        });
 
-    static void printError(String errorMessage) {
-        System.out.println(errorMessage);
-        System.out.println("The available AisStore commands are:");
-        System.out.println("    store        Reads data from AIS datasources and stores data into Cassandra");
-        System.out.println("    fileimport   Reads data from text files and stores data into Cassandra");
-        System.out.println("    fileexport   Exports data from Cassandra into text files");
-        System.out.println("    filestore    Reads data from AIS datasources and stores data into text files");
-        System.exit(1);
+        c.add("import", "Reads data from text files and stores data into Cassandra", new Command() {
+            public void execute(String[] args) throws Exception {
+                FileImport.main(args);
+            }
+        });
+
+        c.add("export", "Exports data from Cassandra into text files", new Command() {
+            public void execute(String[] args) throws Exception {
+                FileExport.main(args);
+            }
+        });
+
+        c.invoke(args);
     }
 }

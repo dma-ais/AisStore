@@ -54,16 +54,4 @@ public class AisStores {
         c.add(Calendar.SECOND, -(int) result);
         return c.getTime();
     }
-
-    public static void main(String[] args) throws Exception {
-        AisStore as = null;
-        // List<Integer> resultsAsList = as.findByArea(new Circle(1, 1, 1000, CoordinateSystem.CARTESIAN), null)
-        // .filter(AisPacketFilters.parseSourceFilter("id = AISD & bs=123123"))
-        // .map(new Function<AisPacket, Integer>() {
-        // @Override
-        // public Integer apply(AisPacket t) {
-        // return t.getAisMessage().getMsgId();
-        // }
-        // }).subscribe()
-    }
 }

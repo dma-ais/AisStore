@@ -41,7 +41,7 @@ import dk.dma.enav.util.function.Consumer;
  * @author Kasper Nielsen
  */
 @ManagedResource
-public class Store extends AbstractDaemon {
+public class Archiver extends AbstractDaemon {
 
     /** The file naming scheme for writing backup files. */
     static final String BACKUP_FORMAT = "'ais-store-failed' yyyy.MM.dd HH:mm'.txt.zip'";
@@ -115,6 +115,6 @@ public class Store extends AbstractDaemon {
         // args = new String[] { "-source", "ais163.sealan.dk:65262", "-store", "localhost" };
         // args = new String[] { "src1=ais163.sealan.dk:65262,ais167.sealan.dk:65261",
         // "src2=iala63.sealan.dk:4712,iala68.sealan.dk:4712", "src3=10.10.5.144:65061" };
-        new Store().execute(args);
+        new Archiver().execute(args);
     }
 }

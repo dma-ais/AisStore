@@ -17,15 +17,10 @@ CREATE COLUMN FAMILY messages_cell1 WITH key_validation_class= IntegerType and c
 CREATE COLUMN FAMILY messages_cell10 WITH key_validation_class= IntegerType and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:1024};
 CREATE COLUMN FAMILY messages_mmsi WITH key_validation_class= IntegerType and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:256};
 
-
-
 CREATE TABLE sources (
     name text PRIMARY KEY,
     addresses set<text>
 );
-
-
-
 
 CREATE COLUMN FAMILY positions WITH key_validation_class= AsciiType and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:128};
 

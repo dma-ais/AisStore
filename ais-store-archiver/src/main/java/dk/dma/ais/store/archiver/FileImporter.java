@@ -26,7 +26,7 @@ import dk.dma.ais.packet.AisPacket;
  * @author Kasper Nielsen
  */
 class FileImporter {
-    private static final int SIZE = 10 * Store.BATCH_SIZE;
+    private static final int SIZE = 10 * Archiver.BATCH_SIZE;
 
     /** Where files should be read from. */
     Path readFrom;
