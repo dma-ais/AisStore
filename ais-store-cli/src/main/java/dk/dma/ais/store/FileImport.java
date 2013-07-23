@@ -17,15 +17,11 @@ package dk.dma.ais.store;
 
 import static java.util.Objects.requireNonNull;
 
-import java.io.BufferedInputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.concurrent.TimeUnit;
-import java.util.zip.ZipEntry;
-import java.util.zip.ZipInputStream;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -34,6 +30,7 @@ import com.google.common.util.concurrent.AbstractExecutionThreadService;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.packet.AisPacketInputStream;
+import dk.dma.commons.util.io.PathUtil;
 
 /**
  * This class is responsible for reading text based ais files.
@@ -81,7 +78,8 @@ public class FileImport extends AbstractExecutionThreadService {
                                         restoreFile(p);
                                     } catch (Exception e) {
                                         LOG.error("Unknown error while trying to restore backup from file " + p, e);
-                                        Path ne = p.resolveSibling(p.getFileName().toString() + ".unreadable");
+                                        Path ne = PathUtil.findUnique(p.resolveSibling(p.getFileName().toString()
+                                                + ".unreadable"));
                                         LOG.error("Trying to rename the file to " + ne, e);
                                         try {
                                             Files.move(p, ne);
@@ -102,40 +100,33 @@ public class FileImport extends AbstractExecutionThreadService {
 
     private void restoreFile(Path p) throws IOException, InterruptedException {
         LOG.info("Trying to restore " + p);
-        try (InputStream is = Files.newInputStream(p);
-                BufferedInputStream bis = new BufferedInputStream(is);
-                ZipInputStream zis = new ZipInputStream(bis)) {
-            ZipEntry ze = zis.getNextEntry();
-            while (ze != null) {
-                AisPacketInputStream s = new AisPacketInputStream(zis, true);
-                AisPacket packet = null;
-                while ((packet = s.readPacket()) != null) {
-                    // we might be overloaded so sleep for a bit if we cannot write the packet
-                    while (isRunning()) {
-                        int q = archiver.getNumberOfOutstandingPackets();
-                        if (q > 10 * Archiver.BATCH_SIZE) {
-                            LOG.info("Write queue to Cassandra is to busy size=" + q + ", sleeping for a bit");
-                        } else if (archiver.mainStage.getInputQueue().offer(packet)) {
-                            break;
-                        } else {
-                            LOG.info("Write queue to Cassandra was full size=" + q + ", sleeping for a bit");
-                        }
-                        archiver.sleepUnlessShutdown(1, TimeUnit.SECONDS);
+        try (AisPacketInputStream s = AisPacketInputStream.createFromFile(p, true)) {
+            AisPacket packet = null;
+            while ((packet = s.readPacket()) != null) {
+                // we might be overloaded so sleep for a bit if we cannot write the packet
+                while (isRunning()) {
+                    int q = archiver.getNumberOfOutstandingPackets();
+                    if (q > 10 * Archiver.BATCH_SIZE) {
+                        LOG.info("Write queue to Cassandra is to busy size=" + q + ", sleeping for a bit");
+                    } else if (archiver.mainStage.getInputQueue().offer(packet)) {
+                        System.out.println("Got it");
+                        break;
+                    } else {
+                        LOG.info("Write queue to Cassandra was full size=" + q + ", sleeping for a bit");
                     }
-                    // System.out.println("Packet added");
-                    if (!isRunning()) {
-                        return;
-                    }
+                    archiver.sleepUnlessShutdown(1, TimeUnit.SECONDS);
                 }
-
-                ze = zis.getNextEntry();
+                // System.out.println("Packet added");
+                if (!isRunning()) {
+                    return;
+                }
             }
-            LOG.info("Finished restoring " + p);
-            try {
-                Files.delete(p);// empty file
-            } catch (IOException e) {
-                LOG.error("Could not delete backup file: " + p, e);// Auch, we will keep reading the same file
-            }
+        }
+        LOG.info("Finished restoring " + p);
+        try {
+            Files.delete(p);// empty file
+        } catch (IOException e) {
+            LOG.error("Could not delete backup file: " + p, e);// Auch, we will keep reading the same file
         }
     }
 }
