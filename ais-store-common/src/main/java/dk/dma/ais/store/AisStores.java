@@ -23,26 +23,11 @@ import org.joda.time.DateTime;
 import org.joda.time.Interval;
 
 /**
+ * Various helper methods for {@link AisStore}.
  * 
  * @author Kasper Nielsen
  */
 public class AisStores {
-
-    public static Interval toInterval(String isoXXInterval) {
-        if (!isoXXInterval.contains("/")) {
-            isoXXInterval += "/" + DateTime.now();
-        }
-        return Interval.parse(isoXXInterval);
-    }
-
-    public static Interval toInterval(Date startDate, Date endDate) {
-        return new Interval(startDate.getTime(), endDate.getTime());
-    }
-
-    public static Interval toInterval(long timeback, TimeUnit unit) {
-        Date now = new Date();
-        return toInterval(substract(now, timeback, unit), now);
-    }
 
     static Date substract(Date date, long durationToSubstract, TimeUnit unit) {
         long result = unit.toSeconds(durationToSubstract);
@@ -53,5 +38,21 @@ public class AisStores {
         c.setTime(date);
         c.add(Calendar.SECOND, -(int) result);
         return c.getTime();
+    }
+
+    public static Interval toInterval(Date startDate, Date endDate) {
+        return new Interval(startDate.getTime(), endDate.getTime());
+    }
+
+    public static Interval toInterval(String isoXXInterval) {
+        if (!isoXXInterval.contains("/")) {
+            isoXXInterval += "/" + DateTime.now();
+        }
+        return Interval.parse(isoXXInterval);
+    }
+
+    public static Interval toIntervalFromNow(long timeback, TimeUnit unit) {
+        Date now = new Date();
+        return toInterval(substract(now, timeback, unit), now);
     }
 }

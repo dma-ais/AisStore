@@ -15,9 +15,7 @@
  */
 package dk.dma.ais.store;
 
-import dk.dma.ais.store.archiver.FileExport;
-import dk.dma.ais.store.archiver.FileImport;
-import dk.dma.ais.store.archiver.Archiver;
+import dk.dma.ais.store.exporter2.FileExport;
 import dk.dma.commons.app.CliCommandList;
 import dk.dma.commons.app.CliCommandList.Command;
 
@@ -36,9 +34,9 @@ public class Main {
             }
         });
 
-        c.add("import", "Reads data from text files and stores data into Cassandra", new Command() {
+        c.add("import", "Imports data from text files and stores data into Cassandra", new Command() {
             public void execute(String[] args) throws Exception {
-                FileImport.main(args);
+                // FileImport.main(args);
             }
         });
 

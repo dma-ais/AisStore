@@ -18,21 +18,14 @@ package dk.dma.ais.store.cassandra.support;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.netflix.astyanax.MutationBatch;
 import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
-
-import dk.dma.ais.reader.AisReader;
 
 /**
  * 
  * @author Kasper Nielsen
  */
 public abstract class CassandraWriteSink<T> {
-
-    private static final Logger LOG = LoggerFactory.getLogger(AisReader.class);
 
     private final AtomicLong elementWritten = new AtomicLong();
 
@@ -42,7 +35,5 @@ public abstract class CassandraWriteSink<T> {
         elementWritten.addAndGet(messages.size());
     }
 
-    public void onFailure(List<T> messages, ConnectionException cause) {
-        LOG.error("Could not persist messages in cassandra", cause);
-    }
+    public abstract void onFailure(List<T> messages, ConnectionException cause);
 }

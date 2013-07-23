@@ -18,6 +18,7 @@ package dk.dma.ais.store.cassandra.support;
 import static java.util.Objects.requireNonNull;
 
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -57,9 +58,7 @@ class CassandraBatchedStagedWriter<T> extends AbstractBatchedStage<T> {
         super(Math.min(100000, batchSize * 100), batchSize);
         this.connection = requireNonNull(connection);
         this.sink = requireNonNull(sink);
-
         final JmxReporter reporter = JmxReporter.forRegistry(metrics).inDomain("fooo.erer.er").build();
-
         reporter.start();
     }
 
@@ -84,7 +83,7 @@ class CassandraBatchedStagedWriter<T> extends AbstractBatchedStage<T> {
         } catch (ConnectionException e) {
             sink.onFailure(messages, e);
             try {
-                Thread.sleep(2500);// Lets wait for a bit
+                sleepUntilShutdown(2, TimeUnit.SECONDS);
             } catch (InterruptedException ignore) {
                 Thread.interrupted();
             }

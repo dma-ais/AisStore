@@ -61,7 +61,7 @@ public class AisQueryTest extends AbstractDaemon {
 
         // bb = BoundingBox.create(Position.create(54, 10), Position.create(56, 14), CoordinateSystem.CARTESIAN);
 
-        mqs.findByArea(bb, AisStores.toInterval(50, TimeUnit.DAYS))
+        mqs.findByArea(bb, AisStores.toIntervalFromNow(50, TimeUnit.DAYS))
                 .streamResults(System.out, AisPackets.OUTPUT_TO_HTML).get();
 
         System.out.println(System.currentTimeMillis() - start);

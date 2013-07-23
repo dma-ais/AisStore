@@ -21,7 +21,7 @@ import dk.dma.ais.packet.AisPacket;
 import dk.dma.enav.model.geometry.Area;
 
 /**
- * The entry interface to access AisStore.
+ * The entry interface to query AisStore.
  * 
  * @author Kasper Nielsen
  */
@@ -37,8 +37,10 @@ public interface AisStore {
      * @param end
      *            the end date (exclusive)
      * @return a new query
+     * @throws NullPointerException
+     *             if the specified area or interval is null
      */
-    Query<AisPacket> findByArea(Area shape, Interval interval);
+    Query<AisPacket> findByArea(Area area, Interval interval);
 
     /**
      * Finds all packets for the specified mmsi number in the given interval.
@@ -50,6 +52,8 @@ public interface AisStore {
      * @param end
      *            the end date (exclusive)
      * @return a new query
+     * @throws NullPointerException
+     *             if the specified interval is null
      */
     Query<AisPacket> findByMMSI(int mmsi, Interval interval);
 
@@ -63,38 +67,8 @@ public interface AisStore {
      * @param end
      *            the end date (exclusive)
      * @return a new query
+     * @throws NullPointerException
+     *             if the specified interval is null
      */
     Query<AisPacket> findByTime(Interval interval);
 }
-
-//
-//
-// /**
-// * Finds the positions of all vessels at the specified date. If the specified time resolution is
-// * {@link TimeUnit#HOURS} it will return the latest reported position from the same hour as the specified date.
-// * Likewise if the specified time resolution is {@link TimeUnit#DAYS} it will return the latest reported position
-// * from the same day as the specified date.
-// *
-// * @param date
-// * the date
-// * @param timeResolution
-// * the resolution either {@link TimeUnit#HOURS} or {@link TimeUnit#DAYS}
-// * @return a result object
-// * @throws IllegalArgumentException
-// * if time resolution is not either {@link TimeUnit#HOURS} or {@link TimeUnit#DAYS}
-// * @throws Exception
-// */
-// Query<PositionTime> findAllPositions(Date date, TimeUnit timeResolution) throws Exception;
-//
-//
-//
-// Query<PositionTime> findCells(Date date, TimeUnit timeResolution) throws Exception;
-//
-// // uses mmsi_hour or mmsi_day
-// Query<CellPositionMmsi> findCells(int mmsi, Interval interval, CellResolution cellResolution) throws Exception;
-//
-// Query<CellPositionMmsi> findInCell(int cellId, CellResolution resolution, Interval interval) throws Exception;
-//
-// Query<PositionTime> findPositions(int mmsi, Interval interval, CellResolution resolution, TimeUnit
-// timeResolution)
-// throws Exception;

@@ -13,27 +13,29 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.ais.store.archiver;
+package dk.dma.ais.store;
 
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
-import java.util.Map;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.packet.AisPackets;
-import dk.dma.ais.reader.AisReader;
-import dk.dma.ais.reader.AisTcpReader;
+import dk.dma.ais.reader.AisReaderGroup;
 import dk.dma.ais.store.cassandra.CassandraAisStoreSchema;
 import dk.dma.ais.store.cassandra.support.KeySpaceConnection;
 import dk.dma.commons.app.AbstractDaemon;
 import dk.dma.commons.management.ManagedAttribute;
 import dk.dma.commons.management.ManagedResource;
 import dk.dma.commons.service.AbstractBatchedStage;
-import dk.dma.commons.service.io.FileWriterService;
+import dk.dma.commons.service.io.MessageToFileService;
 import dk.dma.enav.util.function.Consumer;
 
 /**
@@ -42,6 +44,9 @@ import dk.dma.enav.util.function.Consumer;
  */
 @ManagedResource
 public class Archiver extends AbstractDaemon {
+
+    /** The logger. */
+    static final Logger LOG = LoggerFactory.getLogger(Archiver.class);
 
     /** The file naming scheme for writing backup files. */
     static final String BACKUP_FORMAT = "'ais-store-failed' yyyy.MM.dd HH:mm'.txt.zip'";
@@ -80,41 +85,49 @@ public class Archiver extends AbstractDaemon {
     @Override
     protected void runDaemon(Injector injector) throws Exception {
         // setup an AisReader for each source
-        Map<String, AisTcpReader> readers = AisTcpReader.parseSourceList(sources);
+        AisReaderGroup g = AisReaderGroup.create(sources);
 
         // Starts the backup service that will write files to disk if disconnected
-        final AbstractBatchedStage<AisPacket> fileWriter = start(FileWriterService.dateService(backup.toPath(),
-                BACKUP_FORMAT, AisPackets.OUTPUT_TO_TEXT));
+        final AbstractBatchedStage<AisPacket> backupService = start(MessageToFileService.dateTimeService(
+                backup.toPath(), BACKUP_FORMAT, AisPackets.OUTPUT_TO_TEXT));
 
         // Setup keyspace for cassandra
         KeySpaceConnection con = start(KeySpaceConnection.connect(cassandraDatabase, cassandraSeeds));
 
         // Start a stage that will write each packet to cassandra
         final AbstractBatchedStage<AisPacket> cassandra = mainStage = start(con.createdBatchedStage(BATCH_SIZE,
-                new CassandraAisStoreSchema()));
+                new CassandraAisStoreSchema() {
+                    @Override
+                    public void onFailure(List<AisPacket> messages, ConnectionException cause) {
+                        LOG.error("Could not write batch to cassandra", cause);
+                        for (AisPacket p : messages) {
+                            if (!backupService.getInputQueue().offer(p)) {
+                                System.err.println("Could not persist packet!");
+                            }
+                        }
+                    }
+                }));
 
         // Start the thread that will read each file from the backup queue
         start(new FileImport(this));
 
-        for (AisReader reader : readers.values()) {
-            start(ArchiverUtil.wrapAisReader(reader, new Consumer<AisPacket>() {
-                @Override
-                public void accept(AisPacket aisPacket) {
-                    // We use offer because we do not want to block receiving
-                    if (!cassandra.getInputQueue().offer(aisPacket)) {
-                        if (!fileWriter.getInputQueue().offer(aisPacket)) {
-                            System.err.println("Could not persist packet");
-                        }
+        g.stream().subscribePackets(new Consumer<AisPacket>() {
+            public void accept(AisPacket aisPacket) {
+                // We use offer because we do not want to block receiving
+                if (!cassandra.getInputQueue().offer(aisPacket)) {
+                    if (!backupService.getInputQueue().offer(aisPacket)) {
+                        System.err.println("Could not persist packet");
                     }
                 }
-            }));
-        }
+            }
+        });
+        start(g.asService());
     }
 
     public static void main(String[] args) throws Exception {
         // args = new String[] { "-source", "ais163.sealan.dk:65262", "-store", "localhost" };
-        // args = new String[] { "src1=ais163.sealan.dk:65262,ais167.sealan.dk:65261",
-        // "src2=iala63.sealan.dk:4712,iala68.sealan.dk:4712", "src3=10.10.5.144:65061" };
+        args = new String[] { "src1=ais163.sealan.dk:65262,ais167.sealan.dk:65261",
+                "src2=iala63.sealan.dk:4712,iala68.sealan.dk:4712", "src3=10.10.5.144:65061" };
         new Archiver().execute(args);
     }
 }

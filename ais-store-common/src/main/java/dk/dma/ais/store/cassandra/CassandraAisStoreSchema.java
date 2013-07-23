@@ -39,7 +39,7 @@ import dk.dma.enav.model.geometry.PositionTime;
  * 
  * @author Kasper Nielsen
  */
-public class CassandraAisStoreSchema extends CassandraWriteSink<AisPacket> {
+public abstract class CassandraAisStoreSchema extends CassandraWriteSink<AisPacket> {
 
     public static final ColumnFamily<Integer, byte[]> MESSAGES_CELL1 = new ColumnFamily<>("messages_cell1",
             IntegerSerializer.get(), BytesArraySerializer.get());
@@ -90,7 +90,7 @@ public class CassandraAisStoreSchema extends CassandraWriteSink<AisPacket> {
         if (message != null) {
             tableMmsi(mb, packet, message, ts);
             tableCell1_10(mb, packet, message, p, ts);
-            tableLastestPosition(mb, packet, message, p, ts);
+            // tableLastestPosition(mb, packet, message, p, ts);
         }
         // positions(mb, packet, message, ts);
         // mmsi(mb, packet, message, ts);
