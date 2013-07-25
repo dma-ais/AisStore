@@ -57,10 +57,10 @@ public class Archiver extends AbstractDaemon {
     @Parameter(names = "-backup", description = "The backup directory")
     File backup = new File("aisbackup");
 
-    @Parameter(names = "-database", description = "The cassandra database to write data to")
-    String cassandraDatabase = "aisdata";
+    @Parameter(names = "-databaseName", description = "The cassandra database to write data to")
+    String databaseName = "aisdata";
 
-    @Parameter(names = "-hosts", description = "A list of cassandra hosts that can store the data")
+    @Parameter(names = "-database", description = "A list of cassandra hosts that can store the data")
     List<String> cassandraSeeds = Arrays.asList("localhost");
 
     /** The stage that is responsible for writing the package */
@@ -85,7 +85,7 @@ public class Archiver extends AbstractDaemon {
     @Override
     protected void runDaemon(Injector injector) throws Exception {
         // Setup keyspace for cassandra
-        KeySpaceConnection con = start(KeySpaceConnection.connect(cassandraDatabase, cassandraSeeds));
+        KeySpaceConnection con = start(KeySpaceConnection.connect(databaseName, cassandraSeeds));
 
         // Starts the backup service that will write files to disk if disconnected
         final MessageToFileService<AisPacket> backupService = start(MessageToFileService.dateTimeService(
@@ -112,7 +112,7 @@ public class Archiver extends AbstractDaemon {
         start(new FileImportService(this));
         start(backupService.startFlushThread()); // we want to occasional flush and close dormant files
 
-        g.stream().subscribePackets(new Consumer<AisPacket>() {
+        g.stream().subscribe(new Consumer<AisPacket>() {
             public void accept(AisPacket aisPacket) {
                 // We use offer because we do not want to block receiving
                 if (!cassandra.getInputQueue().offer(aisPacket)) {
@@ -127,8 +127,7 @@ public class Archiver extends AbstractDaemon {
 
     public static void main(String[] args) throws Exception {
         // args = new String[] { "-source", "ais163.sealan.dk:65262", "-store", "localhost" };
-        args = new String[] { "src1=ais163.sealan.dk:65262,ais167.sealan.dk:65261",
-                "src2=iala63.sealan.dk:4712,iala68.sealan.dk:4712", "src3=10.10.5.144:65061" };
-        new Archiver().execute(args);
+
+        new Archiver().execute(AisReaderGroup.getDefaultSources());
     }
 }

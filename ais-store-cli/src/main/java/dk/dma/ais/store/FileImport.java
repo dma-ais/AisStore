@@ -53,10 +53,10 @@ class FileImport extends AbstractCommandLineTool {
     /** Where files should be moved to after having been processed. */
     Path moveTo;
 
-    @Parameter(names = "-database", description = "The cassandra database to write data to")
+    @Parameter(names = "-databaseName", description = "The cassandra database to write data to")
     String cassandraDatabase = "aisdata";
 
-    @Parameter(names = "-hosts", description = "A list of cassandra hosts that can store the data")
+    @Parameter(names = "-database", description = "A list of cassandra hosts that can store the data")
     List<String> cassandraSeeds = Arrays.asList("localhost");
 
     /** {@inheritDoc} */
