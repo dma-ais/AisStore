@@ -26,7 +26,7 @@ import java.util.concurrent.Future;
 import java.util.concurrent.FutureTask;
 
 import dk.dma.commons.util.io.OutputStreamSink;
-import dk.dma.enav.util.function.EBlock;
+import dk.dma.enav.util.function.EConsumer;
 import dk.dma.enav.util.function.ESupplier;
 import dk.dma.enav.util.function.Function;
 import dk.dma.enav.util.function.Predicate;
@@ -198,7 +198,7 @@ public abstract class Query<T> implements Iterable<T> {
         }
     }
 
-    abstract static class Callback<T> extends EBlock<T> {
+    abstract static class Callback<T> extends EConsumer<T> {
         abstract void start() throws Exception;
 
         abstract void stop() throws Exception;

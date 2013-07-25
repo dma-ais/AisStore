@@ -43,7 +43,7 @@ import com.google.common.util.concurrent.RateLimiter;
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.cassandra.CassandraAisStoreSchema;
 import dk.dma.commons.util.FormatUtil;
-import dk.dma.enav.util.function.EBlock;
+import dk.dma.enav.util.function.EConsumer;
 import dk.dma.enav.util.function.Function;
 
 /**
@@ -126,7 +126,7 @@ public class CassandraColumnFamilyProcessor {
         }
     }
 
-    protected void processDataFileLocations(String snapshotName, EBlock<AisPacket> producer) throws Exception {
+    protected void processDataFileLocations(String snapshotName, EConsumer<AisPacket> producer) throws Exception {
         for (String s : DatabaseDescriptor.getAllDataFileLocations()) {
             Path snapshots = Paths.get(s).resolve(keyspace).resolve(CassandraAisStoreSchema.MESSAGES_TIME.getName())
                     .resolve("snapshots").resolve(snapshotName);
@@ -147,7 +147,7 @@ public class CassandraColumnFamilyProcessor {
         }
     }
 
-    protected void processDataFile(Path p, EBlock<AisPacket> producer) throws Exception {
+    protected void processDataFile(Path p, EConsumer<AisPacket> producer) throws Exception {
         SSTableReader reader = SSTableReader.open(Descriptor.fromFilename(p.toString()));
         SSTableScanner scanner = reader.getDirectScanner(RateLimiter.create(Double.MAX_VALUE));
         long sizeOnDisk = scanner.getLengthInBytes();
@@ -176,7 +176,7 @@ public class CassandraColumnFamilyProcessor {
     }
 
     @SuppressWarnings("unused")
-    protected void processRow(Path p, OnDiskAtomIterator columnIterator, EBlock<AisPacket> producer) throws Exception {
+    protected void processRow(Path p, OnDiskAtomIterator columnIterator, EConsumer<AisPacket> producer) throws Exception {
         while (columnIterator.hasNext()) {
             OnDiskAtom c = columnIterator.next();
             IColumn ic = (IColumn) c;

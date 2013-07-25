@@ -109,7 +109,7 @@ public class Archiver extends AbstractDaemon {
                 }));
 
         // Start the thread that will read each file from the backup queue
-        start(new FileImport(this));
+        start(new FileImportService(this));
         start(backupService.startFlushThread()); // we want to occasional flush and close dormant files
 
         g.stream().subscribePackets(new Consumer<AisPacket>() {

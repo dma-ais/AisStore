@@ -15,116 +15,84 @@
  */
 package dk.dma.ais.store;
 
-import static java.util.Objects.requireNonNull;
-
-import java.io.IOException;
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
 import java.nio.file.Path;
-import java.util.concurrent.TimeUnit;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.util.concurrent.AbstractExecutionThreadService;
+import com.beust.jcommander.Parameter;
+import com.google.inject.Injector;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.packet.AisPacketInputStream;
-import dk.dma.commons.util.io.PathUtil;
+import dk.dma.ais.store.cassandra.CassandraAisStoreSchema;
+import dk.dma.ais.store.cassandra.support.KeySpaceConnection;
+import dk.dma.commons.app.AbstractCommandLineTool;
+import dk.dma.commons.service.AbstractBatchedStage;
 
 /**
- * This class is responsible for reading text based ais files.
- * 
  * 
  * @author Kasper Nielsen
  */
-public class FileImport extends AbstractExecutionThreadService {
+class FileImport extends AbstractCommandLineTool {
 
     /** The logger. */
-    private static final Logger LOG = LoggerFactory.getLogger(FileImport.class);
+    static final Logger LOG = LoggerFactory.getLogger(FileImport.class);
 
-    /** The archiver. */
-    private final Archiver archiver;
+    private static final int SIZE = 10 * Archiver.BATCH_SIZE;
 
-    FileImport(Archiver archiver) {
-        this.archiver = requireNonNull(archiver);
-    }
+    @Parameter(required = true, description = "files to import...")
+    List<String> sources;
+
+    /** Where files should be moved to after having been processed. */
+    Path moveTo;
+
+    @Parameter(names = "-database", description = "The cassandra database to write data to")
+    String cassandraDatabase = "aisdata";
+
+    @Parameter(names = "-hosts", description = "A list of cassandra hosts that can store the data")
+    List<String> cassandraSeeds = Arrays.asList("localhost");
 
     /** {@inheritDoc} */
     @Override
-    protected void run() throws Exception {
-        // The backup directory
-        Path backupDirectory = archiver.backup.toPath();
-        LOG.info("Using " + backupDirectory.toAbsolutePath() + " for backup");
-        try {
-            Files.createDirectories(backupDirectory);
-        } catch (IOException e) {
-            LOG.error("Could not create backup directory, exiting", e);
-            System.exit(1);
-        }
-        // Run in a loop until shutdown
-        while (isRunning()) {
-            archiver.sleepUnlessShutdown(1, TimeUnit.SECONDS);
+    protected void run(Injector injector) throws Exception {
+        KeySpaceConnection con = start(KeySpaceConnection.connect(cassandraDatabase, cassandraSeeds));
 
-            // only start reading backups if there is no pressure on cassandra
-            if (archiver.getNumberOfOutstandingPackets() < 5 * Archiver.BATCH_SIZE) {
-                if (Files.exists(backupDirectory)) {
-                    try {
-                        // Let's see if there are files we can process
-                        try (DirectoryStream<Path> ds = Files.newDirectoryStream(backupDirectory)) {
-                            for (Path p : ds) {
-                                if (p.getFileName().toString().endsWith(".zip")) {
-                                    try {
-                                        restoreFile(p);
-                                    } catch (Exception e) {
-                                        LOG.error("Unknown error while trying to restore backup from file " + p, e);
-                                        Path ne = PathUtil.findUnique(p.resolveSibling(p.getFileName().toString()
-                                                + ".unreadable"));
-                                        LOG.error("Trying to rename the file to " + ne, e);
-                                        try {
-                                            Files.move(p, ne);
-                                        } catch (IOException ioe) {
-                                            LOG.error("Could not rename file ", ioe);
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    } catch (Exception e) {
-                        LOG.error("Unknown error while trying to restore backup ", e);
+        final AbstractBatchedStage<AisPacket> cassandra = start(con.createdBatchedStage(SIZE,
+                new CassandraAisStoreSchema() {
+                    public void onFailure(List<AisPacket> messages, ConnectionException cause) {
+                        LOG.error("Could not write batch to cassandra", cause);
+                        shutdown();
+                    }
+                }));
+
+        start(cassandra);
+
+        Set<Path> paths = new HashSet<>();
+        for (String s : sources) {
+            Path path = Paths.get(s);
+            if (paths.add(path)) {
+                int count = 0;
+                LOG.info("Starting processing file " + path);
+                try (AisPacketInputStream apis = AisPacketInputStream.createFromFile(path, true)) {
+                    AisPacket p;
+                    while ((p = apis.readPacket()) != null) {
+                        count++;
+                        cassandra.getInputQueue().put(p);
                     }
                 }
+                LOG.info("Finished processing file, " + count + " packets was imported from " + path);
             }
         }
     }
 
-    private void restoreFile(Path p) throws IOException, InterruptedException {
-        LOG.info("Trying to restore " + p);
-        try (AisPacketInputStream s = AisPacketInputStream.createFromFile(p, true)) {
-            AisPacket packet = null;
-            while ((packet = s.readPacket()) != null) {
-                // we might be overloaded so sleep for a bit if we cannot write the packet
-                while (isRunning()) {
-                    int q = archiver.getNumberOfOutstandingPackets();
-                    if (q > 10 * Archiver.BATCH_SIZE) {
-                        LOG.info("Write queue to Cassandra is to busy size=" + q + ", sleeping for a bit");
-                    } else if (archiver.mainStage.getInputQueue().offer(packet)) {
-                        break;
-                    } else {
-                        LOG.info("Write queue to Cassandra was full size=" + q + ", sleeping for a bit");
-                    }
-                    archiver.sleepUnlessShutdown(1, TimeUnit.SECONDS);
-                }
-                if (!isRunning()) {
-                    return;
-                }
-            }
-        }
-        LOG.info("Finished restoring " + p);
-        try {
-            Files.delete(p);// empty file
-        } catch (IOException e) {
-            LOG.error("Could not delete backup file: " + p, e);// Auch, we will keep reading the same file
-        }
+    public static void main(String[] args) throws Exception {
+        new FileImport().execute(args);
     }
 }

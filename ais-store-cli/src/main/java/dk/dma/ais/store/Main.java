@@ -15,9 +15,7 @@
  */
 package dk.dma.ais.store;
 
-import dk.dma.ais.store.exporter2.FileExport;
 import dk.dma.commons.app.CliCommandList;
-import dk.dma.commons.app.CliCommandList.Command;
 
 /**
  * The command line interface to AisStore.
@@ -28,24 +26,9 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         CliCommandList c = new CliCommandList("AisStore");
-        c.add("archive", "Reads data from AIS datasources and stores data into Cassandra", new Command() {
-            public void execute(String[] args) throws Exception {
-                Archiver.main(args);
-            }
-        });
-
-        c.add("import", "Imports data from text files and stores data into Cassandra", new Command() {
-            public void execute(String[] args) throws Exception {
-                FileImporter.main(args);
-            }
-        });
-
-        c.add("export", "Exports data from Cassandra into text files", new Command() {
-            public void execute(String[] args) throws Exception {
-                FileExport.main(args);
-            }
-        });
-
+        c.add(Archiver.class, "archive", "Reads data from AIS datasources and stores data into Cassandra");
+        c.add(FileImport.class, "import", "Imports data from text files and stores data into Cassandra");
+        c.add(FileExport.class, "export", "Exports data from Cassandra into text files");
         c.invoke(args);
     }
 }

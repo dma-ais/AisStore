@@ -27,7 +27,7 @@ import org.apache.cassandra.db.columniterator.OnDiskAtomIterator;
 
 import com.google.common.base.Function;
 
-import dk.dma.enav.util.function.EBlock;
+import dk.dma.enav.util.function.EConsumer;
 
 /**
  * 
@@ -70,7 +70,7 @@ public class ColumnFamilySnapshotProcessor implements Closeable {
         return null;
     }
 
-    public Job processAll(EBlock<OnDiskAtomIterator> processor) {
+    public Job processAll(EConsumer<OnDiskAtomIterator> processor) {
         return null;
     }
 

@@ -13,28 +13,22 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.ais.store.exporter2;
-
-import java.io.File;
-import java.util.Arrays;
-import java.util.List;
+package dk.dma.ais.store;
 
 import com.beust.jcommander.Parameter;
+import com.google.inject.Injector;
+
+import dk.dma.ais.store.exporter.RawSSTableAccessor;
+import dk.dma.commons.app.AbstractCommandLineTool;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class FileExport {
+public class FileExport extends AbstractCommandLineTool {
 
-    @Parameter(names = "-backup", description = "The backup directory")
-    File backup = new File("aisbackup");
-
-    @Parameter(names = "-database", description = "The cassandra database to export data from")
+    @Parameter(names = "-database", description = "The cassandra database to write data to")
     String cassandraDatabase = "aisdata";
-
-    @Parameter(names = "-database", description = "The directory where cassandra stores A list of cassandra hosts that data can be exported from")
-    List<String> cassandraSeeds = Arrays.asList("localhost");
 
     @Parameter(names = "-sourceFilter", description = "The sourceFilter to apply")
     String sourceFilter;
@@ -42,9 +36,18 @@ public class FileExport {
     @Parameter(names = "-interval", description = "The ISO 8601 time interval for data to export")
     String interval;
 
-    /**
-     * @param args
-     */
-    public static void main(String[] args) {}
+    @Parameter(names = "cassandraConfig", description = "cassandra.yaml")
+    String cassandraYaml = "/Applications/apache-cassandra-1.2.5/conf/cassandra.yaml";
 
+    /** {@inheritDoc} */
+    @Override
+    protected void run(Injector injector) throws Exception {
+        RawSSTableAccessor a = new RawSSTableAccessor(cassandraYaml, cassandraDatabase);
+        a.process(null, null);
+        System.exit(0);// Cassandra internals are a mess, no support for shutting it down without system.exit
+    }
+
+    public static void main(String[] args) throws Exception {
+        new FileExport().execute(args);
+    }
 }

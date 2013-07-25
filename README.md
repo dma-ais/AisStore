@@ -20,9 +20,8 @@ Source Code Organization
 The project is organized in the following directories
 
 ais-store-common     Contains common classes for AisStore
-ais-store-archiver   Contains the archiver responsible for storing AIS-data
 ais-store-exporter   Contains the AIS-data exporter
-ais-store-cli        Contains the command line interface to the rest of the services
+ais-store-cli        Contains the all inclusive - command line interface to AisStore
 
 AIS Store Archiver
 -------------------------------------------------------------------------------
@@ -30,7 +29,6 @@ AIS Store Archiver
 
 AIS Store Exporter
 -------------------------------------------------------------------------------
-
 
 
 
