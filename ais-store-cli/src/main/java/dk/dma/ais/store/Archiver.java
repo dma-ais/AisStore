@@ -84,15 +84,15 @@ public class Archiver extends AbstractDaemon {
     /** {@inheritDoc} */
     @Override
     protected void runDaemon(Injector injector) throws Exception {
-        // setup an AisReader for each source
-        AisReaderGroup g = AisReaderGroup.create(sources);
-
-        // Starts the backup service that will write files to disk if disconnected
-        final AbstractBatchedStage<AisPacket> backupService = start(MessageToFileService.dateTimeService(
-                backup.toPath(), BACKUP_FORMAT, AisPackets.OUTPUT_TO_TEXT));
-
         // Setup keyspace for cassandra
         KeySpaceConnection con = start(KeySpaceConnection.connect(cassandraDatabase, cassandraSeeds));
+
+        // Starts the backup service that will write files to disk if disconnected
+        final MessageToFileService<AisPacket> backupService = start(MessageToFileService.dateTimeService(
+                backup.toPath(), BACKUP_FORMAT, AisPackets.OUTPUT_TO_TEXT));
+
+        // setup an AisReader for each source
+        AisReaderGroup g = AisReaderGroup.create(sources);
 
         // Start a stage that will write each packet to cassandra
         final AbstractBatchedStage<AisPacket> cassandra = mainStage = start(con.createdBatchedStage(BATCH_SIZE,
@@ -110,6 +110,7 @@ public class Archiver extends AbstractDaemon {
 
         // Start the thread that will read each file from the backup queue
         start(new FileImport(this));
+        start(backupService.startFlushThread()); // we want to occasional flush and close dormant files
 
         g.stream().subscribePackets(new Consumer<AisPacket>() {
             public void accept(AisPacket aisPacket) {

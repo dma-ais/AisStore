@@ -15,33 +15,84 @@
  */
 package dk.dma.ais.store;
 
-import java.io.IOException;
 import java.nio.file.Path;
-import java.util.ArrayList;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import com.beust.jcommander.Parameter;
+import com.google.inject.Injector;
+import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import dk.dma.ais.packet.AisPacket;
+import dk.dma.ais.packet.AisPacketInputStream;
+import dk.dma.ais.store.cassandra.CassandraAisStoreSchema;
+import dk.dma.ais.store.cassandra.support.KeySpaceConnection;
+import dk.dma.commons.app.AbstractCommandLineTool;
+import dk.dma.commons.service.AbstractBatchedStage;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-class FileImporter {
+class FileImporter extends AbstractCommandLineTool {
+
+    /** The logger. */
+    static final Logger LOG = LoggerFactory.getLogger(FileImporter.class);
+
     private static final int SIZE = 10 * Archiver.BATCH_SIZE;
 
-    /** Where files should be read from. */
-    Path readFrom;
-
-    /** Only files with the specified suffix will be read. */
-    String suffix;
+    @Parameter(required = true, description = "files to import...")
+    List<String> sources;
 
     /** Where files should be moved to after having been processed. */
     Path moveTo;
 
-    ArrayList<AisPacket> outstanding = new ArrayList<>(SIZE);
+    @Parameter(names = "-database", description = "The cassandra database to write data to")
+    String cassandraDatabase = "aisdata";
 
-    @SuppressWarnings("unused")
-    void readFile(Path p) throws IOException {
-        // laes 1000 ting, indsaat dem
+    @Parameter(names = "-hosts", description = "A list of cassandra hosts that can store the data")
+    List<String> cassandraSeeds = Arrays.asList("localhost");
+
+    /** {@inheritDoc} */
+    @Override
+    protected void run(Injector injector) throws Exception {
+        KeySpaceConnection con = start(KeySpaceConnection.connect(cassandraDatabase, cassandraSeeds));
+
+        final AbstractBatchedStage<AisPacket> cassandra = start(con.createdBatchedStage(SIZE,
+                new CassandraAisStoreSchema() {
+                    public void onFailure(List<AisPacket> messages, ConnectionException cause) {
+                        LOG.error("Could not write batch to cassandra", cause);
+                        shutdown();
+                    }
+                }));
+
+        start(cassandra);
+
+        Set<Path> paths = new HashSet<>();
+        for (String s : sources) {
+            Path path = Paths.get(s);
+            if (paths.add(path)) {
+                int count = 0;
+                LOG.info("Starting processing file " + path);
+                try (AisPacketInputStream apis = AisPacketInputStream.createFromFile(path, true)) {
+                    AisPacket p;
+                    while ((p = apis.readPacket()) != null) {
+                        count++;
+                        cassandra.getInputQueue().put(p);
+                    }
+                }
+                LOG.info("Finished processing file, " + count + " packets was imported from " + path);
+            }
+        }
     }
 
+    public static void main(String[] args) throws Exception {
+        new FileImporter().execute(args);
+    }
 }

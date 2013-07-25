@@ -109,14 +109,12 @@ public class FileImport extends AbstractExecutionThreadService {
                     if (q > 10 * Archiver.BATCH_SIZE) {
                         LOG.info("Write queue to Cassandra is to busy size=" + q + ", sleeping for a bit");
                     } else if (archiver.mainStage.getInputQueue().offer(packet)) {
-                        System.out.println("Got it");
                         break;
                     } else {
                         LOG.info("Write queue to Cassandra was full size=" + q + ", sleeping for a bit");
                     }
                     archiver.sleepUnlessShutdown(1, TimeUnit.SECONDS);
                 }
-                // System.out.println("Packet added");
                 if (!isRunning()) {
                     return;
                 }

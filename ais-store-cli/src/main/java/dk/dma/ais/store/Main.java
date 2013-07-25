@@ -36,7 +36,7 @@ public class Main {
 
         c.add("import", "Imports data from text files and stores data into Cassandra", new Command() {
             public void execute(String[] args) throws Exception {
-                // FileImport.main(args);
+                FileImporter.main(args);
             }
         });
 
