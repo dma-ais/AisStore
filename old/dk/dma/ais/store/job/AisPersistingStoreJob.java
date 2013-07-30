@@ -19,6 +19,7 @@ package dk.dma.ais.store.job;
  * 
  * @author Kasper Nielsen
  */
+// Et job der altid koerer
 public abstract class AisPersistingStoreJob extends AisStoreJob {
     // ship timeout
 

@@ -17,6 +17,7 @@ package dk.dma.ais.store;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.Arrays;
 import java.util.List;
 
 import com.datastax.driver.core.Cluster;
@@ -61,7 +62,7 @@ public class AisStoreConnection extends AbstractService {
      * @throws NullPointerException
      *             if the specified area or interval is null
      */
-    public Iterable<AisPacket> queryForArea(Area area, long startInclusive, long stopExclusive) {
+    public Iterable<AisPacket> findForArea(Area area, long startInclusive, long stopExclusive) {
         return AisStoreQueries.forArea(session, area, startInclusive, stopExclusive);
     }
 
@@ -78,7 +79,7 @@ public class AisStoreConnection extends AbstractService {
      * @throws NullPointerException
      *             if the specified interval is null
      */
-    public Iterable<AisPacket> queryForTime(long startInclusive, long stopExclusive) {
+    public Iterable<AisPacket> findForTime(long startInclusive, long stopExclusive) {
         return AisStoreQueries.forTime(session, startInclusive, stopExclusive);
     }
 
@@ -95,8 +96,8 @@ public class AisStoreConnection extends AbstractService {
      * @throws NullPointerException
      *             if the specified interval is null
      */
-    public Iterable<AisPacket> queryForMmsi(int mmsi, long startInclusive, long stopExclusive) {
-        return AisStoreQueries.forMmsi(session, mmsi, startInclusive, stopExclusive);
+    public Iterable<AisPacket> findForMmsi(long startInclusive, long stopExclusive, int... mmsi) {
+        return AisStoreQueries.forMmsi(session, startInclusive, stopExclusive, mmsi);
     }
 
     /** {@inheritDoc} */
@@ -108,6 +109,10 @@ public class AisStoreConnection extends AbstractService {
 
     public Session getSession() {
         return session;
+    }
+
+    public static AisStoreConnection create(String keyspace, String... connectionPoints) {
+        return create(keyspace, Arrays.asList(connectionPoints));
     }
 
     public static AisStoreConnection create(String keyspace, List<String> connectionPoints) {

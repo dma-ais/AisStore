@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.nio.ByteBuffer;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -47,7 +48,17 @@ import dk.dma.enav.model.geometry.grid.Grid;
  * 
  * @author Kasper Nielsen
  */
-public class AisStoreQueries extends AbstractIterator<AisPacket> {
+class AisStoreQueries extends AbstractIterator<AisPacket> {
+    /**
+     * AisPacket implements Comparable. But I'm to afraid someone might break the functionality someday So we make a
+     * manual iterator
+     * */
+    static final Comparator<AisPacket> COMPARATOR = new Comparator<AisPacket>() {
+        public int compare(AisPacket p1, AisPacket p2) {
+            return Long.compare(p1.getBestTimestamp(), p2.getBestTimestamp());
+        }
+    };
+
     private static final int limit = 3000; // found by trial
 
     /** The session used for querying. */
@@ -144,13 +155,27 @@ public class AisStoreQueries extends AbstractIterator<AisPacket> {
         };
     }
 
-    public static Iterable<AisPacket> forMmsi(final Session s, final int mmsi, final long startInclusive,
-            final long stopExclusive) {
+    public static Iterable<AisPacket> forMmsi(final Session s, final long startInclusive, final long stopExclusive,
+            final int... mmsi) {
         requireNonNull(s);
+        if (mmsi.length == 0) {
+            return Collections.emptyList();
+        } else if (mmsi.length == 1) {
+            return new Iterable<AisPacket>() {
+                public Iterator<AisPacket> iterator() {
+                    return new AisStoreQueries(s, AisStoreSchema.TABLE_MMSI, AisStoreSchema.TABLE_MMSI_KEY, mmsi[0],
+                            startInclusive, stopExclusive);
+                }
+            };
+        }
         return new Iterable<AisPacket>() {
             public Iterator<AisPacket> iterator() {
-                return new AisStoreQueries(s, AisStoreSchema.TABLE_MMSI, AisStoreSchema.TABLE_MMSI_KEY, mmsi,
-                        startInclusive, stopExclusive);
+                ArrayList<AisStoreQueries> queries = new ArrayList<>();
+                for (int i = 0; i < mmsi.length; i++) {
+                    queries.add(new AisStoreQueries(s, AisStoreSchema.TABLE_MMSI, AisStoreSchema.TABLE_MMSI_KEY,
+                            mmsi[i], startInclusive, stopExclusive));
+                }
+                return Iterators.combine(queries, COMPARATOR);
             }
         };
     }
@@ -165,21 +190,21 @@ public class AisStoreQueries extends AbstractIterator<AisPacket> {
         final String tableName = useCell1 ? AisStoreSchema.TABLE_AREA_CELL1 : AisStoreSchema.TABLE_AREA_CELL10;
         final String keyName = useCell1 ? AisStoreSchema.TABLE_AREA_CELL1_KEY : AisStoreSchema.TABLE_AREA_CELL10_KEY;
         final Set<Cell> cells = useCell1 ? cells1 : cells10;
-
+        if (cells.size() == 1) {
+            return new Iterable<AisPacket>() {
+                public Iterator<AisPacket> iterator() {
+                    return new AisStoreQueries(s, tableName, keyName, cells.iterator().next().getCellId(),
+                            startInclusive, stopExclusive);
+                }
+            };
+        }
         return new Iterable<AisPacket>() {
             public Iterator<AisPacket> iterator() {
                 ArrayList<AisStoreQueries> queries = new ArrayList<>();
                 for (Cell c : cells) {
                     queries.add(new AisStoreQueries(s, tableName, keyName, c.getCellId(), startInclusive, stopExclusive));
                 }
-
-                // AisPacket implements Comparable. But I'm to afraid someone might break the functionality someday
-                // So we make a manual iterator
-                return Iterators.combine(queries, new Comparator<AisPacket>() {
-                    public int compare(AisPacket p1, AisPacket p2) {
-                        return Long.compare(p1.getBestTimestamp(), p2.getBestTimestamp());
-                    }
-                });
+                return Iterators.combine(queries, COMPARATOR);
             }
         };
     }

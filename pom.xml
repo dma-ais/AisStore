@@ -4,7 +4,7 @@
   <parent>
     <groupId>dk.dma</groupId>
     <artifactId>dma-root-pom</artifactId>
-    <version>8</version>
+    <version>9</version>
   </parent>
 
   <modelVersion>4.0.0</modelVersion>
@@ -14,11 +14,6 @@
   <packaging>pom</packaging>
   <name>AisStore Parent</name>
   <description>AisStore parent module</description>
-
-  <properties>
-    <cassandraVersion>1.2.5</cassandraVersion>
-    <metricsVersion>3.0.0</metricsVersion>
-  </properties>
   
   <scm>
     <connection>scm:git:git@github.com:dma-ais/AisStore.git</connection>
@@ -26,18 +21,9 @@
     <url>https://github.com/dma-ais/AisStore</url>
   </scm>
 
-  <dependencies>
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <version>4.10</version>
-      <scope>test</scope>
-    </dependency>
-  </dependencies>
-
   <modules>
     <module>ais-store-common</module>
-    <module>ais-store-exporter</module>
+    <module>ais-store-raw</module>
     <module>ais-store-cli</module>
   </modules>
 

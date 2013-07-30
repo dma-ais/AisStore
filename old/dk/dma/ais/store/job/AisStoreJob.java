@@ -23,6 +23,7 @@ import dk.dma.enav.model.geometry.Position;
  * 
  * @author Kasper Nielsen
  */
+// et midlertidig job
 public abstract class AisStoreJob {
     // ship timeout
 
