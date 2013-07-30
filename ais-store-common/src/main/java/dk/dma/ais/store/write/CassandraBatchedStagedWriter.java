@@ -13,10 +13,11 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.ais.store.cassandra.support;
+package dk.dma.ais.store.write;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -26,24 +27,25 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
-import com.netflix.astyanax.MutationBatch;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
+import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.exceptions.QueryValidationException;
+import com.datastax.driver.core.querybuilder.Batch;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
 
+import dk.dma.ais.store.AisStoreConnection;
 import dk.dma.commons.service.AbstractBatchedStage;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-class CassandraBatchedStagedWriter<T> extends AbstractBatchedStage<T> {
+public abstract class CassandraBatchedStagedWriter<T> extends AbstractBatchedStage<T> {
 
     /** The logger. */
     private static final Logger LOG = LoggerFactory.getLogger(CassandraBatchedStagedWriter.class);
 
     /** The connection to Cassandra. */
-    private final KeySpaceConnection connection;
-
-    private final CassandraWriteSink<T> sink;
+    private final AisStoreConnection connection;
 
     final MetricRegistry metrics = new MetricRegistry();
 
@@ -54,10 +56,9 @@ class CassandraBatchedStagedWriter<T> extends AbstractBatchedStage<T> {
      * @param queueSize
      * @param maxBatchSize
      */
-    CassandraBatchedStagedWriter(KeySpaceConnection connection, int batchSize, CassandraWriteSink<T> sink) {
+    public CassandraBatchedStagedWriter(AisStoreConnection connection, int batchSize) {
         super(Math.min(100000, batchSize * 100), batchSize);
         this.connection = requireNonNull(connection);
-        this.sink = requireNonNull(sink);
         final JmxReporter reporter = JmxReporter.forRegistry(metrics).inDomain("fooo.erer.er").build();
         reporter.start();
     }
@@ -66,10 +67,10 @@ class CassandraBatchedStagedWriter<T> extends AbstractBatchedStage<T> {
     @Override
     protected void handleMessages(List<T> messages) {
         // Create a batch of message that we want to write.
-        MutationBatch m = connection.getKeyspace().prepareMutationBatch();
+        List<Statement> statements = new ArrayList<>();
         for (T t : messages) {
             try {
-                sink.process(m, t);
+                handleMessage(statements, t);
             } catch (RuntimeException e) {
                 LOG.warn("Failed to write message: " + t, e); // Just in case we cannot process a message
             }
@@ -77,11 +78,14 @@ class CassandraBatchedStagedWriter<T> extends AbstractBatchedStage<T> {
 
         // Try writing the batch
         try {
-            m.execute();
+            Batch batch = QueryBuilder.batch(statements.toArray(new Statement[statements.size()]));
+            connection.getSession().execute(batch);
             persistedCount.mark(messages.size());
-            sink.onSucces(messages);
-        } catch (ConnectionException e) {
-            sink.onFailure(messages, e);
+            // sink.onSucces(messages);
+        } catch (QueryValidationException e) {
+            LOG.error("Could not execute query, this is an internal error", e);
+        } catch (Exception e) {
+            onFailure(messages, e);
             try {
                 sleepUntilShutdown(2, TimeUnit.SECONDS);
             } catch (InterruptedException ignore) {
@@ -89,4 +93,9 @@ class CassandraBatchedStagedWriter<T> extends AbstractBatchedStage<T> {
             }
         }
     }
+
+    protected abstract void handleMessage(List<Statement> statements, T message);
+
+    public abstract void onFailure(List<T> messages, Exception cause);
+
 }

@@ -14,6 +14,12 @@
   <description>AisStore Common</description>
 
   <dependencies>
+<dependency>
+  <groupId>com.datastax.cassandra</groupId>
+  <artifactId>cassandra-driver-core</artifactId>
+  <version>1.0.2</version>
+</dependency>
+<!--
     <dependency>
       <groupId>com.netflix.astyanax</groupId>
       <artifactId>astyanax-core</artifactId>
@@ -48,7 +54,7 @@
       <artifactId>astyanax-thrift</artifactId>
       <version>${astyanaxVersion}</version>
     </dependency>
-
+-->
     <dependency>
       <groupId>com.google.code.findbugs</groupId>
       <artifactId>jsr305</artifactId>

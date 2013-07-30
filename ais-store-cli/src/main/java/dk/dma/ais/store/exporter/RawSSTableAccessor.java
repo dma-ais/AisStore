@@ -15,6 +15,7 @@
  */
 package dk.dma.ais.store.exporter;
 
+import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME;
 import static java.util.Objects.requireNonNull;
 
 import java.nio.file.DirectoryStream;
@@ -40,7 +41,6 @@ import org.slf4j.LoggerFactory;
 import com.google.common.util.concurrent.RateLimiter;
 
 import dk.dma.ais.packet.AisPacket;
-import dk.dma.ais.store.cassandra.CassandraAisStoreSchema;
 import dk.dma.commons.util.FormatUtil;
 import dk.dma.enav.util.function.EConsumer;
 
@@ -107,14 +107,14 @@ public class RawSSTableAccessor {
 
     protected void processDataFileLocations(String snapshotName, EConsumer<AisPacket> producer) throws Exception {
         for (String s : DatabaseDescriptor.getAllDataFileLocations()) {
-            Path snapshots = Paths.get(s).resolve(keyspace).resolve(CassandraAisStoreSchema.MESSAGES_TIME.getName())
-                    .resolve("snapshots").resolve(snapshotName);
+            Path snapshots = Paths.get(s).resolve(keyspace).resolve(TABLE_TIME).resolve("snapshots")
+                    .resolve(snapshotName);
             // iterable through all data files (xxxx-Data)
             // if the dataformat changes hf needs to be upgraded to the current versino
             // http://svn.apache.org/repos/asf/cassandra/trunk/src/java/org/apache/cassandra/io/sstable/Descriptor.java
             System.out.println(s);
-            try (DirectoryStream<Path> ds = Files.newDirectoryStream(snapshots, keyspace + "-"
-                    + CassandraAisStoreSchema.MESSAGES_TIME.getName() + "-ic-*-Data.db")) {
+            try (DirectoryStream<Path> ds = Files.newDirectoryStream(snapshots, keyspace + "-" + TABLE_TIME
+                    + "-ic-*-Data.db")) {
                 for (Path p : ds) { // for each data file
                     // System.out.println(p);
                     processDataFile(p, producer);

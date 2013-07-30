@@ -15,6 +15,7 @@
  */
 package dk.dma.ais.store.exporter;
 
+import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME;
 import static java.util.Objects.requireNonNull;
 
 import java.nio.file.DirectoryStream;
@@ -41,7 +42,6 @@ import org.apache.cassandra.io.sstable.SSTableScanner;
 import com.google.common.util.concurrent.RateLimiter;
 
 import dk.dma.ais.packet.AisPacket;
-import dk.dma.ais.store.cassandra.CassandraAisStoreSchema;
 import dk.dma.commons.util.FormatUtil;
 import dk.dma.enav.util.function.EConsumer;
 import dk.dma.enav.util.function.Function;
@@ -54,7 +54,7 @@ import dk.dma.enav.util.function.Function;
 public class CassandraColumnFamilyProcessor {
 
     /** The key of the message column. */
-    private static final byte[] MESSAGE_COLUMN = CassandraAisStoreSchema.MESSAGES_TIME.getName().getBytes();
+    private static final byte[] MESSAGE_COLUMN = TABLE_TIME.getBytes();
 
     /** The number of bytes that have been read from disk. */
     final AtomicLong bytesRead = new AtomicLong();
@@ -128,13 +128,13 @@ public class CassandraColumnFamilyProcessor {
 
     protected void processDataFileLocations(String snapshotName, EConsumer<AisPacket> producer) throws Exception {
         for (String s : DatabaseDescriptor.getAllDataFileLocations()) {
-            Path snapshots = Paths.get(s).resolve(keyspace).resolve(CassandraAisStoreSchema.MESSAGES_TIME.getName())
-                    .resolve("snapshots").resolve(snapshotName);
+            Path snapshots = Paths.get(s).resolve(keyspace).resolve(TABLE_TIME).resolve("snapshots")
+                    .resolve(snapshotName);
             // iterable through all data files (xxxx-Data)
             // if the dataformat changes hf needs to be upgraded to the current versino
             // http://svn.apache.org/repos/asf/cassandra/trunk/src/java/org/apache/cassandra/io/sstable/Descriptor.java
-            try (DirectoryStream<Path> ds = Files.newDirectoryStream(snapshots, keyspace + "-"
-                    + CassandraAisStoreSchema.MESSAGES_TIME.getName() + "-hf-*-Data.db")) {
+            try (DirectoryStream<Path> ds = Files.newDirectoryStream(snapshots, keyspace + "-" + TABLE_TIME
+                    + "-hf-*-Data.db")) {
                 for (Path p : ds) { // for each data file
                     processDataFile(p, producer);
                     if (bytesRead.get() > maxRead) {
@@ -176,7 +176,8 @@ public class CassandraColumnFamilyProcessor {
     }
 
     @SuppressWarnings("unused")
-    protected void processRow(Path p, OnDiskAtomIterator columnIterator, EConsumer<AisPacket> producer) throws Exception {
+    protected void processRow(Path p, OnDiskAtomIterator columnIterator, EConsumer<AisPacket> producer)
+            throws Exception {
         while (columnIterator.hasNext()) {
             OnDiskAtom c = columnIterator.next();
             IColumn ic = (IColumn) c;

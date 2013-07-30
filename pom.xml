@@ -18,7 +18,6 @@
   <properties>
     <cassandraVersion>1.2.5</cassandraVersion>
     <metricsVersion>3.0.0</metricsVersion>
-    <astyanaxVersion>1.56.42</astyanaxVersion>
   </properties>
   
   <scm>

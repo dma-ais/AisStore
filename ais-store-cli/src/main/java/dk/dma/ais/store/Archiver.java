@@ -24,13 +24,11 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.packet.AisPackets;
 import dk.dma.ais.reader.AisReaderGroup;
-import dk.dma.ais.store.cassandra.CassandraAisStoreSchema;
-import dk.dma.ais.store.cassandra.support.KeySpaceConnection;
+import dk.dma.ais.store.write.DefaultAisStoreWriter;
 import dk.dma.commons.app.AbstractDaemon;
 import dk.dma.commons.management.ManagedAttribute;
 import dk.dma.commons.management.ManagedResource;
@@ -85,7 +83,7 @@ public class Archiver extends AbstractDaemon {
     @Override
     protected void runDaemon(Injector injector) throws Exception {
         // Setup keyspace for cassandra
-        KeySpaceConnection con = start(KeySpaceConnection.connect(databaseName, cassandraSeeds));
+        AisStoreConnection con = start(AisStoreConnection.create(databaseName, cassandraSeeds));
 
         // Starts the backup service that will write files to disk if disconnected
         final MessageToFileService<AisPacket> backupService = start(MessageToFileService.dateTimeService(
@@ -95,18 +93,17 @@ public class Archiver extends AbstractDaemon {
         AisReaderGroup g = AisReaderGroup.create(sources);
 
         // Start a stage that will write each packet to cassandra
-        final AbstractBatchedStage<AisPacket> cassandra = mainStage = start(con.createdBatchedStage(BATCH_SIZE,
-                new CassandraAisStoreSchema() {
-                    @Override
-                    public void onFailure(List<AisPacket> messages, ConnectionException cause) {
-                        LOG.error("Could not write batch to cassandra", cause);
-                        for (AisPacket p : messages) {
-                            if (!backupService.getInputQueue().offer(p)) {
-                                System.err.println("Could not persist packet!");
-                            }
-                        }
+        final AbstractBatchedStage<AisPacket> cassandra = mainStage = start(new DefaultAisStoreWriter(con, BATCH_SIZE) {
+            @Override
+            public void onFailure(List<AisPacket> messages, Exception cause) {
+                LOG.error("Could not write batch to cassandra", cause);
+                for (AisPacket p : messages) {
+                    if (!backupService.getInputQueue().offer(p)) {
+                        System.err.println("Could not persist packet!");
                     }
-                }));
+                }
+            }
+        });
 
         // Start the thread that will read each file from the backup queue
         start(new FileImportService(this));

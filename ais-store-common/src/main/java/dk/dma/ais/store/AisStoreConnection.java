@@ -15,17 +15,38 @@
  */
 package dk.dma.ais.store;
 
-import org.joda.time.Interval;
+import static java.util.Objects.requireNonNull;
+
+import java.util.List;
+
+import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Session;
+import com.google.common.util.concurrent.AbstractService;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.enav.model.geometry.Area;
 
 /**
- * The entry interface to query AisStore.
  * 
  * @author Kasper Nielsen
  */
-public interface AisStore {
+public class AisStoreConnection extends AbstractService {
+    private final Cluster cluster;
+    private final String keyspace;
+
+    private volatile Session session;
+
+    AisStoreConnection(Cluster cluster, String keyspace) {
+        this.cluster = requireNonNull(cluster);
+        this.keyspace = requireNonNull(keyspace);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    protected void doStart() {
+        session = cluster.connect(keyspace);
+        notifyStarted();
+    }
 
     /**
      * Finds all packets for the specified area in the given interval.
@@ -40,22 +61,9 @@ public interface AisStore {
      * @throws NullPointerException
      *             if the specified area or interval is null
      */
-    Query<AisPacket> findByArea(Area area, Interval interval);
-
-    /**
-     * Finds all packets for the specified mmsi number in the given interval.
-     * 
-     * @param mmsi
-     *            the mssi number
-     * @param start
-     *            the start date (inclusive)
-     * @param end
-     *            the end date (exclusive)
-     * @return a new query
-     * @throws NullPointerException
-     *             if the specified interval is null
-     */
-    Query<AisPacket> findByMMSI(int mmsi, Interval interval);
+    public Iterable<AisPacket> queryForArea(Area area, long startInclusive, long stopExclusive) {
+        return AisStoreQueries.forArea(session, area, startInclusive, stopExclusive);
+    }
 
     /**
      * Finds all packets received in the given interval. Should only be used for small time intervals.
@@ -70,5 +78,40 @@ public interface AisStore {
      * @throws NullPointerException
      *             if the specified interval is null
      */
-    Query<AisPacket> findByTime(Interval interval);
+    public Iterable<AisPacket> queryForTime(long startInclusive, long stopExclusive) {
+        return AisStoreQueries.forTime(session, startInclusive, stopExclusive);
+    }
+
+    /**
+     * Finds all packets for the specified mmsi number in the given interval.
+     * 
+     * @param mmsi
+     *            the mssi number
+     * @param start
+     *            the start date (inclusive)
+     * @param end
+     *            the end date (exclusive)
+     * @return a new query
+     * @throws NullPointerException
+     *             if the specified interval is null
+     */
+    public Iterable<AisPacket> queryForMmsi(int mmsi, long startInclusive, long stopExclusive) {
+        return AisStoreQueries.forMmsi(session, mmsi, startInclusive, stopExclusive);
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    protected void doStop() {
+        cluster.shutdown();
+        notifyStopped();
+    }
+
+    public Session getSession() {
+        return session;
+    }
+
+    public static AisStoreConnection create(String keyspace, List<String> connectionPoints) {
+        Cluster cluster = Cluster.builder().addContactPoints(connectionPoints.toArray(new String[0])).build();
+        return new AisStoreConnection(cluster, keyspace);
+    }
 }

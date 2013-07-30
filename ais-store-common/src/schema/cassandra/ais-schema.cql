@@ -6,16 +6,14 @@ drop column family positions;
 
 
 drop keyspace aisdata;
-
-
-
 create keyspace aisdata with placement_strategy = 'org.apache.cassandra.locator.SimpleStrategy' and strategy_options = {replication_factor:1};
 
 use aisdata; 
-CREATE COLUMN FAMILY messages_time WITH key_validation_class= IntegerType and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:1024};
-CREATE COLUMN FAMILY messages_cell1 WITH key_validation_class= IntegerType and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:1024};
-CREATE COLUMN FAMILY messages_cell10 WITH key_validation_class= IntegerType and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:1024};
-CREATE COLUMN FAMILY messages_mmsi WITH key_validation_class= IntegerType and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:256};
+CREATE COLUMN FAMILY packets_time WITH key_validation_class= Int32Type and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:1024};
+CREATE COLUMN FAMILY packets_position_unknown WITH key_validation_class= Int32Type and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:256};
+CREATE COLUMN FAMILY packets_position_cell1 WITH key_validation_class= Int32Type and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:1024};
+CREATE COLUMN FAMILY packets_position_cell10 WITH key_validation_class= Int32Type and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:1024};
+CREATE COLUMN FAMILY packets_mmsi WITH key_validation_class= Int32Type and compression_options={sstable_compression:DeflateCompressor, chunk_length_kb:256};
 
 CREATE TABLE sources (
     name text PRIMARY KEY,

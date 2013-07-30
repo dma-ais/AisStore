@@ -6,18 +6,54 @@ CREATE KEYSPACE aisdata
 
 USE aisdata;
 
-CREATE TABLE messages_time (timeblock int PRIMARY KEY) 
+CREATE TABLE packets_time (
+    timeblock int,
+    timehash blob,
+    aisdata blob,
+    PRIMARY KEY (timeblock, timehash)
+    ) 
   WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':1024} AND
-       comment     = 'Contains AIS data ordered by receive time. Each row containing 10 minutes of data';
-       
-CREATE TABLE messages_cell1 (cellid int PRIMARY KEY) 
+       comment     = 'Contains AIS data ordered by receive time.';
+
+CREATE TABLE packets_mmsi (
+    mmsi int,
+    timehash blob,
+    aisdata blob,
+    PRIMARY KEY (mmsi, timehash)
+    ) 
   WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':256} AND
-       comment     = 'Contains AIS data ordered by the cell id';
-      
-CREATE TABLE messages_mmsi (mmsi int PRIMARY KEY) 
+       comment     = 'Contains AIS data ordered by mmsi number.';
+
+CREATE TABLE packets_area_cell1 (
+    cellid int,
+    timehash blob,
+    aisdata blob,
+    PRIMARY KEY (cellid, timehash)
+    ) 
+  WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':1024} AND
+       comment     = 'Contains AIS data ordered by cells of size 1 degree.';
+
+CREATE TABLE packets_area_cell10 (
+    cellid int,
+    timehash blob,
+    aisdata blob,
+    PRIMARY KEY (cellid, timehash)
+    ) 
+  WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':1024} AND
+       comment     = 'Contains AIS data ordered by cells of size 10 degree.';
+
+
+CREATE TABLE packets_area_unknown (
+    mmsi int,
+    timehash blob,
+    aisdata blob,
+    PRIMARY KEY (mmsi, timehash)
+    ) 
   WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':256} AND
-       comment     = 'Contains AIS data ordered by mmsi number';
- 
+       comment     = 'Contains AIS data where the area has not yet been determined.';
+
+
+
 CREATE TABLE mmsi (
   mmsi int PRIMARY KEY,
   last_message ascii,

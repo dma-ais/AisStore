@@ -27,12 +27,10 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
-import com.netflix.astyanax.connectionpool.exceptions.ConnectionException;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.packet.AisPacketInputStream;
-import dk.dma.ais.store.cassandra.CassandraAisStoreSchema;
-import dk.dma.ais.store.cassandra.support.KeySpaceConnection;
+import dk.dma.ais.store.write.DefaultAisStoreWriter;
 import dk.dma.commons.app.AbstractCommandLineTool;
 import dk.dma.commons.service.AbstractBatchedStage;
 
@@ -62,15 +60,14 @@ class FileImport extends AbstractCommandLineTool {
     /** {@inheritDoc} */
     @Override
     protected void run(Injector injector) throws Exception {
-        KeySpaceConnection con = start(KeySpaceConnection.connect(cassandraDatabase, cassandraSeeds));
+        AisStoreConnection con = start(AisStoreConnection.create(cassandraDatabase, cassandraSeeds));
 
-        final AbstractBatchedStage<AisPacket> cassandra = start(con.createdBatchedStage(SIZE,
-                new CassandraAisStoreSchema() {
-                    public void onFailure(List<AisPacket> messages, ConnectionException cause) {
-                        LOG.error("Could not write batch to cassandra", cause);
-                        shutdown();
-                    }
-                }));
+        final AbstractBatchedStage<AisPacket> cassandra = start(new DefaultAisStoreWriter(con, SIZE) {
+            public void onFailure(List<AisPacket> messages, Exception cause) {
+                LOG.error("Could not write batch to cassandra", cause);
+                shutdown();
+            }
+        });
 
         start(cassandra);
 
