@@ -32,7 +32,7 @@ import dk.dma.enav.model.geometry.Area;
  * 
  * @author Kasper Nielsen
  */
-public class AisStoreConnection extends AbstractService {
+public final class AisStoreConnection extends AbstractService {
 
     /** The cluster we are connected to. */
     private final Cluster cluster;

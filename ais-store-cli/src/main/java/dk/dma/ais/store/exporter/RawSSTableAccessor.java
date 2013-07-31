@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.util.concurrent.RateLimiter;
 
 import dk.dma.ais.packet.AisPacket;
+import dk.dma.ais.store.old.exporter.CassandraNodeTool;
 import dk.dma.commons.util.FormatUtil;
 import dk.dma.enav.util.function.EConsumer;
 

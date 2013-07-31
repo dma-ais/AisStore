@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.ais.store.exporter;
+package dk.dma.ais.store.old.exporter;
 
 import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME;
 import static java.util.Objects.requireNonNull;
@@ -31,13 +31,13 @@ import org.apache.cassandra.tools.NodeCmd;
  * 
  * @author Kasper Nielsen
  */
-class CassandraNodeTool {
+public class CassandraNodeTool {
 
     private final String host;
 
     private final int port;
 
-    CassandraNodeTool() {
+    public CassandraNodeTool() {
         this("localhost", 7199);
     }
 
@@ -46,7 +46,7 @@ class CassandraNodeTool {
         this.port = port;
     }
 
-    void deleteSnapshot(String keyspace, String snapshotName) throws Exception {
+    public void deleteSnapshot(String keyspace, String snapshotName) throws Exception {
         execute("clearsnapshot", requireNonNull(keyspace), "-t", requireNonNull(snapshotName));
     }
 
@@ -62,7 +62,7 @@ class CassandraNodeTool {
         }
     }
 
-    void takeSnapshot(String keyspace, String snapshotName) throws Exception {
+    public void takeSnapshot(String keyspace, String snapshotName) throws Exception {
         execute("snapshot", requireNonNull(keyspace), "-cf", TABLE_TIME, "-t", requireNonNull(snapshotName));
     }
 

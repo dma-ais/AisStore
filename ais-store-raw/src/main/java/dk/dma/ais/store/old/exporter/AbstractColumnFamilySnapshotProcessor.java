@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.ais.store.exporter;
+package dk.dma.ais.store.old.exporter;
 
 import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME;
 import static java.util.Objects.requireNonNull;
