@@ -20,11 +20,13 @@ Source Code Organization
 The project is organized in the following directories
 
 ais-store-common     Contains common classes for AisStore
-ais-store-exporter   Contains the AIS-data exporter
+ais-store-raw        Contains the raw-exporter and job implementation that works on raw Cassandra files
 ais-store-cli        Contains the all inclusive - command line interface to AisStore
+
 
 AIS Store Archiver
 -------------------------------------------------------------------------------
+The archiver takes care of 
 
 
 AIS Store Exporter
@@ -35,7 +37,4 @@ AIS Store Exporter
 Deployment at DMA
 -------------------------------------------------------------------------------
 AisStore is currently deployed at the Danish Maritime Authority.
-While Cassandra is normally used wi
-It is running on a  
-
-While AisStore should be cassandra makes no assumption about the hardware.
+Where it currently processes around 60.000 messages per minute.

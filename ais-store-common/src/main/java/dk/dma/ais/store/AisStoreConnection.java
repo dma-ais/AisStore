@@ -28,16 +28,22 @@ import dk.dma.ais.packet.AisPacket;
 import dk.dma.enav.model.geometry.Area;
 
 /**
+ * A connection to AisStore.
  * 
  * @author Kasper Nielsen
  */
 public class AisStoreConnection extends AbstractService {
+
+    /** The cluster we are connected to. */
     private final Cluster cluster;
+
+    /** The name of the keyspace. */
     private final String keyspace;
 
+    /** The current session */
     private volatile Session session;
 
-    AisStoreConnection(Cluster cluster, String keyspace) {
+    private AisStoreConnection(Cluster cluster, String keyspace) {
         this.cluster = requireNonNull(cluster);
         this.keyspace = requireNonNull(keyspace);
     }
@@ -50,7 +56,7 @@ public class AisStoreConnection extends AbstractService {
     }
 
     /**
-     * Finds all packets for the specified area in the given interval.
+     * Finds all packets recieved from within the specified area in the given interval.
      * 
      * @param area
      *            the area
@@ -58,46 +64,40 @@ public class AisStoreConnection extends AbstractService {
      *            the start date (inclusive)
      * @param end
      *            the end date (exclusive)
-     * @return a new query
+     * @return an iterable with all packets
      * @throws NullPointerException
-     *             if the specified area or interval is null
+     *             if the specified area is null
      */
     public Iterable<AisPacket> findForArea(Area area, long startInclusive, long stopExclusive) {
-        return AisStoreQueries.forArea(session, area, startInclusive, stopExclusive);
+        return AisStoreQueries.forArea(getSession(), area, startInclusive, stopExclusive);
     }
 
     /**
      * Finds all packets received in the given interval. Should only be used for small time intervals.
      * 
-     * @param mmsi
-     *            the mssi number
      * @param start
      *            the start date (inclusive)
      * @param end
      *            the end date (exclusive)
-     * @return a new query
-     * @throws NullPointerException
-     *             if the specified interval is null
+     * @return an iterable with all packets
      */
     public Iterable<AisPacket> findForTime(long startInclusive, long stopExclusive) {
-        return AisStoreQueries.forTime(session, startInclusive, stopExclusive);
+        return AisStoreQueries.forTime(getSession(), startInclusive, stopExclusive);
     }
 
     /**
-     * Finds all packets for the specified mmsi number in the given interval.
+     * Finds all packets for one or more MMSI numbers in the given interval.
      * 
-     * @param mmsi
-     *            the mssi number
      * @param start
      *            the start date (inclusive)
      * @param end
      *            the end date (exclusive)
-     * @return a new query
-     * @throws NullPointerException
-     *             if the specified interval is null
+     * @param mmsi
+     *            one or more MMSI numbers
+     * @return an iterable with all packets
      */
     public Iterable<AisPacket> findForMmsi(long startInclusive, long stopExclusive, int... mmsi) {
-        return AisStoreQueries.forMmsi(session, startInclusive, stopExclusive, mmsi);
+        return AisStoreQueries.forMmsi(getSession(), startInclusive, stopExclusive, mmsi);
     }
 
     /** {@inheritDoc} */
@@ -107,14 +107,45 @@ public class AisStoreConnection extends AbstractService {
         notifyStopped();
     }
 
+    /**
+     * Returns the current session.
+     * 
+     * @return the current session
+     * @throws IllegalStateException
+     *             if the connection has not yet been started via {@link #start()}
+     */
     public Session getSession() {
+        Session session = this.session;
+        if (session == null) {
+            throw new IllegalStateException("The connection has not been started via connection.start() yet");
+        }
         return session;
     }
 
+    /**
+     * Creates a new AisStore connection. The connection is not yet connected but must be started via {@link #start()}
+     * and to close it use {@link #stop()}
+     * 
+     * @param keyspace
+     *            the name of the keyspace
+     * @param connectionPoints
+     *            the connection points
+     * @return a new connection
+     */
     public static AisStoreConnection create(String keyspace, String... connectionPoints) {
         return create(keyspace, Arrays.asList(connectionPoints));
     }
 
+    /**
+     * Creates a new AisStore connection. The connection is not yet connected but must be started via {@link #start()}
+     * and to close it use {@link #stop()}
+     * 
+     * @param keyspace
+     *            the name of the keyspace
+     * @param connectionPoints
+     *            the connection points
+     * @return a new connection
+     */
     public static AisStoreConnection create(String keyspace, List<String> connectionPoints) {
         Cluster cluster = Cluster.builder().addContactPoints(connectionPoints.toArray(new String[0])).build();
         return new AisStoreConnection(cluster, keyspace);
