@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.ais.store.exporter2;
+package dk.dma.ais.store.old.exporter2;
 
 import org.apache.cassandra.db.columniterator.OnDiskAtomIterator;
 
