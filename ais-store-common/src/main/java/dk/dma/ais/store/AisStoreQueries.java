@@ -59,7 +59,8 @@ class AisStoreQueries extends AbstractIterator<AisPacket> {
         }
     };
 
-    private static final int limit = 3000; // found by trial
+    /** The number of results to get at a time. */
+    private static final int LIMIT = 3000; // found by trial
 
     /** The session used for querying. */
     private final Session session;
@@ -112,7 +113,7 @@ class AisStoreQueries extends AbstractIterator<AisPacket> {
             }
 
             // advance to next row, we did not get a complete result set
-            if (all.size() < limit) {
+            if (all.size() < LIMIT) {
                 currentRow++;
             }
             for (int i = 0; i < all.size(); i++) {
@@ -137,7 +138,7 @@ class AisStoreQueries extends AbstractIterator<AisPacket> {
             Where w = s.where(QueryBuilder.eq(rowName, currentRow));
             w.and(QueryBuilder.gt("timehash", timeStart));
             w.and(QueryBuilder.lt("timehash", timeStop));
-            s.limit(limit);
+            s.limit(LIMIT);
             // System.out.println(s.getQueryString());
             future = session.executeAsync(s.getQueryString());
         }

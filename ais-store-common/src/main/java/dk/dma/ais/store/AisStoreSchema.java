@@ -83,12 +83,12 @@ public class AisStoreSchema {
     }
 
     /** Stores the specified packet by MMSI */
-    public static void storeByMmsi(List<Statement> batch, long timestamp, byte column[], int mmsi, byte[] packet) {
+    public static void storeByMmsi(List<Statement> batch, long timestamp, byte[] column, int mmsi, byte[] packet) {
         batch.add(store(TABLE_MMSI, TABLE_MMSI_KEY, mmsi, timestamp, column, packet));
     }
 
     /** Stores the specified packet by MMSI */
-    public static void storeByArea(List<Statement> batch, long timestamp, byte column[], int mmsi, Position p,
+    public static void storeByArea(List<Statement> batch, long timestamp, byte[] column, int mmsi, Position p,
             byte[] packet) {
         if (p == null) {
             batch.add(store(TABLE_AREA_UNKNOWN, TABLE_AREA_UNKNOWN_KEY, mmsi, timestamp, column, packet));
