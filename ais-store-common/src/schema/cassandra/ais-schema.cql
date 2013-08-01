@@ -95,3 +95,16 @@ CREATE INDEX mmsi_last_position_cell01
 CREATE INDEX mmsi_last_position_cell1
   ON mmsi (last_position_cell1);
   
+  
+
+
+CREATE TABLE mmsi (
+  mmsi int PRIMARY KEY,
+  last_message ascii,
+  last_message_timestamp bigint,
+  last_position_message ascii,
+  last_position_timestamp bigint,
+  last_position_timehour int,
+  last_position_timeminute int,
+  last_position_timesecond int
+  ) WITH comment='Latest mmsi Data';

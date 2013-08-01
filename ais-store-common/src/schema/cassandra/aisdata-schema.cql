@@ -52,16 +52,3 @@ CREATE TABLE packets_area_unknown (
   WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':256} AND
        comment     = 'Contains AIS data where the area has not yet been determined.';
 
-
-
-CREATE TABLE mmsi (
-  mmsi int PRIMARY KEY,
-  last_message ascii,
-  last_message_timestamp bigint,
-  last_position_message ascii,
-  last_position_timestamp bigint,
-  last_position_timehour int,
-  last_position_timeminute int,
-  last_position_timesecond int
-  ) WITH comment='Latest mmsi Data';
-
