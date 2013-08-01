@@ -15,8 +15,6 @@
  */
 package dk.dma.ais.store.write;
 
-import java.util.Date;
-
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -46,12 +44,20 @@ public class QueryTest {
             BoundingBox bb = BoundingBox.create(Position.create(-90, -180), Position.create(90, 180),
                     CoordinateSystem.CARTESIAN);
 
-            Iterable<AisPacket> iter = con.findForArea(bb, 0L, new Date().getTime());
+            // Iterable<AisPacket> iter = con.findForArea(bb, 0L, new Date().getTime());
+            Iterable<AisPacket> iter = con.findForTime(1374450154000L, 1375103376939L);
+            iter.iterator().hasNext();
+
             long start = System.currentTimeMillis();
             for (AisPacket p : iter) {
                 if (p != null) {
+                    // if (count == 0 || count == 188312) {
+                    // System.out.println(String.format("count= %d, timestamp= %d", count, p.getBestTimestamp()));
+                    // }
                     count++;
+
                 }
+                // System.out.println(p.getBestTimestamp());
                 // System.out.println(p.getBestTimestamp() + " " + p.tryGetAisMessage().getValidPosition());
                 if (count % 1000 == 0) {
                     long ms = System.currentTimeMillis() - start;

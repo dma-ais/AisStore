@@ -24,7 +24,6 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.AbstractService;
 
-import dk.dma.ais.packet.AisPacket;
 import dk.dma.enav.model.geometry.Area;
 
 /**
@@ -68,8 +67,8 @@ public final class AisStoreConnection extends AbstractService {
      * @throws NullPointerException
      *             if the specified area is null
      */
-    public Iterable<AisPacket> findForArea(Area area, long startInclusive, long stopExclusive) {
-        return AisStoreQueries.forArea(getSession(), area, startInclusive, stopExclusive);
+    public AisStoreQueryResult findForArea(Area area, long startInclusive, long stopExclusive) {
+        return AisStoreQuery.forArea(getSession(), area, startInclusive, stopExclusive);
     }
 
     /**
@@ -81,8 +80,8 @@ public final class AisStoreConnection extends AbstractService {
      *            the end date (exclusive)
      * @return an iterable with all packets
      */
-    public Iterable<AisPacket> findForTime(long startInclusive, long stopExclusive) {
-        return AisStoreQueries.forTime(getSession(), startInclusive, stopExclusive);
+    public AisStoreQueryResult findForTime(long startInclusive, long stopExclusive) {
+        return AisStoreQuery.forTime(getSession(), startInclusive, stopExclusive);
     }
 
     /**
@@ -96,8 +95,8 @@ public final class AisStoreConnection extends AbstractService {
      *            one or more MMSI numbers
      * @return an iterable with all packets
      */
-    public Iterable<AisPacket> findForMmsi(long startInclusive, long stopExclusive, int... mmsi) {
-        return AisStoreQueries.forMmsi(getSession(), startInclusive, stopExclusive, mmsi);
+    public AisStoreQueryResult findForMmsi(long startInclusive, long stopExclusive, int... mmsi) {
+        return AisStoreQuery.forMmsi(getSession(), startInclusive, stopExclusive, mmsi);
     }
 
     /** {@inheritDoc} */

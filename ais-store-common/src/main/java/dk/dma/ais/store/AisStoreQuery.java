@@ -55,7 +55,7 @@ import dk.dma.enav.model.geometry.grid.Grid;
  * 
  * @author Kasper Nielsen
  */
-class AisStoreQueries extends AbstractIterator<AisPacket> {
+class AisStoreQuery extends AbstractIterator<AisPacket> {
 
     /**
      * AisPacket implements Comparable. But I'm to afraid someone might break the functionality someday So we make a
@@ -97,12 +97,12 @@ class AisStoreQueries extends AbstractIterator<AisPacket> {
     /** A list of packets that we have received from AisStore but have not yet returned to the user. */
     private LinkedList<AisPacket> packets = new LinkedList<>();
 
-    AisStoreQueries(Session session, String tableName, String rowName, int rowStart, long timeStartInclusive,
+    AisStoreQuery(Session session, String tableName, String rowName, int rowStart, long timeStartInclusive,
             long timeStopExclusive) {
         this(session, tableName, rowName, rowStart, rowStart, timeStartInclusive, timeStopExclusive);
     }
 
-    AisStoreQueries(Session session, String tableName, String rowName, int rowStart, int rowStop,
+    AisStoreQuery(Session session, String tableName, String rowName, int rowStart, int rowStop,
             long timeStartInclusive, long timeStopExclusive) {
         this.session = requireNonNull(session);
         this.tableName = requireNonNull(tableName);
@@ -132,15 +132,16 @@ class AisStoreQueries extends AbstractIterator<AisPacket> {
             if (all.size() < LIMIT) {
                 currentRow++;
             }
-            for (int i = 0; i < all.size(); i++) {
-                Row row = all.get(i);
-                ByteBuffer packet = row.getBytes(1);
-                packets.add(AisPacket.fromByteBuffer(packet));
-                if (i == all.size() - 1) { // find out where the next query should start
-                    timeStart = ByteBuffer.wrap(ByteBufferUtil.getArray(row.getBytes(0)));
-                }
+            if (all.size() > 0) {
+                Row row = all.get(all.size() - 1);
+                timeStart = ByteBuffer.wrap(ByteBufferUtil.getArray(row.getBytes(0)));
             }
-            advance(); // make sure to fetch next
+            advance(); // make sure to fetch next before we start the parsing
+
+            for (Row row : all) {
+                packets.add(AisPacket.fromByteBuffer(row.getBytes(1)));
+            }
+
             if (!packets.isEmpty()) {
                 return packets.poll();
             }
@@ -163,19 +164,19 @@ class AisStoreQueries extends AbstractIterator<AisPacket> {
         }
     }
 
-    static Iterable<AisPacket> forTime(final Session s, final long startInclusive, final long stopExclusive) {
+    static AisStoreQueryResult forTime(final Session s, final long startInclusive, final long stopExclusive) {
         requireNonNull(s);
         final int start = AisStoreSchema.getTimeBlock(startInclusive);
         final int stop = AisStoreSchema.getTimeBlock(stopExclusive - 1);
 
-        return new Iterable<AisPacket>() {
-            public Iterator<AisPacket> iterator() {
-                return new AisStoreQueries(s, TABLE_TIME, TABLE_TIME_KEY, start, stop, startInclusive, stopExclusive);
+        return new AisStoreQueryResult() {
+            public Iterator<AisPacket> createQuery() {
+                return new AisStoreQuery(s, TABLE_TIME, TABLE_TIME_KEY, start, stop, startInclusive, stopExclusive);
             }
         };
     }
 
-    static Iterable<AisPacket> forMmsi(final Session s, final long startInclusive, final long stopExclusive,
+    static AisStoreQueryResult forMmsi(final Session s, final long startInclusive, final long stopExclusive,
             final int... mmsi) {
         requireNonNull(s);
         if (mmsi.length == 0) {
@@ -184,18 +185,18 @@ class AisStoreQueries extends AbstractIterator<AisPacket> {
 
         // We create multiple queries and use a priority queue to return packets from each ship sorted by their
         // timestamp
-        return new Iterable<AisPacket>() {
-            public Iterator<AisPacket> iterator() {
-                ArrayList<AisStoreQueries> queries = new ArrayList<>();
+        return new AisStoreQueryResult() {
+            public Iterator<AisPacket> createQuery() {
+                ArrayList<AisStoreQuery> queries = new ArrayList<>();
                 for (int m : mmsi) {
-                    queries.add(new AisStoreQueries(s, TABLE_MMSI, TABLE_MMSI_KEY, m, startInclusive, stopExclusive));
+                    queries.add(new AisStoreQuery(s, TABLE_MMSI, TABLE_MMSI_KEY, m, startInclusive, stopExclusive));
                 }
                 return Iterators.combine(queries, COMPARATOR);// Return the actual iterator, if queries only contains 1
             }
         };
     }
 
-    static Iterable<AisPacket> forArea(final Session s, Area area, final long startInclusive, final long stopExclusive) {
+    static AisStoreQueryResult forArea(final Session s, Area area, final long startInclusive, final long stopExclusive) {
         requireNonNull(s);
         Set<Cell> cells1 = Grid.GRID_1_DEGREE.getCells(area);
         Set<Cell> cells10 = Grid.GRID_10_DEGREES.getCells(area);
@@ -210,11 +211,11 @@ class AisStoreQueries extends AbstractIterator<AisPacket> {
 
         // We create multiple queries and use a priority queue to return packets from each ship sorted by their
         // timestamp
-        return new Iterable<AisPacket>() {
-            public Iterator<AisPacket> iterator() {
-                ArrayList<AisStoreQueries> queries = new ArrayList<>();
+        return new AisStoreQueryResult() {
+            public Iterator<AisPacket> createQuery() {
+                ArrayList<AisStoreQuery> queries = new ArrayList<>();
                 for (Cell c : cells) {
-                    queries.add(new AisStoreQueries(s, tableName, keyName, c.getCellId(), startInclusive, stopExclusive));
+                    queries.add(new AisStoreQuery(s, tableName, keyName, c.getCellId(), startInclusive, stopExclusive));
                 }
                 return Iterators.combine(queries, COMPARATOR);
             }
