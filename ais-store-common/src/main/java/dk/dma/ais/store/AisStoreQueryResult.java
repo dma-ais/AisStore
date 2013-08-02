@@ -15,6 +15,8 @@
  */
 package dk.dma.ais.store;
 
+import static java.util.Objects.requireNonNull;
+
 import java.util.Date;
 import java.util.Iterator;
 import java.util.concurrent.atomic.AtomicLong;
@@ -28,6 +30,7 @@ import dk.dma.ais.packet.AisPacket;
 public abstract class AisStoreQueryResult implements Iterable<AisPacket> {
 
     final AtomicLong packets = new AtomicLong();
+
     volatile Date startDate;
 
     volatile long startTime;
@@ -38,10 +41,51 @@ public abstract class AisStoreQueryResult implements Iterable<AisPacket> {
     @Override
     public final Iterator<AisPacket> iterator() {
         startDate = new Date();
-        startTime = System.currentTimeMillis();
-        return createQuery();
+        startTime = System.nanoTime();
+        return new WrappingIterator(createQuery());
     }
 
     abstract Iterator<AisPacket> createQuery();
 
+    /**
+     * Returns the number of packets that have been returned.
+     * 
+     * @return the number of packets that have been returned
+     */
+    public long getCount() {
+        return packets.get();
+    }
+
+    public long getDuration() {
+        return 3;
+    }
+
+    class WrappingIterator implements Iterator<AisPacket> {
+        final Iterator<AisPacket> delegate;
+
+        WrappingIterator(Iterator<AisPacket> delegate) {
+            this.delegate = requireNonNull(delegate);
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public boolean hasNext() {
+            return delegate.hasNext();
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public AisPacket next() {
+            AisPacket next = delegate.next();
+            packets.incrementAndGet();
+            return next;
+        }
+
+        /** {@inheritDoc} */
+        @Override
+        public void remove() {
+            delegate.remove();
+        }
+
+    }
 }

@@ -24,8 +24,6 @@ import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.AbstractService;
 
-import dk.dma.enav.model.geometry.Area;
-
 /**
  * A connection to AisStore.
  * 
@@ -54,50 +52,9 @@ public final class AisStoreConnection extends AbstractService {
         notifyStarted();
     }
 
-    /**
-     * Finds all packets recieved from within the specified area in the given interval.
-     * 
-     * @param area
-     *            the area
-     * @param start
-     *            the start date (inclusive)
-     * @param end
-     *            the end date (exclusive)
-     * @return an iterable with all packets
-     * @throws NullPointerException
-     *             if the specified area is null
-     */
-    public AisStoreQueryResult findForArea(Area area, long startInclusive, long stopExclusive) {
-        return AisStoreQuery.forArea(getSession(), area, startInclusive, stopExclusive);
-    }
-
-    /**
-     * Finds all packets received in the given interval. Should only be used for small time intervals.
-     * 
-     * @param start
-     *            the start date (inclusive)
-     * @param end
-     *            the end date (exclusive)
-     * @return an iterable with all packets
-     */
-    public AisStoreQueryResult findForTime(long startInclusive, long stopExclusive) {
-        return AisStoreQuery.forTime(getSession(), startInclusive, stopExclusive);
-    }
-
-    /**
-     * Finds all packets for one or more MMSI numbers in the given interval.
-     * 
-     * @param start
-     *            the start date (inclusive)
-     * @param end
-     *            the end date (exclusive)
-     * @param mmsi
-     *            one or more MMSI numbers
-     * @return an iterable with all packets
-     */
-    public AisStoreQueryResult findForMmsi(long startInclusive, long stopExclusive, int... mmsi) {
-        return AisStoreQuery.forMmsi(getSession(), startInclusive, stopExclusive, mmsi);
-    }
+    public AisStoreQueryResult execute(AisStoreQueryBuilder builder) {
+        return builder.execute(getSession());
+    };
 
     /** {@inheritDoc} */
     @Override

@@ -20,9 +20,7 @@ import org.junit.Test;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.AisStoreConnection;
-import dk.dma.enav.model.geometry.BoundingBox;
-import dk.dma.enav.model.geometry.CoordinateSystem;
-import dk.dma.enav.model.geometry.Position;
+import dk.dma.ais.store.AisStoreQueryBuilder;
 
 /**
  * 
@@ -41,11 +39,12 @@ public class QueryTest {
         try {
             int count = 0;
 
-            BoundingBox bb = BoundingBox.create(Position.create(-90, -180), Position.create(90, 180),
-                    CoordinateSystem.CARTESIAN);
+            // BoundingBox bb = BoundingBox.create(Position.create(-90, -180), Position.create(90, 180),
+            // CoordinateSystem.CARTESIAN);
 
             // Iterable<AisPacket> iter = con.findForArea(bb, 0L, new Date().getTime());
-            Iterable<AisPacket> iter = con.findForTime(1374450154000L, 1375103376939L);
+            Iterable<AisPacket> iter = con.execute(AisStoreQueryBuilder.forTime().setInterval(1374450154000L,
+                    1375103376939L));
             iter.iterator().hasNext();
 
             long start = System.currentTimeMillis();

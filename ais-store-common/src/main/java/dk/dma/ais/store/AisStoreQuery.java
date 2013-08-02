@@ -15,23 +15,12 @@
  */
 package dk.dma.ais.store;
 
-import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL1;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL10;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL10_KEY;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL1_KEY;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_MMSI;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_MMSI_KEY;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME_KEY;
 import static java.util.Objects.requireNonNull;
 
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Set;
 
 import org.apache.cassandra.utils.ByteBufferUtil;
 
@@ -45,10 +34,6 @@ import com.google.common.collect.AbstractIterator;
 import com.google.common.primitives.Longs;
 
 import dk.dma.ais.packet.AisPacket;
-import dk.dma.commons.util.Iterators;
-import dk.dma.enav.model.geometry.Area;
-import dk.dma.enav.model.geometry.grid.Cell;
-import dk.dma.enav.model.geometry.grid.Grid;
 
 /**
  * This class implements the actual query.
@@ -68,7 +53,7 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
     };
 
     /** The number of results to get at a time. */
-    private static final int LIMIT = 3000; // magic constant found by trial
+    private final int batchLimit;
 
     /** The session used for querying. */
     private final Session session;
@@ -97,18 +82,19 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
     /** A list of packets that we have received from AisStore but have not yet returned to the user. */
     private LinkedList<AisPacket> packets = new LinkedList<>();
 
-    AisStoreQuery(Session session, String tableName, String rowName, int rowStart, long timeStartInclusive,
-            long timeStopExclusive) {
-        this(session, tableName, rowName, rowStart, rowStart, timeStartInclusive, timeStopExclusive);
+    AisStoreQuery(Session session, int batchLimit, String tableName, String rowName, int rowStart,
+            long timeStartInclusive, long timeStopExclusive) {
+        this(session, batchLimit, tableName, rowName, rowStart, rowStart, timeStartInclusive, timeStopExclusive);
     }
 
-    AisStoreQuery(Session session, String tableName, String rowName, int rowStart, int rowStop,
+    AisStoreQuery(Session session, int batchLimit, String tableName, String rowName, int rowStart, int rowStop,
             long timeStartInclusive, long timeStopExclusive) {
         this.session = requireNonNull(session);
         this.tableName = requireNonNull(tableName);
         this.rowName = requireNonNull(rowName);
         this.currentRow = rowStart;
         this.lastRow = rowStop;
+        this.batchLimit = batchLimit;
         this.timeStart = ByteBuffer.wrap(Longs.toByteArray(timeStartInclusive));
         this.timeStop = ByteBuffer.wrap(Longs.toByteArray(timeStopExclusive));
         advance();
@@ -129,7 +115,7 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
             }
 
             // advance to next row, we did not get a complete result set
-            if (all.size() < LIMIT) {
+            if (all.size() < batchLimit) {
                 currentRow++;
             }
             if (all.size() > 0) {
@@ -158,67 +144,10 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
             Where w = s.where(QueryBuilder.eq(rowName, currentRow));
             w.and(QueryBuilder.gt("timehash", timeStart)); // timehash must be greater than start
             w.and(QueryBuilder.lt("timehash", timeStop)); // timehash must be less that stop
-            s.limit(LIMIT); // Sets the limit
+            s.limit(batchLimit); // Sets the limit
             // System.out.println(s.getQueryString());
             future = session.executeAsync(s.getQueryString());
         }
     }
 
-    static AisStoreQueryResult forTime(final Session s, final long startInclusive, final long stopExclusive) {
-        requireNonNull(s);
-        final int start = AisStoreSchema.getTimeBlock(startInclusive);
-        final int stop = AisStoreSchema.getTimeBlock(stopExclusive - 1);
-
-        return new AisStoreQueryResult() {
-            public Iterator<AisPacket> createQuery() {
-                return new AisStoreQuery(s, TABLE_TIME, TABLE_TIME_KEY, start, stop, startInclusive, stopExclusive);
-            }
-        };
-    }
-
-    static AisStoreQueryResult forMmsi(final Session s, final long startInclusive, final long stopExclusive,
-            final int... mmsi) {
-        requireNonNull(s);
-        if (mmsi.length == 0) {
-            throw new IllegalArgumentException("Must request at least 1 mmsi number");
-        }
-
-        // We create multiple queries and use a priority queue to return packets from each ship sorted by their
-        // timestamp
-        return new AisStoreQueryResult() {
-            public Iterator<AisPacket> createQuery() {
-                ArrayList<AisStoreQuery> queries = new ArrayList<>();
-                for (int m : mmsi) {
-                    queries.add(new AisStoreQuery(s, TABLE_MMSI, TABLE_MMSI_KEY, m, startInclusive, stopExclusive));
-                }
-                return Iterators.combine(queries, COMPARATOR);// Return the actual iterator, if queries only contains 1
-            }
-        };
-    }
-
-    static AisStoreQueryResult forArea(final Session s, Area area, final long startInclusive, final long stopExclusive) {
-        requireNonNull(s);
-        Set<Cell> cells1 = Grid.GRID_1_DEGREE.getCells(area);
-        Set<Cell> cells10 = Grid.GRID_10_DEGREES.getCells(area);
-
-        int factor = 10;// magic constant
-
-        // Determines if use the tables of size 1 degree, or size 10 degrees
-        boolean useCell1 = cells10.size() * factor > cells1.size();
-        final String tableName = useCell1 ? TABLE_AREA_CELL1 : TABLE_AREA_CELL10;
-        final String keyName = useCell1 ? TABLE_AREA_CELL1_KEY : TABLE_AREA_CELL10_KEY;
-        final Set<Cell> cells = useCell1 ? cells1 : cells10;
-
-        // We create multiple queries and use a priority queue to return packets from each ship sorted by their
-        // timestamp
-        return new AisStoreQueryResult() {
-            public Iterator<AisPacket> createQuery() {
-                ArrayList<AisStoreQuery> queries = new ArrayList<>();
-                for (Cell c : cells) {
-                    queries.add(new AisStoreQuery(s, tableName, keyName, c.getCellId(), startInclusive, stopExclusive));
-                }
-                return Iterators.combine(queries, COMPARATOR);
-            }
-        };
-    }
 }
