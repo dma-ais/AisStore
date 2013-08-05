@@ -1,4 +1,3 @@
-#CQL3
 DROP KEYSPACE aisdata;
 
 CREATE KEYSPACE aisdata 

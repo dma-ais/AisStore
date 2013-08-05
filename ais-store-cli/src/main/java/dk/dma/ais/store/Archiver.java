@@ -28,6 +28,7 @@ import com.google.inject.Injector;
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.packet.AisPacketOutputStreamSinks;
 import dk.dma.ais.reader.AisReaderGroup;
+import dk.dma.ais.reader.AisReaders;
 import dk.dma.ais.store.write.DefaultAisStoreWriter;
 import dk.dma.commons.app.AbstractDaemon;
 import dk.dma.commons.management.ManagedAttribute;
@@ -49,14 +50,14 @@ public class Archiver extends AbstractDaemon {
     /** The file naming scheme for writing backup files. */
     static final String BACKUP_FORMAT = "'ais-store-failed' yyyy.MM.dd HH:mm'.txt.zip'";
 
-    /** The number of packets we try to write at a time. */
-    static final int BATCH_SIZE = 500;
-
     @Parameter(names = "-backup", description = "The backup directory")
     File backup = new File("aisbackup");
 
     @Parameter(names = "-databaseName", description = "The cassandra database to write data to")
     String databaseName = "aisdata";
+
+    @Parameter(names = "-batchSize", description = "The number of messages to write to cassandra at a time")
+    int batchSize = 1000;
 
     @Parameter(names = "-database", description = "A list of cassandra hosts that can store the data")
     List<String> cassandraSeeds = Arrays.asList("localhost");
@@ -90,12 +91,12 @@ public class Archiver extends AbstractDaemon {
                 backup.toPath(), BACKUP_FORMAT, AisPacketOutputStreamSinks.OUTPUT_TO_TEXT));
 
         // setup an AisReader for each source
-        AisReaderGroup g = AisReaderGroup.create("AisStoreArchiver", sources);
+        AisReaderGroup g = AisReaders.createGroup("AisStoreArchiver", sources);
 
         // Start a stage that will write each packet to cassandra
-        final AbstractBatchedStage<AisPacket> cassandra = mainStage = start(new DefaultAisStoreWriter(con, BATCH_SIZE) {
+        final AbstractBatchedStage<AisPacket> cassandra = mainStage = start(new DefaultAisStoreWriter(con, batchSize) {
             @Override
-            public void onFailure(List<AisPacket> messages, Exception cause) {
+            public void onFailure(List<AisPacket> messages, Throwable cause) {
                 LOG.error("Could not write batch to cassandra", cause);
                 for (AisPacket p : messages) {
                     if (!backupService.getInputQueue().offer(p)) {
@@ -123,10 +124,11 @@ public class Archiver extends AbstractDaemon {
     }
 
     public static void main(String[] args) throws Exception {
+        args = AisReaders.getDefaultSources();
         if (args.length == 0) {
             System.err.println("Must specify at least 1 source (sourceName=host:port,host:port sourceName=host:port)");
             System.exit(1);
         }
-        new Archiver().execute(args /* AisReaderGroup.getDefaultSources() */);
+        new Archiver().execute(args);
     }
 }

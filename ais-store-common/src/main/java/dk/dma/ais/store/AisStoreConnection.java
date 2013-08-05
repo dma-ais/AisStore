@@ -104,6 +104,7 @@ public final class AisStoreConnection extends AbstractService {
      */
     public static AisStoreConnection create(String keyspace, List<String> connectionPoints) {
         Cluster cluster = Cluster.builder().addContactPoints(connectionPoints.toArray(new String[0])).build();
+        System.out.println("WATING");
         return new AisStoreConnection(cluster, keyspace);
     }
 }

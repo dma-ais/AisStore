@@ -34,6 +34,7 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
 
 import dk.dma.ais.store.AisStoreConnection;
 import dk.dma.commons.service.AbstractBatchedStage;
+import dk.dma.commons.util.DurationFormatter;
 
 /**
  * 
@@ -66,6 +67,7 @@ public abstract class CassandraBatchedStagedWriter<T> extends AbstractBatchedSta
     /** {@inheritDoc} */
     @Override
     protected void handleMessages(List<T> messages) {
+        long start = System.nanoTime();
         // Create a batch of message that we want to write.
         List<Statement> statements = new ArrayList<>();
         for (T t : messages) {
@@ -79,7 +81,19 @@ public abstract class CassandraBatchedStagedWriter<T> extends AbstractBatchedSta
         // Try writing the batch
         try {
             Batch batch = QueryBuilder.batch(statements.toArray(new Statement[statements.size()]));
+            // batch.enableTracing();
+            long beforeSend = System.nanoTime();
             connection.getSession().execute(batch);
+            // ExecutionInfo executionInfo = connection.getSession().execute(batch).getExecutionInfo();
+            Thread.sleep(50);
+            // System.out.println(executionInfo.getQueryTrace().getDurationMicros());
+            // for (QueryTrace.Event e : executionInfo.getQueryTrace().getEvents()) {
+            // System.out.println(e.getSourceElapsedMicros() + " : " + e.getDescription());
+            // }
+            long total = System.nanoTime();
+            System.out.println("Total time: " + DurationFormatter.DEFAULT.formatNanos(total - start) + ", preping="
+                    + DurationFormatter.DEFAULT.formatNanos(beforeSend - start) + ", sending="
+                    + DurationFormatter.DEFAULT.formatNanos(total - beforeSend) + ", size=" + messages.size());
             persistedCount.mark(messages.size());
             // sink.onSucces(messages);
         } catch (QueryValidationException e) {
@@ -96,6 +110,6 @@ public abstract class CassandraBatchedStagedWriter<T> extends AbstractBatchedSta
 
     protected abstract void handleMessage(List<Statement> statements, T message);
 
-    public abstract void onFailure(List<T> messages, Exception cause);
+    public abstract void onFailure(List<T> messages, Throwable cause);
 
 }

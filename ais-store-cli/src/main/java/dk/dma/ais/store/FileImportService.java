@@ -67,12 +67,15 @@ public class FileImportService extends AbstractExecutionThreadService {
             archiver.sleepUnlessShutdown(1, TimeUnit.SECONDS);
 
             // only start reading backups if there is no pressure on cassandra
-            if (archiver.getNumberOfOutstandingPackets() < 5 * Archiver.BATCH_SIZE) {
+            if (archiver.getNumberOfOutstandingPackets() < 5 * archiver.batchSize) {
                 if (Files.exists(backupDirectory)) {
                     try {
                         // Let's see if there are files we can process
                         try (DirectoryStream<Path> ds = Files.newDirectoryStream(backupDirectory)) {
                             for (Path p : ds) {
+                                if (!isRunning()) {
+                                    break;
+                                }
                                 if (p.getFileName().toString().endsWith(".zip")) {
                                     try {
                                         restoreFile(p);
@@ -106,7 +109,7 @@ public class FileImportService extends AbstractExecutionThreadService {
                 // we might be overloaded so sleep for a bit if we cannot write the packet
                 while (isRunning()) {
                     int q = archiver.getNumberOfOutstandingPackets();
-                    if (q > 10 * Archiver.BATCH_SIZE) {
+                    if (q > 10 * archiver.batchSize) {
                         LOG.info("Write queue to Cassandra is to busy size=" + q + ", sleeping for a bit");
                     } else if (archiver.mainStage.getInputQueue().offer(packet)) {
                         break;

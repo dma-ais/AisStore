@@ -43,7 +43,8 @@ class FileImport extends AbstractCommandLineTool {
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(FileImport.class);
 
-    private static final int SIZE = 10 * Archiver.BATCH_SIZE;
+    @Parameter(names = "-batchSize", description = "The number of messages to write to cassandra at a time")
+    int batchSize = 1000;
 
     @Parameter(required = true, description = "files to import...")
     List<String> sources;
@@ -62,8 +63,8 @@ class FileImport extends AbstractCommandLineTool {
     protected void run(Injector injector) throws Exception {
         AisStoreConnection con = start(AisStoreConnection.create(cassandraDatabase, cassandraSeeds));
 
-        final AbstractBatchedStage<AisPacket> cassandra = start(new DefaultAisStoreWriter(con, SIZE) {
-            public void onFailure(List<AisPacket> messages, Exception cause) {
+        final AbstractBatchedStage<AisPacket> cassandra = start(new DefaultAisStoreWriter(con, batchSize) {
+            public void onFailure(List<AisPacket> messages, Throwable cause) {
                 LOG.error("Could not write batch to cassandra", cause);
                 shutdown();
             }
