@@ -58,72 +58,6 @@ public final class AisStoreQueryBuilder {
         this.mmsi = mmsi;
     }
 
-    public AisStoreQueryBuilder setBatchLimit(int limit) {
-        this.batchLimit = limit;
-        return this;
-    }
-
-    public AisStoreQueryBuilder setInterval(Interval interval) {
-
-        return this;
-    }
-
-    /**
-     * @param start
-     *            the start date (inclusive)
-     * @param end
-     *            the end date (exclusive)
-     * @return
-     */
-    public AisStoreQueryBuilder setInterval(long startMillies, long stopMillies) {
-
-        return this;
-    }
-
-    /**
-     * Creates a new builder for packets received from within the specified area in the given interval.
-     * 
-     * @param area
-     *            the area
-     * @return a new ais store query builder
-     * @throws NullPointerException
-     *             if the specified area is null
-     */
-    public static AisStoreQueryBuilder forArea(Area area) {
-        return new AisStoreQueryBuilder(requireNonNull(area), null);
-    }
-
-    /**
-     * Finds all packets for one or more MMSI numbers in the given interval.
-     * 
-     * @param start
-     *            the start date (inclusive)
-     * @param end
-     *            the end date (exclusive)
-     * @param mmsi
-     *            one or more MMSI numbers
-     * @return an iterable with all packets
-     */
-    public static AisStoreQueryBuilder forMmsi(int... mmsi) {
-        if (mmsi.length == 0) {
-            throw new IllegalArgumentException("Must request at least 1 mmsi number");
-        }
-        return new AisStoreQueryBuilder(null, mmsi);
-    }
-
-    /**
-     * Finds all packets received in the given interval. Should only be used for small time intervals.
-     * 
-     * @param start
-     *            the start date (inclusive)
-     * @param end
-     *            the end date (exclusive)
-     * @return an iterable with all packets
-     */
-    public static AisStoreQueryBuilder forTime() {
-        return new AisStoreQueryBuilder(null, null);
-    }
-
     AisStoreQueryResult execute(final Session s) {
         requireNonNull(s);
         if (area != null) {
@@ -172,5 +106,71 @@ public final class AisStoreQueryBuilder {
                 }
             };
         }
+    }
+
+    public AisStoreQueryBuilder setBatchLimit(int limit) {
+        this.batchLimit = limit;
+        return this;
+    }
+
+    public AisStoreQueryBuilder setInterval(Interval interval) {
+        return setInterval(interval.getStartMillis(), interval.getEndMillis());
+    }
+
+    /**
+     * @param start
+     *            the start date (inclusive)
+     * @param end
+     *            the end date (exclusive)
+     * @return
+     */
+    public AisStoreQueryBuilder setInterval(long startMillies, long stopMillies) {
+        this.startInclusive = startMillies;
+        this.stopExclusive = stopMillies;
+        return this;
+    }
+
+    /**
+     * Creates a new builder for packets received from within the specified area in the given interval.
+     * 
+     * @param area
+     *            the area
+     * @return a new ais store query builder
+     * @throws NullPointerException
+     *             if the specified area is null
+     */
+    public static AisStoreQueryBuilder forArea(Area area) {
+        return new AisStoreQueryBuilder(requireNonNull(area), null);
+    }
+
+    /**
+     * Finds all packets for one or more MMSI numbers in the given interval.
+     * 
+     * @param start
+     *            the start date (inclusive)
+     * @param end
+     *            the end date (exclusive)
+     * @param mmsi
+     *            one or more MMSI numbers
+     * @return an iterable with all packets
+     */
+    public static AisStoreQueryBuilder forMmsi(int... mmsi) {
+        if (mmsi.length == 0) {
+            throw new IllegalArgumentException("Must request at least 1 mmsi number");
+        }
+        return new AisStoreQueryBuilder(null, mmsi);
+    }
+
+    /**
+     * Finds all packets received in the given interval. Should only be used for small time intervals.
+     * 
+     * @param start
+     *            the start date (inclusive)
+     * @param end
+     *            the end date (exclusive)
+     * @return an iterable with all packets
+     */
+    public static AisStoreQueryBuilder forTime() {
+        return new AisStoreQueryBuilder(null, null);
     }
 }

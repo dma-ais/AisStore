@@ -90,7 +90,7 @@ public class Archiver extends AbstractDaemon {
                 backup.toPath(), BACKUP_FORMAT, AisPacketOutputStreamSinks.OUTPUT_TO_TEXT));
 
         // setup an AisReader for each source
-        AisReaderGroup g = AisReaderGroup.create(sources);
+        AisReaderGroup g = AisReaderGroup.create("AisStoreArchiver", sources);
 
         // Start a stage that will write each packet to cassandra
         final AbstractBatchedStage<AisPacket> cassandra = mainStage = start(new DefaultAisStoreWriter(con, BATCH_SIZE) {
