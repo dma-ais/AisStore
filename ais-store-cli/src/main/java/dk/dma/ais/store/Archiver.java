@@ -124,7 +124,7 @@ public class Archiver extends AbstractDaemon {
     }
 
     public static void main(String[] args) throws Exception {
-        args = AisReaders.getDefaultSources();
+        // args = AisReaders.getDefaultSources();
         if (args.length == 0) {
             System.err.println("Must specify at least 1 source (sourceName=host:port,host:port sourceName=host:port)");
             System.exit(1);
