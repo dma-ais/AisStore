@@ -26,7 +26,7 @@ import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
 
 import dk.dma.ais.packet.AisPacket;
-import dk.dma.ais.packet.AisPacketOutputStreamSinks;
+import dk.dma.ais.packet.AisPacketOutputSinks;
 import dk.dma.ais.reader.AisReaderGroup;
 import dk.dma.ais.reader.AisReaders;
 import dk.dma.ais.store.write.DefaultAisStoreWriter;
@@ -88,7 +88,7 @@ public class Archiver extends AbstractDaemon {
 
         // Starts the backup service that will write files to disk if disconnected
         final MessageToFileService<AisPacket> backupService = start(MessageToFileService.dateTimeService(
-                backup.toPath(), BACKUP_FORMAT, AisPacketOutputStreamSinks.OUTPUT_TO_TEXT));
+                backup.toPath(), BACKUP_FORMAT, AisPacketOutputSinks.OUTPUT_TO_TEXT));
 
         // setup an AisReader for each source
         AisReaderGroup g = AisReaders.createGroup("AisStoreArchiver", sources);

@@ -29,7 +29,7 @@ import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
 
 import dk.dma.ais.packet.AisPacket;
-import dk.dma.ais.packet.AisPacketInputStream;
+import dk.dma.ais.packet.AisPacketReader;
 import dk.dma.ais.store.write.DefaultAisStoreWriter;
 import dk.dma.commons.app.AbstractCommandLineTool;
 import dk.dma.commons.service.AbstractBatchedStage;
@@ -78,7 +78,7 @@ class FileImport extends AbstractCommandLineTool {
             if (paths.add(path)) {
                 int count = 0;
                 LOG.info("Starting processing file " + path);
-                try (AisPacketInputStream apis = AisPacketInputStream.createFromFile(path, true)) {
+                try (AisPacketReader apis = AisPacketReader.createFromFile(path, true)) {
                     AisPacket p;
                     while ((p = apis.readPacket()) != null) {
                         count++;

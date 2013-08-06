@@ -29,7 +29,7 @@ import org.slf4j.LoggerFactory;
 import com.google.common.util.concurrent.AbstractExecutionThreadService;
 
 import dk.dma.ais.packet.AisPacket;
-import dk.dma.ais.packet.AisPacketInputStream;
+import dk.dma.ais.packet.AisPacketReader;
 import dk.dma.commons.util.io.PathUtil;
 
 /**
@@ -103,7 +103,7 @@ public class FileImportService extends AbstractExecutionThreadService {
 
     private void restoreFile(Path p) throws IOException, InterruptedException {
         LOG.info("Trying to restore " + p);
-        try (AisPacketInputStream s = AisPacketInputStream.createFromFile(p, true)) {
+        try (AisPacketReader s = AisPacketReader.createFromFile(p, true)) {
             AisPacket packet = null;
             while ((packet = s.readPacket()) != null) {
                 // we might be overloaded so sleep for a bit if we cannot write the packet
