@@ -38,7 +38,7 @@ import dk.dma.commons.util.io.PathUtil;
  * 
  * @author Kasper Nielsen
  */
-public class FileImportService extends AbstractExecutionThreadService {
+class FileImportService extends AbstractExecutionThreadService {
 
     /** The logger. */
     private static final Logger LOG = LoggerFactory.getLogger(FileImportService.class);
@@ -67,7 +67,7 @@ public class FileImportService extends AbstractExecutionThreadService {
             archiver.sleepUnlessShutdown(1, TimeUnit.SECONDS);
 
             // only start reading backups if there is no pressure on cassandra
-            if (archiver.getNumberOfOutstandingPackets() < 5 * archiver.batchSize) {
+            if (archiver.getNumberOfOutstandingPackets() < archiver.batchSize) {
                 if (Files.exists(backupDirectory)) {
                     try {
                         // Let's see if there are files we can process
@@ -90,6 +90,10 @@ public class FileImportService extends AbstractExecutionThreadService {
                                             LOG.error("Could not rename file ", ioe);
                                         }
                                     }
+                                    // Wait until there is plenty of room in the queue
+                                    while (isRunning() && archiver.getNumberOfOutstandingPackets() > archiver.batchSize) {
+                                        archiver.sleepUnlessShutdown(1, TimeUnit.SECONDS);
+                                    }
                                 }
                             }
                         }
@@ -104,12 +108,12 @@ public class FileImportService extends AbstractExecutionThreadService {
     private void restoreFile(Path p) throws IOException, InterruptedException {
         LOG.info("Trying to restore " + p);
         try (AisPacketReader s = AisPacketReader.createFromFile(p, true)) {
-            AisPacket packet = null;
+            AisPacket packet;
             while ((packet = s.readPacket()) != null) {
                 // we might be overloaded so sleep for a bit if we cannot write the packet
                 while (isRunning()) {
                     int q = archiver.getNumberOfOutstandingPackets();
-                    if (q > 10 * archiver.batchSize) {
+                    if (q > 20 * archiver.batchSize) {
                         LOG.info("Write queue to Cassandra is to busy size=" + q + ", sleeping for a bit");
                     } else if (archiver.mainStage.getInputQueue().offer(packet)) {
                         break;
