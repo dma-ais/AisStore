@@ -72,6 +72,7 @@ class FileImportService extends AbstractExecutionThreadService {
                     try {
                         // Let's see if there are files we can process
                         try (DirectoryStream<Path> ds = Files.newDirectoryStream(backupDirectory)) {
+                            int count = 0;
                             for (Path p : ds) {
                                 if (!isRunning()) {
                                     break;
@@ -79,6 +80,7 @@ class FileImportService extends AbstractExecutionThreadService {
                                 if (p.getFileName().toString().endsWith(".zip")) {
                                     try {
                                         restoreFile(p);
+                                        count++;
                                     } catch (Exception e) {
                                         LOG.error("Unknown error while trying to restore backup from file " + p, e);
                                         Path ne = PathUtil.findUnique(p.resolveSibling(p.getFileName().toString()
@@ -89,6 +91,12 @@ class FileImportService extends AbstractExecutionThreadService {
                                         } catch (IOException ioe) {
                                             LOG.error("Could not rename file ", ioe);
                                         }
+                                    }
+                                    // Take a long break after having imported 100 files
+                                    if (count % 50 == 49) {
+                                        LOG.info("File importer taking a long break, after having imported " + count
+                                                + " files");
+                                        archiver.sleepUnlessShutdown(60, TimeUnit.SECONDS);
                                     }
                                     // Wait until there is plenty of room in the queue
                                     while (isRunning() && archiver.getNumberOfOutstandingPackets() > archiver.batchSize) {
@@ -113,7 +121,7 @@ class FileImportService extends AbstractExecutionThreadService {
                 // we might be overloaded so sleep for a bit if we cannot write the packet
                 while (isRunning()) {
                     int q = archiver.getNumberOfOutstandingPackets();
-                    if (q > 20 * archiver.batchSize) {
+                    if (q > 10 * archiver.batchSize) {
                         LOG.info("Write queue to Cassandra is to busy size=" + q + ", sleeping for a bit");
                     } else if (archiver.mainStage.getInputQueue().offer(packet)) {
                         break;
