@@ -82,13 +82,13 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
     /** A list of packets that we have received from AisStore but have not yet returned to the user. */
     private LinkedList<AisPacket> packets = new LinkedList<>();
 
-    AisStoreQuery(Session session, int batchLimit, String tableName, String rowName, int rowStart,
-            long timeStartInclusive, long timeStopExclusive) {
-        this(session, batchLimit, tableName, rowName, rowStart, rowStart, timeStartInclusive, timeStopExclusive);
+    AisStoreQuery(Session session, AisStoreQueryInnerContext inner, int batchLimit, String tableName, String rowName,
+            int rowStart, long timeStartInclusive, long timeStopExclusive) {
+        this(session, inner, batchLimit, tableName, rowName, rowStart, rowStart, timeStartInclusive, timeStopExclusive);
     }
 
-    AisStoreQuery(Session session, int batchLimit, String tableName, String rowName, int rowStart, int rowStop,
-            long timeStartInclusive, long timeStopExclusive) {
+    AisStoreQuery(Session session, AisStoreQueryInnerContext inner, int batchLimit, String tableName, String rowName,
+            int rowStart, int rowStop, long timeStartInclusive, long timeStopExclusive) {
         this.session = requireNonNull(session);
         this.tableName = requireNonNull(tableName);
         this.rowName = requireNonNull(rowName);

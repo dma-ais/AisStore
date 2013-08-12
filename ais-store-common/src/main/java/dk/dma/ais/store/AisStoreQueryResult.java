@@ -19,7 +19,10 @@ import static java.util.Objects.requireNonNull;
 
 import java.util.Date;
 import java.util.Iterator;
-import java.util.concurrent.atomic.AtomicLong;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.Executor;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import dk.dma.ais.packet.AisPacket;
 
@@ -27,36 +30,66 @@ import dk.dma.ais.packet.AisPacket;
  * 
  * @author Kasper Nielsen
  */
-public abstract class AisStoreQueryResult implements Iterable<AisPacket> {
+public abstract class AisStoreQueryResult implements Iterable<AisPacket> /* , ListenableFuture<Void> */{
 
-    final AtomicLong packets = new AtomicLong();
+    private final AisStoreQueryInnerContext context;
 
-    volatile Date startDate;
+    AisStoreQueryResult(AisStoreQueryInnerContext context) {
+        this.context = context;
+    }
 
-    volatile long startTime;
+    /** {@inheritDoc} */
+    boolean cancel(boolean mayInterruptIfRunning) {
+        return context.inner.cancel(mayInterruptIfRunning);
+    }
+
+    /** {@inheritDoc} */
+    boolean isCancelled() {
+        return context.inner.isCancelled();
+    }
+
+    /** {@inheritDoc} */
+    boolean isDone() {
+        return context.inner.isDone();
+    }
+
+    /** {@inheritDoc} */
+    Void get() throws InterruptedException, ExecutionException {
+        return context.inner.get();
+    }
+
+    /** {@inheritDoc} */
+    Void get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+        return context.inner.get(timeout, unit);
+    }
+
+    /** {@inheritDoc} */
+    void addListener(Runnable listener, Executor executor) {
+        context.inner.addListener(listener, executor);
+    }
 
     // keep
 
     /** {@inheritDoc} */
     @Override
     public final Iterator<AisPacket> iterator() {
-        startDate = new Date();
-        startTime = System.nanoTime();
+        context.startDate = new Date();
+        context.startTime = System.nanoTime();
         return new WrappingIterator(createQuery());
     }
 
     abstract Iterator<AisPacket> createQuery();
 
     /**
-     * Returns the number of packets that have been returned.
+     * Returns the number of packets that have been returned so far.
      * 
-     * @return the number of packets that have been returned
+     * @return the number of packets that have been returned so far
      */
-    public long getCount() {
-        return packets.get();
+    long getNumberOfProcessedPackets() {
+        return 0;// context.processedPackets.get();
     }
 
-    public long getDuration() {
+    long getDuration() {
         return 3;
     }
 
@@ -77,7 +110,7 @@ public abstract class AisStoreQueryResult implements Iterable<AisPacket> {
         @Override
         public AisPacket next() {
             AisPacket next = delegate.next();
-            packets.incrementAndGet();
+            // packets.incrementAndGet();
             return next;
         }
 
@@ -86,6 +119,5 @@ public abstract class AisStoreQueryResult implements Iterable<AisPacket> {
         public void remove() {
             delegate.remove();
         }
-
     }
 }

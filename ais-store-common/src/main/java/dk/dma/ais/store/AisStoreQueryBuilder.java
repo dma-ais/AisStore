@@ -60,6 +60,7 @@ public final class AisStoreQueryBuilder {
 
     AisStoreQueryResult execute(final Session s) {
         requireNonNull(s);
+        final AisStoreQueryInnerContext inner = new AisStoreQueryInnerContext();
         if (area != null) {
             Set<Cell> cells1 = Grid.GRID_1_DEGREE.getCells(area);
             Set<Cell> cells10 = Grid.GRID_10_DEGREES.getCells(area);
@@ -74,23 +75,23 @@ public final class AisStoreQueryBuilder {
 
             // We create multiple queries and use a priority queue to return packets from each ship sorted by their
             // timestamp
-            return new AisStoreQueryResult() {
+            return new AisStoreQueryResult(inner) {
                 public Iterator<AisPacket> createQuery() {
                     ArrayList<AisStoreQuery> queries = new ArrayList<>();
                     for (Cell c : cells) {
-                        queries.add(new AisStoreQuery(s, batchLimit, tableName, keyName, c.getCellId(), startInclusive,
-                                stopExclusive));
+                        queries.add(new AisStoreQuery(s, inner, batchLimit, tableName, keyName, c.getCellId(),
+                                startInclusive, stopExclusive));
                     }
                     return Iterators.combine(queries, AisStoreQuery.COMPARATOR);
                 }
             };
         } else if (mmsi != null) {
-            return new AisStoreQueryResult() {
+            return new AisStoreQueryResult(inner) {
                 public Iterator<AisPacket> createQuery() {
                     ArrayList<AisStoreQuery> queries = new ArrayList<>();
                     for (int m : mmsi) {
-                        queries.add(new AisStoreQuery(s, batchLimit, TABLE_MMSI, TABLE_MMSI_KEY, m, startInclusive,
-                                stopExclusive));
+                        queries.add(new AisStoreQuery(s, inner, batchLimit, TABLE_MMSI, TABLE_MMSI_KEY, m,
+                                startInclusive, stopExclusive));
                     }
                     // Return the actual iterator, if queries only contains 1 query
                     return Iterators.combine(queries, AisStoreQuery.COMPARATOR);
@@ -99,10 +100,10 @@ public final class AisStoreQueryBuilder {
         } else {
             final int start = AisStoreSchema.getTimeBlock(startInclusive);
             final int stop = AisStoreSchema.getTimeBlock(stopExclusive - 1);
-            return new AisStoreQueryResult() {
+            return new AisStoreQueryResult(inner) {
                 public Iterator<AisPacket> createQuery() {
-                    return new AisStoreQuery(s, batchLimit, TABLE_TIME, TABLE_TIME_KEY, start, stop, startInclusive,
-                            stopExclusive);
+                    return new AisStoreQuery(s, inner, batchLimit, TABLE_TIME, TABLE_TIME_KEY, start, stop,
+                            startInclusive, stopExclusive);
                 }
             };
         }
