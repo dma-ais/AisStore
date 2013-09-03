@@ -17,68 +17,97 @@ package dk.dma.ais.store;
 
 import static java.util.Objects.requireNonNull;
 
+import java.util.ArrayList;
 import java.util.Date;
 import java.util.Iterator;
+import java.util.List;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.Executor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.concurrent.atomic.AtomicLong;
+
+import com.google.common.util.concurrent.ListenableFuture;
 
 import dk.dma.ais.packet.AisPacket;
+import dk.dma.commons.util.Iterators;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public abstract class AisStoreQueryResult implements Iterable<AisPacket> /* , ListenableFuture<Void> */{
+public class AisStoreQueryResult implements Iterable<AisPacket>, ListenableFuture<Void> {
 
     private final AisStoreQueryInnerContext context;
 
-    AisStoreQueryResult(AisStoreQueryInnerContext context) {
+    private final Object lock = new Object();
+
+    private final List<AisStorePartialQuery> queries = new ArrayList<>();
+
+    private Iterator<AisPacket> iterator;
+
+    final AtomicLong releasedPackets = new AtomicLong();
+
+    AisStoreQueryResult(AisStoreQueryInnerContext context, List<AisStorePartialQuery> queries) {
         this.context = context;
+        this.queries.addAll(queries);
+    }
+
+    public String getState() {
+        if (!isDone()) {
+            return "Running";
+        }
+        return isCancelled() ? "Cancelled" : "Done";
     }
 
     /** {@inheritDoc} */
-    boolean cancel(boolean mayInterruptIfRunning) {
+    public boolean cancel(boolean mayInterruptIfRunning) {
         return context.inner.cancel(mayInterruptIfRunning);
     }
 
     /** {@inheritDoc} */
-    boolean isCancelled() {
+    public boolean isCancelled() {
         return context.inner.isCancelled();
     }
 
     /** {@inheritDoc} */
-    boolean isDone() {
+    public boolean isDone() {
         return context.inner.isDone();
     }
 
     /** {@inheritDoc} */
-    Void get() throws InterruptedException, ExecutionException {
+    public Void get() throws InterruptedException, ExecutionException {
         return context.inner.get();
     }
 
     /** {@inheritDoc} */
-    Void get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
+    public Void get(long timeout, TimeUnit unit) throws InterruptedException, ExecutionException, TimeoutException {
         return context.inner.get(timeout, unit);
     }
 
     /** {@inheritDoc} */
-    void addListener(Runnable listener, Executor executor) {
+    public void addListener(Runnable listener, Executor executor) {
         context.inner.addListener(listener, executor);
     }
-
-    // keep
 
     /** {@inheritDoc} */
     @Override
     public final Iterator<AisPacket> iterator() {
-        context.startDate = new Date();
-        context.startTime = System.nanoTime();
-        return new WrappingIterator(createQuery());
+        synchronized (lock) {
+            Iterator<AisPacket> iterator = this.iterator;
+            if (iterator == null) {
+                context.startDate = new Date();
+                context.startTime = System.nanoTime();
+                if (queries.size() == 1) {
+                    iterator = queries.get(0);
+                } else {
+                    iterator = Iterators.combine(queries, AisStorePartialQuery.COMPARATOR);
+                }
+                return this.iterator = new WrappingIterator(iterator);
+            }
+            return iterator;
+        }
     }
-
-    abstract Iterator<AisPacket> createQuery();
 
     /**
      * Returns the number of packets that have been returned so far.
@@ -110,14 +139,14 @@ public abstract class AisStoreQueryResult implements Iterable<AisPacket> /* , Li
         @Override
         public AisPacket next() {
             AisPacket next = delegate.next();
-            // packets.incrementAndGet();
+            releasedPackets.incrementAndGet();
             return next;
         }
 
         /** {@inheritDoc} */
         @Override
         public void remove() {
-            delegate.remove();
+            throw new UnsupportedOperationException("Remove not supported");
         }
     }
 }

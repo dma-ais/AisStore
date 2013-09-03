@@ -15,10 +15,9 @@
  */
 package dk.dma.ais.store;
 
-import static java.util.Objects.requireNonNull;
-
 import java.util.Date;
 import java.util.concurrent.CopyOnWriteArrayList;
+import java.util.concurrent.CountDownLatch;
 
 import jsr166e.LongAdder;
 
@@ -33,33 +32,26 @@ class AisStoreQueryInnerContext {
     final LongAdder releasedPackets = new LongAdder();
 
     final SettableFuture<Void> inner = SettableFuture.create();
-    final CopyOnWriteArrayList<PerReader> readers = new CopyOnWriteArrayList<>();
     volatile Date startDate;
     volatile Date finishDate;
     volatile long startTime;
     volatile long finishTime;
+    final CountDownLatch latch = new CountDownLatch(10);
+
+    final CopyOnWriteArrayList<AisStorePartialQuery> queries = new CopyOnWriteArrayList<>();
 
     long getTotalProcessed() {
+
         return processedPackets.sum();
     }
 
-    void finished() {
+    void finished(AisStorePartialQuery q) {
+        queries.remove(q);
+        if (queries.isEmpty()) {
+            inner.set(null);
+        }
+
         finishTime = System.nanoTime();
         finishDate = new Date();
-        inner.set(null);
-    }
-
-    static class PerReader {
-        final AisStoreQueryInnerContext context;
-
-        PerReader(AisStoreQueryInnerContext context) {
-            this.context = requireNonNull(context);
-        }
-
-        volatile long latestDateProcessed;
-
-        void finished() {
-
-        }
     }
 }

@@ -33,7 +33,7 @@ public class QueryTest {
     public void ignore() {}
 
     public static void main(String[] args) {
-        AisStoreConnection con = AisStoreConnection.create("aisdata", "127.0.0.1");
+        AisStoreConnection con = AisStoreConnection.create("aisdata", "10.3.240.203");
 
         con.start();
         try {
@@ -43,13 +43,14 @@ public class QueryTest {
             // CoordinateSystem.CARTESIAN);
 
             // Iterable<AisPacket> iter = con.findForArea(bb, 0L, new Date().getTime());
-            Iterable<AisPacket> iter = con.execute(AisStoreQueryBuilder.forTime().setInterval(1374450154000L,
-                    1375103376939L));
-            iter.iterator().hasNext();
+            Iterable<AisPacket> iter = con.execute(AisStoreQueryBuilder.forTime().setInterval(1375310431000L,
+                    15372286728091L));
+            // iter.iterator().hasNext();
 
             long start = System.currentTimeMillis();
             for (AisPacket p : iter) {
                 if (p != null) {
+                    // System.out.println(p.getBestTimestamp());
                     // if (count == 0 || count == 188312) {
                     // System.out.println(String.format("count= %d, timestamp= %d", count, p.getBestTimestamp()));
                     // }

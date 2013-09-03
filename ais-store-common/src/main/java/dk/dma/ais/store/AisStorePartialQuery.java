@@ -19,6 +19,7 @@ import static java.util.Objects.requireNonNull;
 
 import java.nio.ByteBuffer;
 import java.util.Comparator;
+import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
@@ -40,10 +41,10 @@ import dk.dma.ais.packet.AisPacket;
  * 
  * @author Kasper Nielsen
  */
-class AisStoreQuery extends AbstractIterator<AisPacket> {
+class AisStorePartialQuery extends AbstractIterator<AisPacket> {
 
     /**
-     * AisPacket implements Comparable. But I'm to afraid someone might break the functionality someday So we make a
+     * AisPacket implements Comparable. But I'm to afraid someone might break the functionality someday. So we make a
      * manual iterator
      * */
     static final Comparator<AisPacket> COMPARATOR = new Comparator<AisPacket>() {
@@ -74,6 +75,7 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
     private final ByteBuffer timeStop;
 
     private int currentRow;
+
     private final int lastRow;
 
     /** All queries are done asynchronously. This future holds the result of the last query we made. */
@@ -82,13 +84,20 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
     /** A list of packets that we have received from AisStore but have not yet returned to the user. */
     private LinkedList<AisPacket> packets = new LinkedList<>();
 
-    AisStoreQuery(Session session, AisStoreQueryInnerContext inner, int batchLimit, String tableName, String rowName,
-            int rowStart, long timeStartInclusive, long timeStopExclusive) {
+    /** The number of packets that was retrieved. */
+    private volatile long retrievedPackets;
+
+    private volatile long lastestDateReceived;
+
+    private final AisStoreQueryInnerContext inner;
+
+    AisStorePartialQuery(Session session, AisStoreQueryInnerContext inner, int batchLimit, String tableName,
+            String rowName, int rowStart, long timeStartInclusive, long timeStopExclusive) {
         this(session, inner, batchLimit, tableName, rowName, rowStart, rowStart, timeStartInclusive, timeStopExclusive);
     }
 
-    AisStoreQuery(Session session, AisStoreQueryInnerContext inner, int batchLimit, String tableName, String rowName,
-            int rowStart, int rowStop, long timeStartInclusive, long timeStopExclusive) {
+    AisStorePartialQuery(Session session, AisStoreQueryInnerContext inner, int batchLimit, String tableName,
+            String rowName, int rowStart, int rowStop, long timeStartInclusive, long timeStopExclusive) {
         this.session = requireNonNull(session);
         this.tableName = requireNonNull(tableName);
         this.rowName = requireNonNull(rowName);
@@ -98,6 +107,16 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
         this.timeStart = ByteBuffer.wrap(Longs.toByteArray(timeStartInclusive));
         this.timeStop = ByteBuffer.wrap(Longs.toByteArray(timeStopExclusive));
         advance();
+        this.inner = inner;
+        inner.queries.add(this);
+    }
+
+    long getNumberOfRetrievedPackets() {
+        return retrievedPackets;
+    }
+
+    long getLatestRetrievedTimestamp() {
+        return lastestDateReceived;
     }
 
     public AisPacket computeNext() {
@@ -111,6 +130,7 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
                 all = future.get().all();
                 future = null; // make sure we do not use the same future again
             } catch (Exception e) {
+                inner.inner.setException(e);
                 throw new RuntimeException(e);
             }
 
@@ -119,8 +139,12 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
                 currentRow++;
             }
             if (all.size() > 0) {
+                retrievedPackets += all.size();
                 Row row = all.get(all.size() - 1);
-                timeStart = ByteBuffer.wrap(ByteBufferUtil.getArray(row.getBytes(0)));
+                byte[] bytes = ByteBufferUtil.getArray(row.getBytes(0));
+                lastestDateReceived = Longs.fromByteArray(bytes);
+                System.out.println(new Date(lastestDateReceived));
+                timeStart = ByteBuffer.wrap(bytes);
             }
             advance(); // make sure to fetch next before we start the parsing
 
@@ -132,6 +156,7 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
                 return packets.poll();
             }
         }
+        inner.finished(this);
         return endOfData();
     }
 

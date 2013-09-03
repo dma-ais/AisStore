@@ -53,6 +53,9 @@ public abstract class CassandraBatchedStagedWriter<T> extends AbstractBatchedSta
     final Meter persistedCount = metrics.meter(MetricRegistry.name("aistore", "cassandra",
             "Number of persisted AIS messages"));
 
+    /** greater than 0 if the last batch was slow. */
+    private int lastSlowBatch;
+
     /**
      * @param queueSize
      * @param maxBatchSize
@@ -81,19 +84,19 @@ public abstract class CassandraBatchedStagedWriter<T> extends AbstractBatchedSta
         // Try writing the batch
         try {
             Batch batch = QueryBuilder.batch(statements.toArray(new Statement[statements.size()]));
-            // batch.enableTracing();
             long beforeSend = System.nanoTime();
             connection.getSession().execute(batch);
-            // ExecutionInfo executionInfo = connection.getSession().execute(batch).getExecutionInfo();
-            Thread.sleep(50);
-            // System.out.println(executionInfo.getQueryTrace().getDurationMicros());
-            // for (QueryTrace.Event e : executionInfo.getQueryTrace().getEvents()) {
-            // System.out.println(e.getSourceElapsedMicros() + " : " + e.getDescription());
-            // }
             long total = System.nanoTime();
-            System.out.println("Total time: " + DurationFormatter.DEFAULT.formatNanos(total - start) + ", preping="
-                    + DurationFormatter.DEFAULT.formatNanos(beforeSend - start) + ", sending="
-                    + DurationFormatter.DEFAULT.formatNanos(total - beforeSend) + ", size=" + messages.size());
+            // Is this an abnormal slow batch?
+            boolean isSlow = TimeUnit.MILLISECONDS.convert(total - start, TimeUnit.NANOSECONDS) > 200
+                    || messages.size() >= getBatchSize();
+            if (isSlow || lastSlowBatch > 0) {
+                LOG.info("Total time: " + DurationFormatter.DEFAULT.formatNanos(total - start) + ", preping="
+                        + DurationFormatter.DEFAULT.formatNanos(beforeSend - start) + ", sending="
+                        + DurationFormatter.DEFAULT.formatNanos(total - beforeSend) + ", size=" + messages.size());
+                // makes sure we write 10 info statements after the last slow batch we insert
+                lastSlowBatch = isSlow ? 10 : lastSlowBatch - 1;
+            }
             persistedCount.mark(messages.size());
             // sink.onSucces(messages);
         } catch (QueryValidationException e) {
@@ -113,3 +116,10 @@ public abstract class CassandraBatchedStagedWriter<T> extends AbstractBatchedSta
     public abstract void onFailure(List<T> messages, Throwable cause);
 
 }
+// batch.enableTracing();
+// ExecutionInfo executionInfo = connection.getSession().execute(batch).getExecutionInfo();
+// Thread.sleep(50); <~ we need to sleep when tracing
+// System.out.println(executionInfo.getQueryTrace().getDurationMicros());
+// for (QueryTrace.Event e : executionInfo.getQueryTrace().getEvents()) {
+// System.out.println(e.getSourceElapsedMicros() + " : " + e.getDescription());
+// }

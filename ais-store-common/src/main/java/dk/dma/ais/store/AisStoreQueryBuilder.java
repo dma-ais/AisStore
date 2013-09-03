@@ -26,15 +26,12 @@ import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME_KEY;
 import static java.util.Objects.requireNonNull;
 
 import java.util.ArrayList;
-import java.util.Iterator;
 import java.util.Set;
 
 import org.joda.time.Interval;
 
 import com.datastax.driver.core.Session;
 
-import dk.dma.ais.packet.AisPacket;
-import dk.dma.commons.util.Iterators;
 import dk.dma.enav.model.geometry.Area;
 import dk.dma.enav.model.geometry.grid.Cell;
 import dk.dma.enav.model.geometry.grid.Grid;
@@ -45,13 +42,20 @@ import dk.dma.enav.model.geometry.grid.Grid;
  */
 public final class AisStoreQueryBuilder {
 
+    /** The bounding area. */
     final Area area;
+
+    /** The number of results to fetch at a time. */
     int batchLimit = 3000; // magic constant found by trial;
 
+    /** The list of MMSI number to retrieve. */
     final int[] mmsi;
-    long startInclusive;
 
-    long stopExclusive;
+    /** The start epoch time (inclusive) */
+    long startTimeInclusive;
+
+    /** The start epoch time (exclusive) */
+    long stopTimeExclusive;
 
     private AisStoreQueryBuilder(Area area, int[] mmsi) {
         this.area = area;
@@ -60,7 +64,8 @@ public final class AisStoreQueryBuilder {
 
     AisStoreQueryResult execute(final Session s) {
         requireNonNull(s);
-        final AisStoreQueryInnerContext inner = new AisStoreQueryInnerContext();
+        AisStoreQueryInnerContext inner = new AisStoreQueryInnerContext();
+        ArrayList<AisStorePartialQuery> queries = new ArrayList<>();
         if (area != null) {
             Set<Cell> cells1 = Grid.GRID_1_DEGREE.getCells(area);
             Set<Cell> cells10 = Grid.GRID_10_DEGREES.getCells(area);
@@ -69,44 +74,29 @@ public final class AisStoreQueryBuilder {
 
             // Determines if use the tables of size 1 degree, or size 10 degrees
             boolean useCell1 = cells10.size() * factor > cells1.size();
-            final String tableName = useCell1 ? TABLE_AREA_CELL1 : TABLE_AREA_CELL10;
-            final String keyName = useCell1 ? TABLE_AREA_CELL1_KEY : TABLE_AREA_CELL10_KEY;
-            final Set<Cell> cells = useCell1 ? cells1 : cells10;
+            String tableName = useCell1 ? TABLE_AREA_CELL1 : TABLE_AREA_CELL10;
+            String keyName = useCell1 ? TABLE_AREA_CELL1_KEY : TABLE_AREA_CELL10_KEY;
+            Set<Cell> cells = useCell1 ? cells1 : cells10;
 
             // We create multiple queries and use a priority queue to return packets from each ship sorted by their
             // timestamp
-            return new AisStoreQueryResult(inner) {
-                public Iterator<AisPacket> createQuery() {
-                    ArrayList<AisStoreQuery> queries = new ArrayList<>();
-                    for (Cell c : cells) {
-                        queries.add(new AisStoreQuery(s, inner, batchLimit, tableName, keyName, c.getCellId(),
-                                startInclusive, stopExclusive));
-                    }
-                    return Iterators.combine(queries, AisStoreQuery.COMPARATOR);
-                }
-            };
+            for (Cell c : cells) {
+                queries.add(new AisStorePartialQuery(s, inner, batchLimit, tableName, keyName, c.getCellId(),
+                        startTimeInclusive, stopTimeExclusive));
+            }
         } else if (mmsi != null) {
-            return new AisStoreQueryResult(inner) {
-                public Iterator<AisPacket> createQuery() {
-                    ArrayList<AisStoreQuery> queries = new ArrayList<>();
-                    for (int m : mmsi) {
-                        queries.add(new AisStoreQuery(s, inner, batchLimit, TABLE_MMSI, TABLE_MMSI_KEY, m,
-                                startInclusive, stopExclusive));
-                    }
-                    // Return the actual iterator, if queries only contains 1 query
-                    return Iterators.combine(queries, AisStoreQuery.COMPARATOR);
-                }
-            };
+            for (int m : mmsi) {
+                queries.add(new AisStorePartialQuery(s, inner, batchLimit, TABLE_MMSI, TABLE_MMSI_KEY, m,
+                        startTimeInclusive, stopTimeExclusive));
+            }
         } else {
-            final int start = AisStoreSchema.getTimeBlock(startInclusive);
-            final int stop = AisStoreSchema.getTimeBlock(stopExclusive - 1);
-            return new AisStoreQueryResult(inner) {
-                public Iterator<AisPacket> createQuery() {
-                    return new AisStoreQuery(s, inner, batchLimit, TABLE_TIME, TABLE_TIME_KEY, start, stop,
-                            startInclusive, stopExclusive);
-                }
-            };
+            int start = AisStoreSchema.getTimeBlock(startTimeInclusive);
+            int stop = AisStoreSchema.getTimeBlock(stopTimeExclusive - 1);
+            queries.add(new AisStorePartialQuery(s, inner, batchLimit, TABLE_TIME, TABLE_TIME_KEY, start, stop,
+                    startTimeInclusive, stopTimeExclusive));
         }
+        return new AisStoreQueryResult(inner, queries);
+
     }
 
     public AisStoreQueryBuilder setFetchSize(int limit) {
@@ -126,8 +116,8 @@ public final class AisStoreQueryBuilder {
      * @return
      */
     public AisStoreQueryBuilder setInterval(long startMillies, long stopMillies) {
-        this.startInclusive = startMillies;
-        this.stopExclusive = stopMillies;
+        this.startTimeInclusive = startMillies;
+        this.stopTimeExclusive = stopMillies;
         return this;
     }
 
@@ -136,7 +126,7 @@ public final class AisStoreQueryBuilder {
      * 
      * @param area
      *            the area
-     * @return a new ais store query builder
+     * @return a query builder
      * @throws NullPointerException
      *             if the specified area is null
      */
@@ -145,15 +135,11 @@ public final class AisStoreQueryBuilder {
     }
 
     /**
-     * Finds all packets for one or more MMSI numbers in the given interval.
+     * Finds all packets for one or more MMSI numbers.
      * 
-     * @param start
-     *            the start date (inclusive)
-     * @param end
-     *            the end date (exclusive)
      * @param mmsi
      *            one or more MMSI numbers
-     * @return an iterable with all packets
+     * @return a query builder
      */
     public static AisStoreQueryBuilder forMmsi(int... mmsi) {
         if (mmsi.length == 0) {
@@ -163,13 +149,10 @@ public final class AisStoreQueryBuilder {
     }
 
     /**
-     * Finds all packets received in the given interval. Should only be used for small time intervals.
+     * Finds all packets. Should be used together with {@link #setInterval(long, long)} to limit the amount of data to
+     * return.
      * 
-     * @param start
-     *            the start date (inclusive)
-     * @param end
-     *            the end date (exclusive)
-     * @return an iterable with all packets
+     * @return a query builder
      */
     public static AisStoreQueryBuilder forTime() {
         return new AisStoreQueryBuilder(null, null);

@@ -37,9 +37,19 @@ public final class AisStoreConnection extends AbstractService {
     /** The name of the keyspace. */
     private final String keyspace;
 
-    /** The current session */
+    /** The current session. */
     private volatile Session session;
 
+    /**
+     * Creates a new connection.
+     * 
+     * @param cluster
+     *            the cluster to connect to
+     * @param keyspace
+     *            the Cassandra keyspace
+     * @throws NullPointerException
+     *             if the cluster or keyspace is null
+     */
     private AisStoreConnection(Cluster cluster, String keyspace) {
         this.cluster = requireNonNull(cluster);
         this.keyspace = requireNonNull(keyspace);
@@ -52,6 +62,13 @@ public final class AisStoreConnection extends AbstractService {
         notifyStarted();
     }
 
+    /**
+     * Asynchronously execute the specified query.
+     * 
+     * @param builder
+     *            the query builder
+     * @return the result of the query
+     */
     public AisStoreQueryResult execute(AisStoreQueryBuilder builder) {
         return builder.execute(getSession());
     };
@@ -68,7 +85,7 @@ public final class AisStoreConnection extends AbstractService {
      * 
      * @return the current session
      * @throws IllegalStateException
-     *             if the connection has not yet been started via {@link #start()}
+     *             if this connection has not yet been started via {@link #start()}
      */
     public Session getSession() {
         Session session = this.session;
@@ -104,7 +121,6 @@ public final class AisStoreConnection extends AbstractService {
      */
     public static AisStoreConnection create(String keyspace, List<String> connectionPoints) {
         Cluster cluster = Cluster.builder().addContactPoints(connectionPoints.toArray(new String[0])).build();
-        System.out.println("WATING");
         return new AisStoreConnection(cluster, keyspace);
     }
 }

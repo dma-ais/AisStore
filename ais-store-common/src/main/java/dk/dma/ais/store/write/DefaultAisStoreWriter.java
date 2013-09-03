@@ -46,6 +46,9 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
     // TODO different for sat packets???
     public static final long POSITION_TIMEOUT_MS = TimeUnit.MILLISECONDS.convert(20, TimeUnit.MINUTES);
 
+    /** A position tracker used to keeping an eye on previously received messages. */
+    private final PositionTracker<Integer> tracker = new PositionTracker<>();
+
     /**
      * @param connection
      * @param batchSize
@@ -54,32 +57,31 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
         super(connection, batchSize);
     }
 
-    /** A position tracker used to keeping an eye on previously received messages. */
-    private final PositionTracker<Integer> tracker = new PositionTracker<>();
-
     public void handleMessage(List<Statement> batch, AisPacket packet) {
-        // TODO FIX timestamp, uses best sometimes, and getTimestamp other time
-        long ts = packet.getTimestamp().getTime();
-        byte[] column = Bytes.concat(Longs.toByteArray(ts), packet.calculateHash128()); // the column
-        byte[] data = packet.toByteArray(); // the serialized packet
+        long ts = packet.getBestTimestamp();
+        if (ts > 0) { //only save packets with a valid timestamp
 
-        storeByTime(batch, ts, column, data); // Store packet by time
+            byte[] column = Bytes.concat(Longs.toByteArray(ts), packet.calculateHash128()); // the column
+            byte[] data = packet.toByteArray(); // the serialized packet
 
-        // packets are only stored by time, if they are not a proper message
-        AisMessage message = packet.tryGetAisMessage();
-        if (message == null) {
-            return;
+            storeByTime(batch, ts, column, data); // Store packet by time
+
+            // packets are only stored by time, if they are not a proper message
+            AisMessage message = packet.tryGetAisMessage();
+            if (message == null) {
+                return;
+            }
+
+            storeByMmsi(batch, ts, column, message.getUserId(), data); // Store packet by mmsi
+
+            Position p = message.getValidPosition();
+            if (p == null) { // Try to find an estimated position
+                // Use the last received position message unless the position has timed out (POSITION_TIMEOUT_MS)
+                p = tracker.getLatestIfLaterThan(message.getUserId(), ts - POSITION_TIMEOUT_MS);
+            } else { // Update the tracker with latest position
+                tracker.update(message.getUserId(), p.withTime(ts));
+            }
+            storeByArea(batch, ts, column, message.getUserId(), p, data);
         }
-
-        storeByMmsi(batch, ts, column, message.getUserId(), data); // Store packet by mmsi
-
-        Position p = message.getValidPosition();
-        if (p == null) { // Try to find an estimated position
-            // Use the last received position message unless the position has timed out (POSITION_TIMEOUT_MS)
-            p = tracker.getLatestIfLaterThan(message.getUserId(), packet.getBestTimestamp() - POSITION_TIMEOUT_MS);
-        } else { // Update the tracker with latest position
-            tracker.update(message.getUserId(), p.withTime(packet.getBestTimestamp()));
-        }
-        storeByArea(batch, ts, column, message.getUserId(), p, data);
     }
 }
