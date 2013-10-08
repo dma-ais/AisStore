@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -32,6 +32,7 @@ import org.joda.time.Interval;
 
 import com.datastax.driver.core.Session;
 
+import dk.dma.db.cassandra.CassandraQueryBuilder;
 import dk.dma.enav.model.geometry.Area;
 import dk.dma.enav.model.geometry.grid.Cell;
 import dk.dma.enav.model.geometry.grid.Grid;
@@ -40,7 +41,7 @@ import dk.dma.enav.model.geometry.grid.Grid;
  * 
  * @author Kasper Nielsen
  */
-public final class AisStoreQueryBuilder {
+public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQueryResult> {
 
     /** The bounding area. */
     final Area area;
@@ -62,7 +63,7 @@ public final class AisStoreQueryBuilder {
         this.mmsi = mmsi;
     }
 
-    AisStoreQueryResult execute(final Session s) {
+    protected AisStoreQueryResult execute(Session s) {
         requireNonNull(s);
         AisStoreQueryInnerContext inner = new AisStoreQueryInnerContext();
         ArrayList<AisStorePartialQuery> queries = new ArrayList<>();

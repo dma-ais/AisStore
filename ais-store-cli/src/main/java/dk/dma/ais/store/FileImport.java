@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -33,6 +33,7 @@ import dk.dma.ais.packet.AisPacketReader;
 import dk.dma.ais.store.write.DefaultAisStoreWriter;
 import dk.dma.commons.app.AbstractCommandLineTool;
 import dk.dma.commons.service.AbstractBatchedStage;
+import dk.dma.db.cassandra.CassandraConnection;
 
 /**
  * 
@@ -61,7 +62,7 @@ class FileImport extends AbstractCommandLineTool {
     /** {@inheritDoc} */
     @Override
     protected void run(Injector injector) throws Exception {
-        AisStoreConnection con = start(AisStoreConnection.create(cassandraDatabase, cassandraSeeds));
+        CassandraConnection con = start(CassandraConnection.create(cassandraDatabase, cassandraSeeds));
 
         final AbstractBatchedStage<AisPacket> cassandra = start(new DefaultAisStoreWriter(con, batchSize) {
             public void onFailure(List<AisPacket> messages, Throwable cause) {

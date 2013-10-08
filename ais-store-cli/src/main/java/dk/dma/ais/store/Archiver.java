@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -35,6 +35,7 @@ import dk.dma.commons.management.ManagedAttribute;
 import dk.dma.commons.management.ManagedResource;
 import dk.dma.commons.service.AbstractBatchedStage;
 import dk.dma.commons.service.io.MessageToFileService;
+import dk.dma.db.cassandra.CassandraConnection;
 import dk.dma.enav.util.function.Consumer;
 
 /**
@@ -84,7 +85,7 @@ public class Archiver extends AbstractDaemon {
     @Override
     protected void runDaemon(Injector injector) throws Exception {
         // Setup keyspace for cassandra
-        AisStoreConnection con = start(AisStoreConnection.create(databaseName, cassandraSeeds));
+        CassandraConnection con = start(CassandraConnection.create(databaseName, cassandraSeeds));
 
         // Starts the backup service that will write files to disk if disconnected
         final MessageToFileService<AisPacket> backupService = start(MessageToFileService.dateTimeService(

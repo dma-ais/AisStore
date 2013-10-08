@@ -13,31 +13,12 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.ais.store.raw.job;
-
-import dk.dma.ais.message.AisMessage;
-import dk.dma.ais.packet.AisPacket;
-import dk.dma.enav.model.geometry.Position;
+package dk.dma.db.cassandra;
 
 /**
- * 
+ *
  * @author Kasper Nielsen
  */
-// et midlertidig job
-public abstract class AisStoreJob {
-    // ship timeout
+public class CassandraQuery {
 
-    <T extends AisMessage> T getLatestMessage(Class<T> messageType) {
-        return null;
-    }
-
-    <T extends AisMessage> AisPacket getLatestPacket(Class<T> messageType) {
-        return null;
-    }
-
-    Position getLatestPosition() {
-        return null;
-    }
-
-    abstract void process(AisPacket p);
 }

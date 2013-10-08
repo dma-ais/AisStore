@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -23,13 +23,14 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.Statement;
+import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
 
 import dk.dma.ais.message.AisMessage;
 import dk.dma.ais.packet.AisPacket;
-import dk.dma.ais.store.AisStoreConnection;
 import dk.dma.commons.tracker.PositionTracker;
+import dk.dma.db.cassandra.CassandraConnection;
 import dk.dma.enav.model.geometry.Position;
 
 /**
@@ -53,15 +54,17 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
      * @param connection
      * @param batchSize
      */
-    public DefaultAisStoreWriter(AisStoreConnection connection, int batchSize) {
+    public DefaultAisStoreWriter(CassandraConnection connection, int batchSize) {
         super(connection, batchSize);
     }
 
     public void handleMessage(List<Statement> batch, AisPacket packet) {
         long ts = packet.getBestTimestamp();
-        if (ts > 0) { //only save packets with a valid timestamp
+        if (ts > 0) { // only save packets with a valid timestamp
 
-            byte[] column = Bytes.concat(Longs.toByteArray(ts), packet.calculateHash128()); // the column
+            byte[] hash = Hashing.murmur3_128().hashUnencodedChars(packet.getStringMessage()).asBytes();
+
+            byte[] column = Bytes.concat(Longs.toByteArray(ts), hash); // the column
             byte[] data = packet.toByteArray(); // the serialized packet
 
             storeByTime(batch, ts, column, data); // Store packet by time

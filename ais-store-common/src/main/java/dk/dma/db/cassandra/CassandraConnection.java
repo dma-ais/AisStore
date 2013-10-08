@@ -9,11 +9,11 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.ais.store;
+package dk.dma.db.cassandra;
 
 import static java.util.Objects.requireNonNull;
 
@@ -25,11 +25,11 @@ import com.datastax.driver.core.Session;
 import com.google.common.util.concurrent.AbstractService;
 
 /**
- * A connection to AisStore.
+ * A connection to Cassandra.
  * 
  * @author Kasper Nielsen
  */
-public final class AisStoreConnection extends AbstractService {
+public final class CassandraConnection extends AbstractService {
 
     /** The cluster we are connected to. */
     private final Cluster cluster;
@@ -50,7 +50,7 @@ public final class AisStoreConnection extends AbstractService {
      * @throws NullPointerException
      *             if the cluster or keyspace is null
      */
-    private AisStoreConnection(Cluster cluster, String keyspace) {
+    private CassandraConnection(Cluster cluster, String keyspace) {
         this.cluster = requireNonNull(cluster);
         this.keyspace = requireNonNull(keyspace);
     }
@@ -69,9 +69,9 @@ public final class AisStoreConnection extends AbstractService {
      *            the query builder
      * @return the result of the query
      */
-    public AisStoreQueryResult execute(AisStoreQueryBuilder builder) {
+    public <T extends CassandraQuery> T execute(CassandraQueryBuilder<T> builder) {
         return builder.execute(getSession());
-    };
+    }
 
     /** {@inheritDoc} */
     @Override
@@ -96,7 +96,7 @@ public final class AisStoreConnection extends AbstractService {
     }
 
     /**
-     * Creates a new AisStore connection. The connection is not yet connected but must be started via {@link #start()}
+     * Creates a new Cassandra connection. The connection is not yet connected but must be started via {@link #start()}
      * and to close it use {@link #stop()}
      * 
      * @param keyspace
@@ -105,12 +105,12 @@ public final class AisStoreConnection extends AbstractService {
      *            the connection points
      * @return a new connection
      */
-    public static AisStoreConnection create(String keyspace, String... connectionPoints) {
+    public static CassandraConnection create(String keyspace, String... connectionPoints) {
         return create(keyspace, Arrays.asList(connectionPoints));
     }
 
     /**
-     * Creates a new AisStore connection. The connection is not yet connected but must be started via {@link #start()}
+     * Creates a new Cassandra connection. The connection is not yet connected but must be started via {@link #start()}
      * and to close it use {@link #stop()}
      * 
      * @param keyspace
@@ -119,8 +119,8 @@ public final class AisStoreConnection extends AbstractService {
      *            the connection points
      * @return a new connection
      */
-    public static AisStoreConnection create(String keyspace, List<String> connectionPoints) {
+    public static CassandraConnection create(String keyspace, List<String> connectionPoints) {
         Cluster cluster = Cluster.builder().addContactPoints(connectionPoints.toArray(new String[0])).build();
-        return new AisStoreConnection(cluster, keyspace);
+        return new CassandraConnection(cluster, keyspace);
     }
 }

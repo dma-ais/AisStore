@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -19,8 +19,8 @@ import org.junit.Ignore;
 import org.junit.Test;
 
 import dk.dma.ais.packet.AisPacket;
-import dk.dma.ais.store.AisStoreConnection;
 import dk.dma.ais.store.AisStoreQueryBuilder;
+import dk.dma.db.cassandra.CassandraConnection;
 
 /**
  * 
@@ -33,7 +33,7 @@ public class QueryTest {
     public void ignore() {}
 
     public static void main(String[] args) {
-        AisStoreConnection con = AisStoreConnection.create("aisdata", "10.3.240.203");
+        CassandraConnection con = CassandraConnection.create("aisdata", "10.3.240.203");
 
         con.start();
         try {

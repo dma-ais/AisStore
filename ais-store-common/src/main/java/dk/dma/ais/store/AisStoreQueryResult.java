@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -31,12 +31,13 @@ import com.google.common.util.concurrent.ListenableFuture;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.commons.util.Iterators;
+import dk.dma.db.cassandra.CassandraQuery;
 
 /**
  * 
  * @author Kasper Nielsen
  */
-public class AisStoreQueryResult implements Iterable<AisPacket>, ListenableFuture<Void> {
+public class AisStoreQueryResult extends CassandraQuery implements Iterable<AisPacket>, ListenableFuture<Void> {
 
     private final AisStoreQueryInnerContext context;
 

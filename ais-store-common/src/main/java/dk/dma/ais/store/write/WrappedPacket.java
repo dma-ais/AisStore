@@ -13,31 +13,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.ais.store.raw.job;
+package dk.dma.ais.store.write;
 
-import dk.dma.ais.message.AisMessage;
-import dk.dma.ais.packet.AisPacket;
-import dk.dma.enav.model.geometry.Position;
+import dk.dma.ais.tracker.TargetTracker;
 
 /**
+ * We wrap a packet using this class. The main issue is the target tracker. Which keeps the latest position. However,
+ * since we share the packet queue between the backup process If we start restoring data from the backup the latest
+ * timestamp will be overridden
  * 
  * @author Kasper Nielsen
  */
-// et midlertidig job
-public abstract class AisStoreJob {
-    // ship timeout
+public class WrappedPacket {
+    TargetTracker tracker;
 
-    <T extends AisMessage> T getLatestMessage(Class<T> messageType) {
-        return null;
-    }
-
-    <T extends AisMessage> AisPacket getLatestPacket(Class<T> messageType) {
-        return null;
-    }
-
-    Position getLatestPosition() {
-        return null;
-    }
-
-    abstract void process(AisPacket p);
 }

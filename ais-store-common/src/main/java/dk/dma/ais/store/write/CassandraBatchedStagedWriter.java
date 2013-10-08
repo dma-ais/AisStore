@@ -9,7 +9,7 @@
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
  * Lesser General Public License for more details.
- * 
+ *
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
@@ -32,9 +32,9 @@ import com.datastax.driver.core.exceptions.QueryValidationException;
 import com.datastax.driver.core.querybuilder.Batch;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 
-import dk.dma.ais.store.AisStoreConnection;
 import dk.dma.commons.service.AbstractBatchedStage;
 import dk.dma.commons.util.DurationFormatter;
+import dk.dma.db.cassandra.CassandraConnection;
 
 /**
  * 
@@ -46,7 +46,7 @@ public abstract class CassandraBatchedStagedWriter<T> extends AbstractBatchedSta
     private static final Logger LOG = LoggerFactory.getLogger(CassandraBatchedStagedWriter.class);
 
     /** The connection to Cassandra. */
-    private final AisStoreConnection connection;
+    private final CassandraConnection connection;
 
     final MetricRegistry metrics = new MetricRegistry();
 
@@ -60,7 +60,7 @@ public abstract class CassandraBatchedStagedWriter<T> extends AbstractBatchedSta
      * @param queueSize
      * @param maxBatchSize
      */
-    public CassandraBatchedStagedWriter(AisStoreConnection connection, int batchSize) {
+    public CassandraBatchedStagedWriter(CassandraConnection connection, int batchSize) {
         super(Math.min(100000, batchSize * 100), batchSize);
         this.connection = requireNonNull(connection);
         final JmxReporter reporter = JmxReporter.forRegistry(metrics).inDomain("fooo.erer.er").build();
@@ -69,7 +69,7 @@ public abstract class CassandraBatchedStagedWriter<T> extends AbstractBatchedSta
 
     /** {@inheritDoc} */
     @Override
-    protected void handleMessages(List<T> messages) {
+    protected final void handleMessages(List<T> messages) {
         long start = System.nanoTime();
         // Create a batch of message that we want to write.
         List<Statement> statements = new ArrayList<>();
