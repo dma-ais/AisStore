@@ -39,7 +39,7 @@ import dk.dma.db.cassandra.CassandraConnection;
  * 
  * @author Kasper Nielsen
  */
-class FileImport extends AbstractCommandLineTool {
+public class FileImport extends AbstractCommandLineTool {
 
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(FileImport.class);
