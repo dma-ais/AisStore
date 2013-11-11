@@ -65,6 +65,10 @@ public class CassandraNodeTool {
     public void takeSnapshot(String keyspace, String snapshotName) throws Exception {
         execute("snapshot", requireNonNull(keyspace), "-cf", TABLE_TIME, "-t", requireNonNull(snapshotName));
     }
+    
+    public void takeSnapshot(String keyspace, String snapshotName, String tableName) throws Exception {
+        execute("snapshot", requireNonNull(keyspace), "-cf", tableName, "-t", requireNonNull(snapshotName));
+    }
 
     @SuppressWarnings("serial")
     static class DummyException extends SecurityException {}
