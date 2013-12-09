@@ -29,10 +29,10 @@
       <artifactId>dma-commons-tracker</artifactId>
       <version>0.1-SNAPSHOT</version>
     </dependency>
-        <dependency>
+    <dependency>
       <groupId>com.google.guava</groupId>
       <artifactId>guava</artifactId>
-      <version>${dependencies.guava.version}</version>
+      <version>15.0</version>
     </dependency> 
   </dependencies>
 
