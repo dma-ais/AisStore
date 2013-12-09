@@ -63,7 +63,7 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
         this.mmsi = mmsi;
     }
 
-    protected AisStoreQueryResult execute(Session s) {
+    public AisStoreQueryResult execute(Session s) {
         requireNonNull(s);
         AisStoreQueryInnerContext inner = new AisStoreQueryInnerContext();
         ArrayList<AisStorePartialQuery> queries = new ArrayList<>();
