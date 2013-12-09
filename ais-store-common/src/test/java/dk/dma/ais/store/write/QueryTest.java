@@ -15,6 +15,8 @@
  */
 package dk.dma.ais.store.write;
 
+import java.util.Date;
+
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -33,7 +35,8 @@ public class QueryTest {
     public void ignore() {}
 
     public static void main(String[] args) {
-        CassandraConnection con = CassandraConnection.create("aisdata", "10.3.240.203");
+        CassandraConnection con = CassandraConnection.create("aisdata", "10.3.240.204");
+        //CassandraConnection con = CassandraConnection.create("aisdata", "192.168.56.101");
 
         con.start();
         try {
@@ -42,9 +45,11 @@ public class QueryTest {
             // BoundingBox bb = BoundingBox.create(Position.create(-90, -180), Position.create(90, 180),
             // CoordinateSystem.CARTESIAN);
 
-            // Iterable<AisPacket> iter = con.findForArea(bb, 0L, new Date().getTime());
-            Iterable<AisPacket> iter = con.execute(AisStoreQueryBuilder.forTime().setInterval(1375310431000L,
-                    15372286728091L));
+//            Iterable<AisPacket> iter = con.findForArea(bb, 0L, new Date().getTime());
+//            Iterable<AisPacket> iter = con.execute(AisStoreQueryBuilder.forTime().setInterval(1375310431000L,
+//                    15372286728091L));
+            
+            Iterable<AisPacket> iter = con.execute(AisStoreQueryBuilder.forTime().setInterval(new Date().getTime()-(1000*60*10),new Date().getTime()));
             // iter.iterator().hasNext();
 
             long start = System.currentTimeMillis();
