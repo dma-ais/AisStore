@@ -143,7 +143,7 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
                 Row row = all.get(all.size() - 1);
                 byte[] bytes = ByteBufferUtil.getArray(row.getBytes(0));
                 lastestDateReceived = Longs.fromByteArray(bytes);
-                System.out.println(new Date(lastestDateReceived));
+                //System.out.println(new Date(lastestDateReceived));
                 timeStart = ByteBuffer.wrap(bytes);
             }
             advance(); // make sure to fetch next before we start the parsing
