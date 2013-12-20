@@ -27,11 +27,9 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
 
-import org.apache.commons.lang.builder.HashCodeBuilder;
-
 import com.datastax.driver.core.Cluster;
+import com.datastax.driver.core.Cluster.Builder;
 import com.datastax.driver.core.ConsistencyLevel;
-import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
@@ -43,37 +41,33 @@ import dk.dma.ais.message.AisMessage;
 import dk.dma.ais.message.AisMessageException;
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.AisStoreQueryBuilder;
-import dk.dma.commons.util.concurrent.ForkJoinUtil;
 import dk.dma.db.cassandra.CassandraConnection;
-import dk.dma.enav.util.function.Consumer;
 
 /**
  * @author jtj
  * 
  */
-public class CountMMSIAis implements ScanJob {
-    CassandraConnection con = CassandraConnection.create("aisdata",
-            "192.168.56.101");
-
-    Cluster cluster = Cluster.builder().addContactPoint("192.168.56.101")
-            .build();
-
-    Session dssSession = cluster.connect("dss");
+public class CountMMSIAis {
+    CassandraConnection con;
+    Cluster cluster;
+    Session dssSession;
     Map<Integer, Map<String, Long>> tempResults = new ConcurrentHashMap<Integer, Map<String, Long>>();
-    
     final SimpleDateFormat levelFormatter = new SimpleDateFormat("yyyyMMdd");
-
     long check = 0;
-
     int count = 0;
     int batchSize = 10000;
     double previousBatch;
 
-    /**
-     * 
-     */
-    public CountMMSIAis() {
+    @SuppressWarnings("deprecation")
+    public CountMMSIAis(String host, String... args) {
+        con = CassandraConnection.create("aisdata",
+                "192.168.56.101");
         con.start();
+        dssSession = cluster.connect("dss");
+        
+        Builder builder = Cluster.builder();
+        builder.addContactPoint(host);
+        for (String a: args) builder.addContactPoint(a);
     }
 
     public void run() {
@@ -86,29 +80,11 @@ public class CountMMSIAis implements ScanJob {
 
             long start = System.currentTimeMillis();
             
-            AisPacket[] apArray = new AisPacket[500];
-            
-            final CountMMSIAis THIS = this;
             for (AisPacket p : iter) {
                 
                 if (p != null) {
                     count++;
-                    int pos = count % 500;
-                    apArray[pos] = p;
-                    
-                    if (pos == 499) {
-                        ForkJoinUtil.forEach(apArray,new Consumer<AisPacket>() {
-
-                            @Override
-                            public void accept(AisPacket arg0) {
-                                THIS.process(arg0);   
-                            }
-                        });
-                    }
-                    
-                    
-                    //this.process(p);
-                    
+                    this.process(p);
                 }
 
                 if (count % batchSize == 0) {
@@ -125,14 +101,6 @@ public class CountMMSIAis implements ScanJob {
         }
     }
 
-    /*
-     * (non-Javadoc)
-     * 
-     * @see
-     * dk.dma.ais.store.compute.jobs.IPacketJob#process(dk.dma.ais.packet.AisPacket
-     * )
-     */
-    @Override
     public void process(AisPacket aisPacket) {
         AisMessage aisMessage = null;
         try {
@@ -198,10 +166,8 @@ public class CountMMSIAis implements ScanJob {
                         }
                         
                     }
-                    
                     statements.clear();
                 }
-                
             }
         }
 
@@ -210,10 +176,8 @@ public class CountMMSIAis implements ScanJob {
     }
 
     public static void main(String[] args) {
-        CountMMSIAis cma = new CountMMSIAis();
+        CountMMSIAis cma = new CountMMSIAis("aisstoretest001");
         cma.run();
         cma.update();
-
     }
-
 }
