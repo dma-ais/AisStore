@@ -13,14 +13,8 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-
-/**
- * @author Jens Tuxen
- */
 package dk.dma.ais.store.write;
 
-import java.io.IOException;
-import java.io.OutputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.Date;
 

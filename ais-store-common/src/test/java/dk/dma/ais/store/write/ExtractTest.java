@@ -44,6 +44,7 @@ import dk.dma.enav.util.function.Predicate;
  * 
  * @author Kasper Nielsen
  */
+@SuppressWarnings(value = { "deprecation" })
 public class ExtractTest {
 
     @Test
@@ -62,8 +63,8 @@ public class ExtractTest {
             
             
             int count = 0;
-            BoundingBox bb = BoundingBox.create(Position.create(48, -180), Position.create(90, 180), CoordinateSystem.CARTESIAN);
-
+            //BoundingBox bb = BoundingBox.create(Position.create(48, -180), Position.create(90, 180), CoordinateSystem.CARTESIAN);
+            
             Date sd = new Date(2013-1900,6,1);
             Date ed = new Date(2013-1900,8,1);
             
