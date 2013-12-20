@@ -57,13 +57,13 @@ public class CassandraColumnFamilyProcessor {
     private static final byte[] MESSAGE_COLUMN = TABLE_TIME.getBytes();
 
     /** The number of bytes that have been read from disk. */
-    final AtomicLong bytesRead = new AtomicLong();
+    protected final AtomicLong bytesRead = new AtomicLong();
 
     /** The name of the keyspace to use. */
-    private final String keyspace;
+    protected final String keyspace;
 
     /** The maximum number of bytes we want to read, useful for tests. */
-    private final long maxRead;
+    protected final long maxRead;
 
     /** If this processor has been consumed. */
     private final AtomicBoolean used = new AtomicBoolean();
@@ -104,7 +104,7 @@ public class CassandraColumnFamilyProcessor {
             Exception failure = null;
             try {
                 for (int i = 0; i < 50; i++) {
-                    // processDataFileLocations(snapshotName, producer);
+                    //processDataFileLocations(snapshotName, producer);
                 }
             } catch (Exception e) {
                 failure = e;
@@ -184,8 +184,8 @@ public class CassandraColumnFamilyProcessor {
             if (Arrays.equals(MESSAGE_COLUMN, c.name().array())) {
                 byte[] value = ic.value().array();
                 String msg = new String(value);
-                // AisPacket m = AisPacket.from(msg, 1);
-                // producer.process(m);
+                //AisPacket m = AisPacket.from(msg);
+                //producer.process(m);
             }
         }
     }
