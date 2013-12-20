@@ -4,7 +4,7 @@
   <parent>
     <groupId>dk.dma</groupId>
     <artifactId>dma-root-pom</artifactId>
-    <version>11</version>
+    <version>10</version>
   </parent>
 
   <modelVersion>4.0.0</modelVersion>
@@ -25,6 +25,8 @@
     <module>ais-store-common</module>
     <module>ais-store-raw</module>
     <module>ais-store-cli</module>
+    <module>ais-store-compute</module>
+    <module>ais-store-monitor</module>
   </modules>
 
   <repositories>
