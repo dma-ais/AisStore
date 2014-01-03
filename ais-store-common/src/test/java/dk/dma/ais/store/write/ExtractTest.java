@@ -84,7 +84,7 @@ public class ExtractTest {
 
                 @Override
                 public boolean test(Position arg0) {
-                    return (arg0.getLatitude() >= 48.0F);
+                    return arg0.getLatitude() >= 48.0F;
                 }
                 
             });

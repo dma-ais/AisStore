@@ -26,6 +26,7 @@ import dk.dma.db.cassandra.CassandraConnection;
  * @author jtj
  * 
  */
+@SuppressWarnings("deprecation")
 public class DumpTest {
     public static void main(String[] args) {
         // CassandraConnection con = CassandraConnection.create("aisdata",
@@ -92,7 +93,7 @@ public class DumpTest {
             System.out.println("Average Packets per 1min:\t\t\t" + count
                     / (24 * 60));
             System.out.println("Average Packets per 1hour:\t\t\t" + count
-                    / (24));
+                    / 24);
             System.out.println("Total Packets   per 1day:\t\t\t" + count
                     + " packets");
             
@@ -148,7 +149,7 @@ public class DumpTest {
             System.out.println("Average Time To Extract 1min:\t\t\t"
                     + timeToExtract1Min + " sec");
 
-            double packageSize = (totalSize/count);
+            double packageSize = totalSize/count;
             double bytesPerS = packetsPerS*packageSize;
             
             System.out.println("Bandwith:");
