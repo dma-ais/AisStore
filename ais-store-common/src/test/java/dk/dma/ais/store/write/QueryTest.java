@@ -34,6 +34,7 @@ public class QueryTest {
     @Ignore
     public void ignore() {}
 
+    @SuppressWarnings("deprecation")
     public static void main(String[] args) {
         CassandraConnection con = CassandraConnection.create("aisdata", "10.3.240.204");
         //CassandraConnection con = CassandraConnection.create("aisdata", "192.168.56.101");

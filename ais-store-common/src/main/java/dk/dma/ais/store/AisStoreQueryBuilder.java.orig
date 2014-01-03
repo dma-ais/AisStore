@@ -82,7 +82,11 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
             // We create multiple queries and use a priority queue to return packets from each ship sorted by their
             // timestamp
             for (Cell c : cells) {
+<<<<<<< HEAD
+                queries.add(new AisStorePartialQuery(s, inner, batchLimit, tableName, keyName,(int) c.getCellId(),
+=======
                 queries.add(new AisStorePartialQuery(s, inner, batchLimit, tableName, keyName, (int)c.getCellId(),
+>>>>>>> 2efbf89ccc6f2100971fdd31606da20eac42c176
                         startTimeInclusive, stopTimeExclusive));
             }
         } else if (mmsi != null) {
