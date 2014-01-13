@@ -17,7 +17,7 @@
 /**
  * @author Jens Tuxen
  */
-package dk.dma.ais.store.compute.jobs;
+package dk.dma.ais.store.materialize.jobs;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;

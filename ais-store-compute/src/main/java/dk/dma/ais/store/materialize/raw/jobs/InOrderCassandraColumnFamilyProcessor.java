@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package dk.dma.ais.store.compute.raw.jobs;
+package dk.dma.ais.store.materialize.raw.jobs;
 
 import java.io.IOException;
 import java.util.ArrayList;

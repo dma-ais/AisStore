@@ -24,7 +24,7 @@ import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.config.Schema;
 
 import dk.dma.ais.packet.AisPacket;
-import dk.dma.ais.store.compute.raw.jobs.SimpleCassandraColumnFamilyProcessor;
+import dk.dma.ais.store.materialize.raw.jobs.SimpleCassandraColumnFamilyProcessor;
 import dk.dma.ais.store.old.exporter.CassandraNodeTool;
 import dk.dma.enav.util.function.EConsumer;
 

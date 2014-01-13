@@ -14,7 +14,7 @@
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-package dk.dma.ais.store.compute.jobs;
+package dk.dma.ais.store.materialize.jobs;
 
 /**
  * @author Jens Tuxen

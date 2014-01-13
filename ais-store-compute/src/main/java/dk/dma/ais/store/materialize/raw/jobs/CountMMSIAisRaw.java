@@ -17,7 +17,7 @@
 /**
  * @author Jens Tuxen
  */
-package dk.dma.ais.store.compute.raw.jobs;
+package dk.dma.ais.store.materialize.raw.jobs;
 
 import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME;
 import static dk.dma.ais.store.AisStoreSchema.TABLE_MMSI;
