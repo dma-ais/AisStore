@@ -26,7 +26,7 @@ ais-store-cli        Contains the all inclusive - command line interface to AisS
 
 AIS Store Archiver
 -------------------------------------------------------------------------------
-The archiver takes care of 
+ 
 
 
 AIS Store Exporter
