@@ -69,6 +69,7 @@ public class DriverFileExport extends AbstractCommandLineTool {
         con.start();
 
         final BufferedOutputStream bos = new BufferedOutputStream(new FileOutputStream(outPath));
+        @SuppressWarnings("unchecked")
         final OutputStreamSink<AisPacket> sink = (OutputStreamSink<AisPacket>) AisPacketOutputSinks.class.getField(outputSinkFormat).get(null);
         
         Iterable<AisPacket> iter = con.execute(AisStoreQueryBuilder

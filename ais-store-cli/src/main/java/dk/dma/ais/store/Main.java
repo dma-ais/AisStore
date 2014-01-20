@@ -31,6 +31,7 @@ public class Main {
         c.add(Archiver.class, "archive", "Reads data from AIS datasources and stores data into Cassandra");
         c.add(FileExport.class, "import", "Imports data from text files and stores data into Cassandra");
         c.add(FileExport.class, "export", "Exports data from Cassandra into text files");
+        c.add(DriverFileExport.class, "driverexport", "Exports data using the datastax driver");
         //c.add(AisStorePacketsTimeReadTest.class, "time_read_test", "test packets_time read speed of aisstore");
         c.add(CountMMSIAis.class, "mmsi_time_view", "((mmsi,time),count) materialized view");
         c.invoke(args);
