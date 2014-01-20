@@ -9,7 +9,18 @@ CREATE TABLE mmsi_time_count (
     result bigint,
 	time text,
 	visited int,
-    PRIMARY KEY (mmsi, time, visited))
+    PRIMARY KEY (mmsi, time))
 	WITH compression = {'sstable_compression':'SnappyCompressor', 'chunk_length_kb':64}
 	AND comment = 'Materialized View Test schema';
-	
+
+
+DROP TABLE source_time_count;
+CREATE TABLE source_time_count (
+    sourceid text,
+    result counter,
+	time text,
+	visited int,
+    PRIMARY KEY (source, time))
+	WITH compression = {'sstable_compression':'SnappyCompressor', 'chunk_length_kb':64}
+	AND comment = 'Materialized View Test schema';
+		
