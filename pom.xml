@@ -26,7 +26,6 @@
     <module>ais-store-raw</module>
     <module>ais-store-cli</module>
     <module>ais-store-compute</module>
-    <module>ais-store-monitor</module>
   </modules>
 
   <repositories>
