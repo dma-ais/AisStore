@@ -23,7 +23,6 @@ import java.util.LinkedList;
 import com.beust.jcommander.Parameter;
 import com.datastax.driver.core.Query;
 import com.datastax.driver.core.ResultSet;
-import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select.Selection;

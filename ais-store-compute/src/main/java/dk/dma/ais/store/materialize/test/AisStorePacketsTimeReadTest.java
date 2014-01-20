@@ -20,7 +20,6 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
 import java.io.PrintWriter;
-import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import com.beust.jcommander.Parameter;

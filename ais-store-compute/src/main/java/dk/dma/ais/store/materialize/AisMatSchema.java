@@ -38,9 +38,12 @@ public class AisMatSchema {
     public static final String CELL10_KEY = "cellid";  
     
     public static final String TABLE_MMSI_TIME_COUNT = "mmsi_time_count";
+    public static final String TABLE_SOURCE_TIME_COUNT = "source_time_count";
+    
     public static final String MMSI_KEY = "mmsi";
     public static final String TIME_KEY = "timeid";
-
-    
+    public static final String SOURCE_KEY = "sourceid";
+    public static final String COUNTER_KEY = "count";
 
 }
+

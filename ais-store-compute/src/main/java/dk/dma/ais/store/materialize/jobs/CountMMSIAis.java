@@ -27,6 +27,7 @@ import java.util.ArrayList;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 import java.util.WeakHashMap;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentHashMap;
@@ -126,22 +127,19 @@ public class CountMMSIAis extends TimeScan {
 
     @Override
     public void accept(AisPacket aisPacket) {
-        if (aisPacket == null) {
-            return;
-        }
-        
         try {
-            
-            Integer key = aisPacket.getAisMessage().getUserId();
+            Objects.requireNonNull(aisPacket);
+            Integer key = Objects.requireNonNull(aisPacket.getAisMessage().getUserId());
             Long timestamp = aisPacket.getBestTimestamp();
 
             if (timestamp > 0) {
-                String day = timeFormatter.format(new Date(timestamp));
+                String day = Objects.requireNonNull(timeFormatter.format(new Date(timestamp)));
                 
                 if (data.containsKey(key)) {
                     if (data.get(key).containsKey(day)) {
+                        Long incremented = data.get(key).get(day) +1;
                         data.get(key).put(day,
-                                data.get(key).get(day) + 1);
+                                 incremented);
                     } else {
                         data.get(key).put(day, 1L);
                     }
@@ -159,11 +157,8 @@ public class CountMMSIAis extends TimeScan {
         }
         
     }
-    
-    
 
-    
-    
+
     public static void main(String[] args) throws Exception {
         new CountMMSIAis().execute(args);
     }

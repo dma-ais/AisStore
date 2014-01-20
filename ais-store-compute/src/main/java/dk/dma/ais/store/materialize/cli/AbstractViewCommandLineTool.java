@@ -15,7 +15,6 @@
  */
 package dk.dma.ais.store.materialize.cli;
 
-import java.util.Date;
 import java.util.List;
 import java.util.concurrent.atomic.AtomicInteger;
 
