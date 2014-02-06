@@ -23,7 +23,6 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.apache.cassandra.utils.ByteBufferUtil;
 
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
@@ -141,7 +140,13 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
             if (all.size() > 0) {
                 retrievedPackets += all.size();
                 Row row = all.get(all.size() - 1);
-                byte[] bytes = ByteBufferUtil.getArray(row.getBytes(0));
+                
+                //byte[] bytes = ByteBufferUtil.getArray(row.getBytes(0));
+                //http://stackoverflow.com/questions/679298/gets-byte-array-from-a-bytebuffer-in-java
+                ByteBuffer buf = row.getBytes(0);
+                byte[] bytes = new byte[buf.remaining()];
+                buf.get(bytes);
+
                 lastestDateReceived = Longs.fromByteArray(bytes);
                 System.out.println(new Date(lastestDateReceived));
                 timeStart = ByteBuffer.wrap(bytes);

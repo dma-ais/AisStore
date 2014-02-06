@@ -22,7 +22,7 @@ import static dk.dma.ais.store.AisStoreSchema.storeByTime;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.RegularStatement;
 import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
@@ -58,7 +58,7 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
         super(connection, batchSize);
     }
 
-    public void handleMessage(List<Statement> batch, AisPacket packet) {
+    public void handleMessage(List<RegularStatement> batch, AisPacket packet) {
         long ts = packet.getBestTimestamp();
         if (ts > 0) { // only save packets with a valid timestamp
 

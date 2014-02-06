@@ -18,7 +18,7 @@ package dk.dma.ais.store;
 import java.nio.ByteBuffer;
 import java.util.List;
 
-import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.RegularStatement;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.google.common.primitives.Ints;
@@ -115,7 +115,7 @@ public class AisStoreSchema {
     }
 
     /** Stores the specified packet by position (area). */
-    public static void storeByArea(List<Statement> batch, long timestamp, byte[] column, int mmsi, Position p,
+    public static void storeByArea(List<RegularStatement> batch, long timestamp, byte[] column, int mmsi, Position p,
             byte[] packet) {
         if (p == null) {
             // Okay we have no idea of the position of the ship. Store it in this table and process it later
@@ -130,12 +130,12 @@ public class AisStoreSchema {
     }
 
     /** Stores the specified packet by MMSI. */
-    public static void storeByMmsi(List<Statement> batch, long timestamp, byte[] column, int mmsi, byte[] packet) {
+    public static void storeByMmsi(List<RegularStatement> batch, long timestamp, byte[] column, int mmsi, byte[] packet) {
         batch.add(store(TABLE_MMSI, TABLE_MMSI_KEY, mmsi, column, packet, timestamp));
     }
 
     /** Stores the specified packet by time. */
-    public static void storeByTime(List<Statement> batch, long timestamp, byte[] column, byte[] packet) {
+    public static void storeByTime(List<RegularStatement> batch, long timestamp, byte[] column, byte[] packet) {
         batch.add(store(TABLE_TIME, TABLE_TIME_KEY, getTimeBlock(timestamp), column, packet, timestamp));
     }
 }
