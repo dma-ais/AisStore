@@ -23,14 +23,13 @@ import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
 
 import dk.dma.ais.packet.AisPacket;
-import dk.dma.ais.store.AisStoreQueryBuilder;
 import dk.dma.ais.store.materialize.cli.AbstractViewCommandLineTool;
 import dk.dma.enav.util.function.Consumer;
 
 /**
- * Iterate through a timeslice from start to end, building a view after scan (uses memory)
+ * Iterate through a timeslice from start to end
  */
-public abstract class TimeScan extends AbstractViewCommandLineTool implements Consumer<AisPacket>{
+public abstract class Scan extends AbstractViewCommandLineTool implements Consumer<AisPacket> {
     @Parameter(names = "-start", required = true, description = "[Filter] Start date (inclusive), format == yyyy-MM-dd")
     protected volatile Date start;
 
@@ -50,9 +49,8 @@ public abstract class TimeScan extends AbstractViewCommandLineTool implements Co
     public void run(Injector arg0) throws Exception {
         super.run(arg0);
         try {
-            Iterable<AisPacket> iter = makeRequest();           
-
             setStartTime(System.currentTimeMillis());
+            Iterable<AisPacket> iter = makeRequest();           
             
             for (AisPacket p : iter) {
                 
@@ -72,7 +70,7 @@ public abstract class TimeScan extends AbstractViewCommandLineTool implements Co
                     / ((double) ms / 1000) + " packets/s");
             
             if (!dummy) {
-                buildView();
+                postProcess();
             }
             
             setEndTime(System.currentTimeMillis());
@@ -82,14 +80,9 @@ public abstract class TimeScan extends AbstractViewCommandLineTool implements Co
             viewSession.shutdown();
         }
     }
+
+    protected abstract Iterable<AisPacket> makeRequest();
     
-
-    
-    protected Iterable<AisPacket> makeRequest() {
-        return con.execute(AisStoreQueryBuilder.forTime().setInterval(start.getTime(),stop.getTime())); 
-    }
-
-
     public boolean isDummy() {
         return dummy;
     }
@@ -146,7 +139,12 @@ public abstract class TimeScan extends AbstractViewCommandLineTool implements Co
         return sb.toString();
     }
 
-    protected abstract void buildView();
+    /**
+     * This optional step is run after a scan is completed
+     */
+    protected void postProcess() {
+        
+    }
     
     
     
