@@ -24,13 +24,11 @@ import org.apache.log4j.Logger;
 
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.RegularStatement;
-import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.QueryExecutionException;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Update;
 
 import dk.dma.ais.packet.AisPacket;
-import dk.dma.enav.util.function.Consumer;
 
 
 public abstract class AbstractOrderedViewBuilder extends Scan implements OrderedViewBuilder {
