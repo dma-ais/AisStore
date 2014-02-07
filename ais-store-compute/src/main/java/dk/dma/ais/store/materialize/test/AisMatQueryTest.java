@@ -21,7 +21,6 @@ import java.util.Date;
 import java.util.LinkedList;
 
 import com.beust.jcommander.Parameter;
-import com.datastax.driver.core.Query;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
@@ -53,14 +52,13 @@ public class AisMatQueryTest extends AbstractViewCommandLineTool {
             hours.add(sdf.format(c.getTime()));
             c.add(Calendar.HOUR_OF_DAY,1);
         }
+       
         
-        Query  q =  qb.all().
-        from(AisMatSchema.TABLE_MMSI_TIME_COUNT).
-        where(QueryBuilder.eq(AisMatSchema.MMSI_KEY, 219000174)).
-        and(QueryBuilder.in(AisMatSchema.TIME_KEY, hours));
-        
-        
-        ResultSet rs = viewSession.execute(q);
+        ResultSet rs = viewSession.execute(
+                qb.all().
+                from(AisMatSchema.TABLE_MMSI_TIME_COUNT).
+                where(QueryBuilder.eq(AisMatSchema.MMSI_KEY, 219000174)).
+                and(QueryBuilder.in(AisMatSchema.TIME_KEY, hours)));
         
         for (Row r: rs) {
             System.out.print(r.getString(AisMatSchema.TIME_KEY)+":"+r.getInt(AisMatSchema.VALUE)+",");

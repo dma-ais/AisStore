@@ -32,6 +32,7 @@ import org.apache.log4j.Logger;
 
 import com.beust.jcommander.Parameter;
 import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.RegularStatement;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.QueryExecutionException;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
@@ -121,7 +122,7 @@ public class CountMMSIAis extends AbstractScanHashViewBuilder {
     @Override
     public void postProcess() {
         LOG.debug("Starting view building");
-        ArrayList<Statement> statements = new ArrayList<Statement>(batchSize + 1);
+        ArrayList<RegularStatement> statements = new ArrayList<RegularStatement>(batchSize + 1);
         long c = 0;
         long start = System.currentTimeMillis();
         
@@ -144,7 +145,7 @@ public class CountMMSIAis extends AbstractScanHashViewBuilder {
                 
                 try {
                     
-                    viewSession.execute(QueryBuilder.batch(statements.toArray(new Statement[0])));
+                    viewSession.execute(QueryBuilder.batch(statements.toArray(new RegularStatement[0])));
                     statements.clear();
                 } catch (QueryExecutionException qe) {
                     LOG.error("failed to complete query");

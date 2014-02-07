@@ -23,6 +23,7 @@ import java.util.Map.Entry;
 import org.apache.log4j.Logger;
 
 import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.RegularStatement;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.exceptions.QueryExecutionException;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
@@ -36,7 +37,7 @@ public abstract class AbstractOrderedViewBuilder extends Scan implements Ordered
     Logger LOG = Logger.getLogger(AbstractScanHashViewBuilder.class);
     
     Integer batchSize = 1000;
-    List<Statement> batch = new ArrayList<>(batchSize*2);
+    List<RegularStatement> batch = new ArrayList<>(batchSize*2);
 
     
     public void increment(String tableName,Map<String,Object> tuples) {
@@ -50,7 +51,7 @@ public abstract class AbstractOrderedViewBuilder extends Scan implements Ordered
         
         if (batch.size() % batchSize == 0 && !isDummy()) {
             try {
-                viewSession.execute(QueryBuilder.batch(batch.toArray(new Statement[0])));
+                viewSession.execute(QueryBuilder.batch(batch.toArray(new RegularStatement[0])));
                 batch.clear();
             } catch (QueryExecutionException qe) {
                 LOG.error("failed to complete query");

@@ -27,7 +27,7 @@ import org.slf4j.LoggerFactory;
 import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
-import com.datastax.driver.core.Statement;
+import com.datastax.driver.core.RegularStatement;
 import com.datastax.driver.core.exceptions.QueryValidationException;
 import com.datastax.driver.core.querybuilder.Batch;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
@@ -72,7 +72,7 @@ public abstract class CassandraBatchedStagedWriter<T> extends AbstractBatchedSta
     protected final void handleMessages(List<T> messages) {
         long start = System.nanoTime();
         // Create a batch of message that we want to write.
-        List<Statement> statements = new ArrayList<>();
+        List<RegularStatement> statements = new ArrayList<>();
         for (T t : messages) {
             try {
                 handleMessage(statements, t);
@@ -83,7 +83,9 @@ public abstract class CassandraBatchedStagedWriter<T> extends AbstractBatchedSta
 
         // Try writing the batch
         try {
-            Batch batch = QueryBuilder.batch(statements.toArray(new Statement[statements.size()]));
+            Batch batch = QueryBuilder.batch(statements.toArray(new RegularStatement[statements.size()]));
+            
+            
             long beforeSend = System.nanoTime();
             connection.getSession().execute(batch);
             long total = System.nanoTime();
@@ -111,7 +113,7 @@ public abstract class CassandraBatchedStagedWriter<T> extends AbstractBatchedSta
         }
     }
 
-    protected abstract void handleMessage(List<Statement> statements, T message);
+    protected abstract void handleMessage(List<RegularStatement> statements, T message);
 
     public abstract void onFailure(List<T> messages, Throwable cause);
 
