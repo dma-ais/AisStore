@@ -30,14 +30,13 @@ import com.datastax.driver.core.querybuilder.Update;
 
 import dk.dma.ais.packet.AisPacket;
 
+public abstract class AbstractOrderedViewBuilder extends Scan implements
+		OrderedViewBuilder {
+	Logger LOG = Logger.getLogger(AbstractScanHashViewBuilder.class);
 
-public abstract class AbstractOrderedViewBuilder extends Scan implements OrderedViewBuilder {
-    Logger LOG = Logger.getLogger(AbstractScanHashViewBuilder.class);
-    
-    Integer batchSize = 1000;
-    List<RegularStatement> batch = new ArrayList<>(batchSize*2);
+	Integer batchSize = 1000;
+	List<RegularStatement> batch = new ArrayList<>(batchSize * 2);
 
-    
     public void increment(String tableName,Map<String,Object> tuples) {
         Update upd = QueryBuilder.update(tableName);
         upd.setConsistencyLevel(ConsistencyLevel.ANY);
@@ -60,9 +59,11 @@ public abstract class AbstractOrderedViewBuilder extends Scan implements Ordered
         }
     }
 
-    /**
-     * Forces the implementation of the Consumer<AisPacket> from super class Scan
-     */
-    public abstract void accept(AisPacket t);
+
+	/**
+	 * Forces the implementation of the Consumer<AisPacket> from super class
+	 * Scan
+	 */
+	public abstract void accept(AisPacket t);
 
 }

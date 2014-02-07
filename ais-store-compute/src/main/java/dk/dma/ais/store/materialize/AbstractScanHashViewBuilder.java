@@ -20,13 +20,14 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import com.datastax.driver.core.RegularStatement;
 import com.datastax.driver.core.Statement;
 
 public abstract class AbstractScanHashViewBuilder extends Scan implements HashViewBuilder {
     private static Logger LOG = Logger.getLogger(AbstractScanHashViewBuilder.class);
     
     Integer batchSize = 1000;
-    List<Statement> batch = new ArrayList<>(batchSize*2);
+    List<RegularStatement> batch = new ArrayList<>(batchSize*2);
 
     /**
      *  Force implementation/requirement of this (normally optional) step

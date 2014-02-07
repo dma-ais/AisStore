@@ -38,7 +38,7 @@ import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps.Key2;
 
 public class MMSITimeCount implements HashViewBuilder {
-    TypeSafeMapOfMaps<Key2<Long, String>, Long> data = new TypeSafeMapOfMaps<>();
+	TypeSafeMapOfMaps<Key2<Long, String>, Long> data = new TypeSafeMapOfMaps<>();
     private SimpleDateFormat timeFormatter;
     
     public MMSITimeCount(SimpleDateFormat timeFormatter) {
