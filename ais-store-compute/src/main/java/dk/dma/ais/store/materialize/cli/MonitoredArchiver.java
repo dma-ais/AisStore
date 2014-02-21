@@ -13,23 +13,18 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.ais.store.materialize.util;
+package dk.dma.ais.store.materialize.cli;
 
-import java.util.concurrent.ConcurrentSkipListMap;
+import com.google.inject.Injector;
 
-public interface RecursiveNode<K extends V,V> {
-    
+import dk.dma.ais.store.Archiver;
 
-    ConcurrentSkipListMap<Object, RecursiveNode<K,V>> getMap();
-    void setValue(V v, Object...keys);
-    
-    K head(Object... keys);
-    K[] tail(Object... keys);
-    
-    V getValue(Object... keys);
-    boolean isLast();
-    void setLast();
-    Object getK();
-    
+public class MonitoredArchiver extends Archiver {
 
+    @Override
+    protected void runDaemon(Injector injector) throws Exception {
+
+        //TODO inject the monitor into the archiver
+        super.runDaemon(injector);
+    }
 }

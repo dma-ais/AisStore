@@ -130,10 +130,10 @@ public class CountMMSIAis extends AbstractScanHashViewBuilder {
             c++;
             
             Update upd = QueryBuilder.update(AisMatSchema.TABLE_MMSI_TIME_COUNT);
-            upd.setConsistencyLevel(ConsistencyLevel.ANY);
+            upd.setConsistencyLevel(ConsistencyLevel.ONE);
             upd.where(QueryBuilder.eq(AisMatSchema.MMSI_KEY, e.getKey().getK1()));
             upd.where(QueryBuilder.eq(AisMatSchema.TIME_KEY, e.getKey().getK2()));
-            upd.with(QueryBuilder.set(AisMatSchema.VALUE, e.getValue()));              
+            upd.with(QueryBuilder.set(AisMatSchema.RESULT_KEY, e.getValue()));              
             statements.add(upd);
 
             if (c % batchSize == 0) {

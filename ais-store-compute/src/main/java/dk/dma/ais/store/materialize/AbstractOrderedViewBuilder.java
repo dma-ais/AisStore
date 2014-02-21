@@ -45,7 +45,7 @@ public abstract class AbstractOrderedViewBuilder extends Scan implements Ordered
         for (Entry<String,Object> e : tuples.entrySet()) {
             upd.where(QueryBuilder.eq(e.getKey(), e.getValue().toString()));
         }
-        upd.with(QueryBuilder.incr(AisMatSchema.COUNTER_KEY));
+        upd.with(QueryBuilder.incr(AisMatSchema.RESULT_KEY));
         
         if (batch.size() % batchSize == 0 && !isDummy()) {
             try {
