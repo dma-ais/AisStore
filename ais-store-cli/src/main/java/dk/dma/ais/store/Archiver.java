@@ -62,7 +62,7 @@ public class Archiver extends AbstractDaemon {
 
     @Parameter(names = "-database", description = "A list of cassandra hosts that can store the data")
     List<String> cassandraSeeds = Arrays.asList("localhost");
-
+    
     /** The stage that is responsible for writing the package */
     volatile AbstractBatchedStage<AisPacket> mainStage;
 

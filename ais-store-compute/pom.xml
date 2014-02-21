@@ -29,13 +29,13 @@
 			<version>${project.version}</version>
 		</dependency>
 
-<dependency>
-    <groupId>org.apache.cassandra</groupId>
-    <artifactId>cassandra-all</artifactId>
-    <version>2.0.4</version>
-</dependency>
-            
-        
+		<dependency>
+			<groupId>org.apache.cassandra</groupId>
+			<artifactId>cassandra-all</artifactId>
+			<version>2.0.4</version>
+		</dependency>
+
+
 		<dependency>
 			<groupId>com.google.guava</groupId>
 			<artifactId>guava</artifactId>
@@ -53,6 +53,13 @@
 			<artifactId>ais-store-raw</artifactId>
 			<version>0.1-SNAPSHOT</version>
 		</dependency>
+		
+		<dependency>
+			<groupId>dk.dma.ais.store</groupId>
+			<artifactId>ais-store-cli</artifactId>
+			<version>0.1-SNAPSHOT</version>
+		</dependency>
+		
 
 	</dependencies>
 </project>
