@@ -54,12 +54,6 @@
 			<version>0.1-SNAPSHOT</version>
 		</dependency>
 		
-		<dependency>
-			<groupId>dk.dma.ais.store</groupId>
-			<artifactId>ais-store-cli</artifactId>
-			<version>0.1-SNAPSHOT</version>
-		</dependency>
-		
 
 	</dependencies>
 </project>
