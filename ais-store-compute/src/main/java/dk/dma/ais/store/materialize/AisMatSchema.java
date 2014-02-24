@@ -15,6 +15,10 @@
  */
 package dk.dma.ais.store.materialize;
 
+import java.util.concurrent.TimeUnit;
+
+import com.google.common.primitives.Ints;
+
 import dk.dma.ais.store.AisStoreSchema;
 
 /**
@@ -41,11 +45,38 @@ public class AisMatSchema {
     public static final String TABLE_SOURCE_TIME_COUNT = "source_time_count";
     public static final String TABLE_CELL1_SOURCE_TIME_COUNT = "cell1_source_time_count";
     public static final String TABLE_CELL1_TIME_COUNT = "cell1_time_count";
+    public static final String TABLE_STREAM_MONITOR = "stream_monitor";;
     
     public static final String MMSI_KEY = "mmsi";
     public static final String TIME_KEY = "time";
     public static final String SOURCE_KEY = "source";
     public static final String RESULT_KEY = "result";
+    
+    
+
+    /**
+     * Converts a milliseconds since epoch to a 10-minute blocks since epoch.
+     * 
+     * @param timestamp
+     *            the timestamp to convert
+     * @return the converted value
+     */
+    public static int getTimeBlock(long timestamp) {
+        return Ints.checkedCast(timestamp / 10 / 60 / 1000);
+    }
+    
+    public static int getTimeBlock(long timestamp, TimeUnit unit) {
+        switch (unit) {
+        case HOURS:
+            return Ints.checkedCast(timestamp / 60 / 60 / 1000);
+        case DAYS:
+            return Ints.checkedCast(timestamp / 24 / 60 / 60 / 1000);            
+        default:
+            return getTimeBlock(timestamp);
+        }
+        
+    }
+    
 
 }
 
