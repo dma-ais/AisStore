@@ -23,7 +23,9 @@ import java.io.PrintWriter;
 import java.util.Date;
 import java.util.concurrent.atomic.AtomicInteger;
 
+import org.apache.commons.lang.NotImplementedException;
 import org.apache.log4j.Logger;
+import org.joda.time.field.UnsupportedDateTimeField;
 
 import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
@@ -34,17 +36,17 @@ import dk.dma.ais.store.AisStoreQueryBuilder;
 import dk.dma.ais.store.materialize.Scan;
 import dk.dma.commons.util.io.OutputStreamSink;
 import dk.dma.db.cassandra.CassandraConnection;
-
+/**
+ * Test of scan speed for AisStore packets_time
+ * @author Jens Tuxen
+ *
+ */
 @SuppressWarnings("deprecation")
 public final class AisStorePacketsTimeReadTest extends Scan {
     Logger LOG = Logger.getLogger(AisStorePacketsTimeReadTest.class);
     
     @Parameter(names = "-csv", required = false, description = "absolute path to csv result")
     protected String csvString = "AisStorePacketsTimeReadTest.csv";
-
-    /* stop parameter should not be specified */
-    @Parameter(names = "-stop", required = false, description = "[Filter] Stop date (exclusive), format == yyyy-MM-dd")
-    protected volatile Date stop;
     
     protected AtomicInteger count = new AtomicInteger();
     BufferedOutputStream bos;
@@ -56,8 +58,12 @@ public final class AisStorePacketsTimeReadTest extends Scan {
 
     @Override
     public void run(Injector arg0) throws Exception {
+        LOG.debug("Start Date:\t\t"+start.toLocaleString());
         if (stop == null) {
             stop = new Date(start.getTime()+(24*60*60*1000));
+            LOG.debug("Stop date calculated as "+stop.toLocaleString());
+        } else {
+            throw new NotImplementedException("Sorry, stop is not supported in this cli-util. Use -start (+24h)");
         }
         
         con = CassandraConnection.create(keySpace, hosts);
@@ -67,6 +73,7 @@ public final class AisStorePacketsTimeReadTest extends Scan {
         csv = new PrintWriter(new BufferedOutputStream(new FileOutputStream(
                 csvString)));
 
+        
         sink = AisPacketOutputSinks.OUTPUT_TO_TEXT;
 
         try {
@@ -125,7 +132,6 @@ public final class AisStorePacketsTimeReadTest extends Scan {
         }
     }
 
-
     public static void main(String[] args) throws Exception {
         new AisStorePacketsTimeReadTest().execute(args);
     }
@@ -150,6 +156,7 @@ public final class AisStorePacketsTimeReadTest extends Scan {
     protected Iterable<AisPacket> makeRequest() {
         return con.execute(AisStoreQueryBuilder.forTime().setInterval(start.getTime(),stop.getTime()));
     }
+    
     
     /** Writes to nowhere */
     class NullOutputStream extends OutputStream {

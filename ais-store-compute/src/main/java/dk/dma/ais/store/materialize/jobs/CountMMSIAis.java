@@ -46,6 +46,7 @@ import dk.dma.ais.store.materialize.AbstractScanHashViewBuilder;
 import dk.dma.ais.store.materialize.AisMatSchema;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps.Key2;
+import dk.dma.ais.store.views.MMSITimeCount;
 /**
  * @author Jens Tuxen
  * 
@@ -56,53 +57,24 @@ public class CountMMSIAis extends AbstractScanHashViewBuilder {
     @Parameter(names = "-timeFormatter", description = "time resolution")
     String timeformat = AisMatSchema.HOUR_FORMAT;
     
-    SimpleDateFormat timeFormatter;
     private Integer batchSize = 10000;
     
     @Parameter(names = "-csv", required = false, description = "absolute path to csv result")
     protected String csvString = "CountMMSIAis.csv";
     
     
-    
-    //not typeafe
-    //MapOfMaps data = new MapOfMaps(0,0L,"");
-    
-    TypeSafeMapOfMaps<Key2<Long, String>, Long> data = new TypeSafeMapOfMaps<>();
+    MMSITimeCount view = new MMSITimeCount(new SimpleDateFormat(timeformat));
     
     public void run(Injector arg0) throws Exception {
         PrintWriter csv = new PrintWriter(new BufferedOutputStream(new FileOutputStream(
                 csvString)));
-        timeFormatter = new SimpleDateFormat(timeformat);
+
         try {
             super.run(arg0);
             csv.print(this.toCSV());
         } finally {
             csv.close();
         }
-    }
-
-    @Override
-    public void accept(AisPacket aisPacket) {
-        try {
-            Objects.requireNonNull(aisPacket);
-            Long mmsi = (long)Objects.requireNonNull(aisPacket.getAisMessage().getUserId());
-            Long timestamp = aisPacket.getBestTimestamp();
-            
-            if (timestamp > 0) {
-                String day = Objects.requireNonNull(timeFormatter.format(new Date(timestamp)));
-                try {
-                    Long value = data.get(TypeSafeMapOfMaps.key(mmsi, day));
-                    data.put(TypeSafeMapOfMaps.key(mmsi, day),value);
-                } catch (Exception e) {
-                    data.put(TypeSafeMapOfMaps.key(mmsi, day),0L);
-                }
-                
-            }
-
-        } catch (AisMessageException | SixbitException e) {
-            //e.printStackTrace();
-        }
-        
     }
 
 
@@ -126,7 +98,7 @@ public class CountMMSIAis extends AbstractScanHashViewBuilder {
         long start = System.currentTimeMillis();
         
         
-        for (Entry<Key2<Long, String>, Long> e : data) {
+        for (Entry<Key2<Long, String>, Long> e : view.getData()) {
             c++;
             
             Update upd = QueryBuilder.update(AisMatSchema.TABLE_MMSI_TIME_COUNT);
@@ -156,6 +128,7 @@ public class CountMMSIAis extends AbstractScanHashViewBuilder {
             }
             
         }
+
     }
                 
      
@@ -167,6 +140,13 @@ public class CountMMSIAis extends AbstractScanHashViewBuilder {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
+        
+    }
+
+
+    @Override
+    public void accept(AisPacket t) {
+        // TODO Auto-generated method stub
         
     }
 
