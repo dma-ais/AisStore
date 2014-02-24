@@ -33,7 +33,7 @@ public abstract class Scan extends AbstractViewCommandLineTool implements Consum
     @Parameter(names = "-start", required = true, description = "[Filter] Start date (inclusive), format == yyyy-MM-dd")
     protected volatile Date start;
 
-    @Parameter(names = "-stop", required = true, description = "[Filter] Stop date (exclusive), format == yyyy-MM-dd")
+    @Parameter(names = "-stop", required = false, description = "[Filter] Stop date (exclusive), format == yyyy-MM-dd")
     protected volatile Date stop;
 
     
