@@ -23,7 +23,7 @@ import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 
-
+import com.datastax.driver.core.RegularStatement;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
@@ -43,8 +43,8 @@ import dk.dma.ais.packet.AisPacket;
 class AisStorePartialQuery extends AbstractIterator<AisPacket> {
 
     /**
-     * AisPacket implements Comparable. But I'm to afraid someone might break the functionality someday. So we make a
-     * manual iterator
+     * AisPacket implements Comparable. But I'm to afraid someone might break
+     * the functionality someday. So we make a manual iterator
      * */
     static final Comparator<AisPacket> COMPARATOR = new Comparator<AisPacket>() {
         public int compare(AisPacket p1, AisPacket p2) {
@@ -65,8 +65,8 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
     private final String rowName;
 
     /**
-     * The first timestamp for which to get packets (inclusive). Is constantly updated to the timestamp of the last
-     * received packet as data comes in.
+     * The first timestamp for which to get packets (inclusive). Is constantly
+     * updated to the timestamp of the last received packet as data comes in.
      */
     private ByteBuffer timeStart;
 
@@ -77,10 +77,16 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
 
     private final int lastRow;
 
-    /** All queries are done asynchronously. This future holds the result of the last query we made. */
+    /**
+     * All queries are done asynchronously. This future holds the result of the
+     * last query we made.
+     */
     private ResultSetFuture future;
 
-    /** A list of packets that we have received from AisStore but have not yet returned to the user. */
+    /**
+     * A list of packets that we have received from AisStore but have not yet
+     * returned to the user.
+     */
     private LinkedList<AisPacket> packets = new LinkedList<>();
 
     /** The number of packets that was retrieved. */
@@ -90,13 +96,16 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
 
     private final AisStoreQueryInnerContext inner;
 
-    AisStorePartialQuery(Session session, AisStoreQueryInnerContext inner, int batchLimit, String tableName,
-            String rowName, int rowStart, long timeStartInclusive, long timeStopExclusive) {
-        this(session, inner, batchLimit, tableName, rowName, rowStart, rowStart, timeStartInclusive, timeStopExclusive);
+    AisStorePartialQuery(Session session, AisStoreQueryInnerContext inner,
+            int batchLimit, String tableName, String rowName, int rowStart,
+            long timeStartInclusive, long timeStopExclusive) {
+        this(session, inner, batchLimit, tableName, rowName, rowStart,
+                rowStart, timeStartInclusive, timeStopExclusive);
     }
 
-    AisStorePartialQuery(Session session, AisStoreQueryInnerContext inner, int batchLimit, String tableName,
-            String rowName, int rowStart, int rowStop, long timeStartInclusive, long timeStopExclusive) {
+    AisStorePartialQuery(Session session, AisStoreQueryInnerContext inner,
+            int batchLimit, String tableName, String rowName, int rowStart,
+            int rowStop, long timeStartInclusive, long timeStopExclusive) {
         this.session = requireNonNull(session);
         this.tableName = requireNonNull(tableName);
         this.rowName = requireNonNull(rowName);
@@ -125,12 +134,14 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
         }
         while (currentRow <= lastRow) {
             List<Row> all;
+
             try {
                 all = future.get().all();
                 future = null; // make sure we do not use the same future again
             } catch (Exception e) {
                 inner.inner.setException(e);
                 throw new RuntimeException(e);
+
             }
 
             // advance to next row, we did not get a complete result set
@@ -140,15 +151,16 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
             if (all.size() > 0) {
                 retrievedPackets += all.size();
                 Row row = all.get(all.size() - 1);
-                
-                //byte[] bytes = ByteBufferUtil.getArray(row.getBytes(0));
-                //http://stackoverflow.com/questions/679298/gets-byte-array-from-a-bytebuffer-in-java
+
+                // byte[] bytes = ByteBufferUtil.getArray(row.getBytes(0));
+                // http://stackoverflow.com/questions/679298/gets-byte-array-from-a-bytebuffer-in-java
                 ByteBuffer buf = row.getBytes(0);
+
                 byte[] bytes = new byte[buf.remaining()];
                 buf.get(bytes);
 
                 lastestDateReceived = Longs.fromByteArray(bytes);
-                //System.out.println(new Date(lastestDateReceived));
+                
                 timeStart = ByteBuffer.wrap(bytes);
             }
             advance(); // make sure to fetch next before we start the parsing
@@ -165,18 +177,24 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
         return endOfData();
     }
 
-    /** If the current row is less than or equal to the current row. We will fetch the next data. */
+    /**
+     * If the current row is less than or equal to the current row. We will
+     * fetch the next data.
+     */
     void advance() {
         if (currentRow <= lastRow) {
-            // We need timehash to find out what the timestamp of the last received packet is.
-            // When the datastax driver supports unlimited fetching we will only need aisdata
-            Select s = QueryBuilder.select("timehash", "aisdata").from(tableName);
-            Where w = s.where(QueryBuilder.eq(rowName, currentRow));
-            w.and(QueryBuilder.gt("timehash", timeStart)); // timehash must be greater than start
-            w.and(QueryBuilder.lt("timehash", timeStop)); // timehash must be less that stop
-            s.limit(batchLimit); // Sets the limit
-            // System.out.println(s.getQueryString());
-            future = session.executeAsync(s.getQueryString());
+            // We need timehash to find out what the timestamp of the last
+            // received packet is.
+            // When the datastax driver supports unlimited fetching we will only
+            // need aisdata
+            RegularStatement s = QueryBuilder.select("timehash", "aisdata")
+                    .from(tableName)
+                    .where(QueryBuilder.eq(rowName, currentRow))
+                    .and(QueryBuilder.gt("timehash", timeStart)) 
+                    .and(QueryBuilder.lt("timehash", timeStop))
+                    .limit(batchLimit);
+            //System.out.println("\n\n\n" + s.getQueryString() + "\n\n\n");
+            future = session.executeAsync(s);
         }
     }
 
