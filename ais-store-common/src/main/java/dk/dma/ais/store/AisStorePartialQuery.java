@@ -176,7 +176,7 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
             w.and(QueryBuilder.lt("timehash", timeStop)); // timehash must be less that stop
             s.limit(batchLimit); // Sets the limit
             // System.out.println(s.getQueryString());
-            future = session.executeAsync(s.getQueryString());
+            future = session.executeAsync(s);
         }
     }
 
