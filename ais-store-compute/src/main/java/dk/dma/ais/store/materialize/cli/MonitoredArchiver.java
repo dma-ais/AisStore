@@ -15,16 +15,5 @@
  */
 package dk.dma.ais.store.materialize.cli;
 
-import com.google.inject.Injector;
-
-import dk.dma.ais.store.Archiver;
-
-public class MonitoredArchiver extends Archiver {
-
-    @Override
-    protected void runDaemon(Injector injector) throws Exception {
-
-        //TODO inject the monitor into the archiver
-        super.runDaemon(injector);
-    }
+public class MonitoredArchiver {
 }
