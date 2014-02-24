@@ -46,7 +46,7 @@ import dk.dma.ais.store.materialize.AbstractScanHashViewBuilder;
 import dk.dma.ais.store.materialize.AisMatSchema;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps.Key2;
-import dk.dma.ais.store.views.MMSITimeCount;
+import dk.dma.ais.store.materialize.views.MMSITimeCount;
 /**
  * @author Jens Tuxen
  * 

@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.ais.store.views;
+package dk.dma.ais.store.materialize.views;
 
 import java.text.SimpleDateFormat;
 import java.util.Date;
