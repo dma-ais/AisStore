@@ -109,26 +109,27 @@ public final class AisStorePacketsTimeReadTest extends Scan {
 
             LOG.debug("Read Speed:");
             LOG.debug("Average Packets per 1day:\t" + count.get() / s
-                    * 60 * 24 + " packets/day");
+                    * 60 * 60 * 24 + " packets/day");
             LOG.debug("Average Packets per 1h:\t" + count.get() / s
-                    * 60 * 60 + " packets/h");
+                    * 60 * 60  + " packets/h");
             LOG.debug("Average Packets per 1min:\t" + count.get() / s
-                    * 60 + " packets/min");
+                    * 60  + " packets/min");
             LOG.debug("Average Packets per 1sec:\t" + count.get() / s
                     + " packets/s");
 
-            LOG.debug("Read/Write ratio:\t" + s * 60 * 24
+            LOG.debug("Read/Write ratio:\t" + (count.get()/s * 60 * 60 * 24)
                     / count.get() + "");
             LOG.debug("Total Time To Extract 1day:\t" + s / 60
                     + " minutes");
-            LOG.debug("Total Time To Extract 1h:\t" + s * 60 * 24
-                    / count.get() + "");
+            LOG.debug("Total Time To Extract 1h:\t" + s / 24 + " seconds");
 
+            LOG.debug(this.toCSV());
             csv.print(this.toCSV());
             
 
         } finally {
             con.stop();
+            csv.close();
         }
     }
 
