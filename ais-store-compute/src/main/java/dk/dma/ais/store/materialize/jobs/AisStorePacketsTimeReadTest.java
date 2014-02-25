@@ -48,7 +48,6 @@ public final class AisStorePacketsTimeReadTest extends Scan {
     @Parameter(names = "-csv", required = false, description = "absolute path to csv result")
     protected String csvString = "AisStorePacketsTimeReadTest.csv";
     
-    protected AtomicInteger count = new AtomicInteger();
     BufferedOutputStream bos;
     PrintWriter csv;
     OutputStreamSink<AisPacket> sink;
