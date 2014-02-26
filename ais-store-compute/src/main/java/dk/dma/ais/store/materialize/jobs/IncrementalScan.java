@@ -15,7 +15,6 @@
  */
 package dk.dma.ais.store.materialize.jobs;
 
-import java.awt.geom.Area;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
@@ -23,6 +22,7 @@ import java.util.List;
 
 import org.apache.log4j.Logger;
 
+import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.RegularStatement;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.Row;
@@ -31,29 +31,33 @@ import com.google.inject.Injector;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.AisStoreQueryBuilder;
-import dk.dma.ais.store.AisStoreSchema;
 import dk.dma.ais.store.materialize.AisMatSchema;
 import dk.dma.ais.store.materialize.HashViewBuilder;
 import dk.dma.ais.store.materialize.Scan;
-import dk.dma.enav.util.function.Consumer;
+import dk.dma.db.cassandra.CassandraConnection;
 
 public class IncrementalScan extends Scan {
     private Logger LOG = Logger.getLogger(IncrementalScan.class);
 
     // This will be a sorted list of timeids, it is pre-sorted by AisStore
     LinkedList<Integer> timeIds;
-    
-    
     ArrayList<HashViewBuilder> jobs = new ArrayList<HashViewBuilder>();
 
     @Override
     public void run(Injector arg0) throws Exception {
-        super.run(arg0);
+        // Set up a connection to both AisStore and AisMat
+        con = CassandraConnection.create(keySpace, hosts);
+        con.start();
+        
+        viewCluster = Cluster.builder().addContactPoints(viewHosts.toArray(new String[0])).build();
+        viewSession = viewCluster.connect(viewKeySpace);
+        
         try {
             setStartTime(System.currentTimeMillis());
 
             timeIds = new LinkedList<>();
 
+            LOG.debug("Retrieving Events");
             RegularStatement select = QueryBuilder.select().from(
                     AisMatSchema.TABLE_STREAM_MONITOR);
             ResultSet s = viewSession.execute(select);
@@ -62,21 +66,32 @@ public class IncrementalScan extends Scan {
 
             while (iter.hasNext()) {
                 Row row = iter.next();
-
                 timeIds.add(row.getInt(AisMatSchema.TIME_KEY));
-
+            }            
+            Iterable<AisPacket> iterable = makeRequest();
+            LOG.debug("Events Retrieved");
+            
+            
+            LOG.debug("STARTING SCAN");
+            
+            for (AisPacket p: iterable) {
+                this.accept(p);
+                
                 if (count.get() % batchSize == 0) {
                     long ms = System.currentTimeMillis() - startTime;
                     System.out
                             .println(count.get() + " packets,  " + count.get()
                                     / ((double) ms / 1000) + " packets/s");
                 }
+                
+                
             }
-
+            
             long ms = System.currentTimeMillis() - startTime;
-            System.out.println("Total: " + count + " packets,  " + count.get()
+            LOG.debug("Total: " + count + " packets,  " + count.get()
                     / ((double) ms / 1000) + " packets/s");
 
+            
             if (!dummy) {
                 postProcess();
             }
@@ -96,7 +111,7 @@ public class IncrementalScan extends Scan {
     public void accept(AisPacket t) {
         this.count.incrementAndGet();
         
-        for (Consumer<AisPacket> job: jobs) {
+        for (HashViewBuilder job: jobs) {
             job.accept(t);
         }
     }
@@ -109,6 +124,21 @@ public class IncrementalScan extends Scan {
     }
 
     public void postProcess() {
+        LinkedList<List<RegularStatement>> batches = new LinkedList<>();
+        
+        LOG.debug("preparing batches");
+        for (HashViewBuilder job: jobs) {
+            batches.add(job.prepare());
+        }
+        
+        LOG.debug("printing all statements");
+        for (List<RegularStatement> batch: batches) {
+            for (RegularStatement s: batch) {
+                LOG.debug(s.getQueryString());
+            }
+        }
+        
+        
     }
 
 }

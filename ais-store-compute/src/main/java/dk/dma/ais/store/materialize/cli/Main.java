@@ -22,6 +22,7 @@ import dk.dma.ais.store.FileExport;
 import dk.dma.ais.store.FileImport;
 import dk.dma.ais.store.materialize.jobs.AisStorePacketsTimeReadTest;
 import dk.dma.ais.store.materialize.jobs.CountMMSIAis;
+import dk.dma.ais.store.materialize.jobs.IncrementalScan;
 import dk.dma.commons.app.CliCommandList;
 
 /**
@@ -41,6 +42,7 @@ public class Main {
         c.add(CountMMSIAis.class, "mmsi_time_view", "((mmsi,time),count) materialized view");
         c.add(AisStorePacketsTimeReadTest.class, "time_read_test", "test packets_time read speed of aisstore");
         c.add(MonitoredArchiver.class, "monitoredarchiver", "test packets_time read speed of aisstore");
+        c.add(IncrementalScan.class, "incrementalscan", "incremental scan that updates views and prunes the stream_monitor event table");
         c.invoke(args);
     }
 }
