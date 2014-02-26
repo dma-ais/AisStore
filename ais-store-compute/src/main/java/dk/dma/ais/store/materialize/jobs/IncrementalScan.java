@@ -16,11 +16,13 @@
 package dk.dma.ais.store.materialize.jobs;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
 import org.apache.log4j.Logger;
+import org.apache.log4j.helpers.QuietWriter;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.RegularStatement;
@@ -39,7 +41,7 @@ import dk.dma.db.cassandra.CassandraConnection;
 public class IncrementalScan extends Scan {
     private Logger LOG = Logger.getLogger(IncrementalScan.class);
 
-    // This will be a sorted list of timeids, it is pre-sorted by AisStore
+    // This will be a list of timeids, it is pre-sorted by AisStore
     LinkedList<Integer> timeIds;
     ArrayList<HashViewBuilder> jobs = new ArrayList<HashViewBuilder>();
 
@@ -59,7 +61,7 @@ public class IncrementalScan extends Scan {
 
             LOG.debug("Retrieving Events");
             RegularStatement select = QueryBuilder.select().from(
-                    AisMatSchema.TABLE_STREAM_MONITOR);
+                    AisMatSchema.TABLE_STREAM_MONITOR).orderBy(QueryBuilder.asc(AisMatSchema.STREAM_TIME_KEY));
             ResultSet s = viewSession.execute(select);
             
             Iterator<Row> iter = s.iterator();
@@ -118,8 +120,10 @@ public class IncrementalScan extends Scan {
 
     @Override
     protected Iterable<AisPacket> makeRequest() {
-        Long minimum = (long) (timeIds.getFirst()*10L*60L*1000L);
-        Long maximum = (long) (timeIds.getLast()*10L*60L*1000L);
+        Long minimum = (long) (Collections.min(timeIds)*10L*60L*1000L);
+        Long maximum = (long) (Collections.max(timeIds)*10L*60L*1000L);
+        
+        
         return con.execute(AisStoreQueryBuilder.forTime().setInterval(minimum,maximum));
     }
 
