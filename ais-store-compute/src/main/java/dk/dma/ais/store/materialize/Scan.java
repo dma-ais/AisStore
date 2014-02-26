@@ -19,6 +19,8 @@ import java.lang.reflect.InvocationTargetException;
 import java.util.Arrays;
 import java.util.Date;
 
+import org.joda.time.field.DividedDateTimeField;
+
 import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
 
@@ -96,7 +98,11 @@ public abstract class Scan extends AbstractViewCommandLineTool implements Consum
     }
     
     public long getPacketsPerSecond() {
-        return getCountValue()/(getDuration()/1000);
+        try {
+            return getCountValue()/(getDuration()/1000);
+        } catch (ArithmeticException e) {
+            return -1L;
+        }
     }
 
 
