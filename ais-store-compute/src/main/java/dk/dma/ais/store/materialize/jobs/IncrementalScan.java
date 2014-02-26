@@ -20,6 +20,7 @@ import java.util.Collections;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.TreeSet;
 
 import org.apache.log4j.Logger;
 import org.apache.log4j.helpers.QuietWriter;
@@ -41,8 +42,8 @@ import dk.dma.db.cassandra.CassandraConnection;
 public class IncrementalScan extends Scan {
     private Logger LOG = Logger.getLogger(IncrementalScan.class);
 
-    // This will be a list of timeids, it is pre-sorted by AisStore
-    LinkedList<Integer> timeIds;
+    // This will be a set of timeids, it is pre-sorted
+    TreeSet<Integer> timeIds;
     ArrayList<HashViewBuilder> jobs = new ArrayList<HashViewBuilder>();
 
     @Override
@@ -57,11 +58,11 @@ public class IncrementalScan extends Scan {
         try {
             setStartTime(System.currentTimeMillis());
 
-            timeIds = new LinkedList<>();
+            timeIds = new TreeSet<Integer>();
 
             LOG.debug("Retrieving Events");
             RegularStatement select = QueryBuilder.select().from(
-                    AisMatSchema.TABLE_STREAM_MONITOR).orderBy(QueryBuilder.asc(AisMatSchema.STREAM_TIME_KEY));
+                    AisMatSchema.TABLE_STREAM_MONITOR);
             ResultSet s = viewSession.execute(select);
             
             Iterator<Row> iter = s.iterator();
