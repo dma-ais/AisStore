@@ -68,7 +68,7 @@ public class Archiver extends AbstractDaemon {
     protected volatile AbstractBatchedStage<AisPacket> mainStage;
 
     @Parameter(description = "A list of AIS sources (sourceName=host:port,host:port sourceName=host:port ...")
-    List<String> sources;
+    protected List<String> sources;
 
     @ManagedAttribute
     public long getNumberOfProcessedPackages() {
