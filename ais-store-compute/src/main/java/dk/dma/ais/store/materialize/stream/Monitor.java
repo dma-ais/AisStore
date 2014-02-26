@@ -74,7 +74,7 @@ public class Monitor implements Consumer<AisPacket>{
         }
 
         LOG .debug(insert);
-        //viewSession.execute(upd);
+        viewSession.execute(insert);
     }
 
 }
