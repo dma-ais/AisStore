@@ -66,7 +66,7 @@ public class IncrementalScan extends Scan {
 
             while (iter.hasNext()) {
                 Row row = iter.next();
-                timeIds.add(row.getInt(AisMatSchema.TIME_KEY));
+                timeIds.add(row.getInt(AisMatSchema.STREAM_TIME_KEY));
             }            
             Iterable<AisPacket> iterable = makeRequest();
             LOG.debug("Events Retrieved");
