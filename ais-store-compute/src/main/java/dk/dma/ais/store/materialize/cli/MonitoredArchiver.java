@@ -15,7 +15,6 @@
  */
 package dk.dma.ais.store.materialize.cli;
 
-import java.io.File;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -91,6 +90,7 @@ public class MonitoredArchiver extends Archiver {
         AisReaderGroup g = AisReaders.createGroup("AisStoreArchiver", sources);
 
         // Start a stage that will write each packet to cassandra
+        // this cassandra stage is monitored
         final AbstractBatchedStage<AisPacket> cassandra = mainStage = start(new MonitoredAisStoreWriter(con, batchSize, viewCluster, viewKeySpace) {
             @Override
             public void onFailure(List<AisPacket> messages, Throwable cause) {
