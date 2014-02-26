@@ -120,7 +120,7 @@ public class IncrementalScan extends Scan {
     protected Iterable<AisPacket> makeRequest() {
         Long minimum = (long) (timeIds.getFirst()*10L*60L*1000L);
         Long maximum = (long) (timeIds.getLast()*10L*60L*1000L);
-        return con.execute(AisStoreQueryBuilder.forTime().setInterval(minimum*1000,maximum*1000));
+        return con.execute(AisStoreQueryBuilder.forTime().setInterval(minimum,maximum));
     }
 
     public void postProcess() {
