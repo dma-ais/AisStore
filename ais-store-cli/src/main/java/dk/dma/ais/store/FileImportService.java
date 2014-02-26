@@ -38,7 +38,7 @@ import dk.dma.commons.util.io.PathUtil;
  * 
  * @author Kasper Nielsen
  */
-class FileImportService extends AbstractExecutionThreadService {
+public class FileImportService extends AbstractExecutionThreadService {
 
     /** The logger. */
     private static final Logger LOG = LoggerFactory.getLogger(FileImportService.class);
@@ -46,7 +46,7 @@ class FileImportService extends AbstractExecutionThreadService {
     /** The archiver. */
     private final Archiver archiver;
 
-    FileImportService(Archiver archiver) {
+    public FileImportService(Archiver archiver) {
         this.archiver = requireNonNull(archiver);
     }
 

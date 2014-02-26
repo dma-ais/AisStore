@@ -47,11 +47,12 @@ public class AisMatSchema {
     public static final String TABLE_CELL1_TIME_COUNT = "cell1_time_count";
     public static final String TABLE_STREAM_MONITOR = "stream_monitor";;
     
+    
     public static final String MMSI_KEY = "mmsi";
     public static final String TIME_KEY = "time";
     public static final String SOURCE_KEY = "source";
     public static final String RESULT_KEY = "result";
-    
+    public static final String STREAM_TIME_KEY = "timeblock";;
     
 
     /**

@@ -19,6 +19,7 @@ import java.awt.geom.Area;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.LinkedList;
+import java.util.List;
 
 import org.apache.log4j.Logger;
 
@@ -29,9 +30,12 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.google.inject.Injector;
 
 import dk.dma.ais.packet.AisPacket;
+import dk.dma.ais.store.AisStoreQueryBuilder;
 import dk.dma.ais.store.AisStoreSchema;
 import dk.dma.ais.store.materialize.AisMatSchema;
+import dk.dma.ais.store.materialize.HashViewBuilder;
 import dk.dma.ais.store.materialize.Scan;
+import dk.dma.enav.util.function.Consumer;
 
 public class IncrementalScan extends Scan {
     private Logger LOG = Logger.getLogger(IncrementalScan.class);
@@ -40,7 +44,7 @@ public class IncrementalScan extends Scan {
     LinkedList<Integer> timeIds;
     
     
-    ArrayList<Scan> jobs = new ArrayList<Scan>();
+    ArrayList<HashViewBuilder> jobs = new ArrayList<HashViewBuilder>();
 
     @Override
     public void run(Injector arg0) throws Exception {
@@ -53,6 +57,7 @@ public class IncrementalScan extends Scan {
             RegularStatement select = QueryBuilder.select().from(
                     AisMatSchema.TABLE_STREAM_MONITOR);
             ResultSet s = viewSession.execute(select);
+            
             Iterator<Row> iter = s.iterator();
 
             while (iter.hasNext()) {
@@ -67,8 +72,6 @@ public class IncrementalScan extends Scan {
                                     / ((double) ms / 1000) + " packets/s");
                 }
             }
-            
-            
 
             long ms = System.currentTimeMillis() - startTime;
             System.out.println("Total: " + count + " packets,  " + count.get()
@@ -79,33 +82,33 @@ public class IncrementalScan extends Scan {
             }
 
             setEndTime(System.currentTimeMillis());
+            
+            this.toCSV();
 
         } finally {
-            con.stop();
+            con.stopAsync();
             viewSession.shutdown();
+            viewCluster.shutdown();
         }
     }
 
     @Override
     public void accept(AisPacket t) {
+        this.count.incrementAndGet();
         
+        for (Consumer<AisPacket> job: jobs) {
+            job.accept(t);
+        }
     }
 
     @Override
     protected Iterable<AisPacket> makeRequest() {
-        Integer minimum = timeIds.getFirst();
-        Integer maximum = timeIds.getLast();
+        Long minimum = (long) (timeIds.getFirst()*10L*60L*1000L);
+        Long maximum = (long) (timeIds.getLast()*10L*60L*1000L);
+        return con.execute(AisStoreQueryBuilder.forTime().setInterval(minimum*1000,maximum*1000));
+    }
 
-        RegularStatement select = QueryBuilder
-                .select(AisStoreSchema.COLUMN_AISDATA)
-                .from(AisStoreSchema.TABLE_TIME)
-                .where(QueryBuilder.lt(AisStoreSchema.COLUMN_TIMEHASH, minimum))
-                .and(QueryBuilder.gt(AisStoreSchema.COLUMN_TIMEHASH, maximum));
-
-        LOG.debug(select);
-        
-        return null;
-
+    public void postProcess() {
     }
 
 }

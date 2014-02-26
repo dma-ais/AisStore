@@ -25,6 +25,7 @@ import java.io.PrintWriter;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
+import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 
@@ -47,27 +48,28 @@ import dk.dma.ais.store.materialize.AisMatSchema;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps.Key2;
 import dk.dma.ais.store.materialize.views.MMSITimeCount;
+
 /**
  * @author Jens Tuxen
  * 
  */
 public class CountMMSIAis extends AbstractScanHashViewBuilder {
-    private static Logger LOG = Logger.getLogger(AbstractScanHashViewBuilder.class);
-    
+    private static Logger LOG = Logger
+            .getLogger(AbstractScanHashViewBuilder.class);
+
     @Parameter(names = "-timeFormatter", description = "time resolution")
     String timeformat = AisMatSchema.HOUR_FORMAT;
-    
+
     private Integer batchSize = 10000;
-    
+
     @Parameter(names = "-csv", required = false, description = "absolute path to csv result")
     protected String csvString = "CountMMSIAis.csv";
-    
-    
+
     MMSITimeCount view = new MMSITimeCount(new SimpleDateFormat(timeformat));
-    
+
     public void run(Injector arg0) throws Exception {
-        PrintWriter csv = new PrintWriter(new BufferedOutputStream(new FileOutputStream(
-                csvString)));
+        PrintWriter csv = new PrintWriter(new BufferedOutputStream(
+                new FileOutputStream(csvString)));
 
         try {
             super.run(arg0);
@@ -77,35 +79,35 @@ public class CountMMSIAis extends AbstractScanHashViewBuilder {
         }
     }
 
-
     public static void main(String[] args) throws Exception {
         new CountMMSIAis().execute(args);
     }
 
-
     @Override
     protected Iterable<AisPacket> makeRequest() {
-        return con.execute(AisStoreQueryBuilder.forTime().setInterval(start.getTime(),stop.getTime()));
+        return con.execute(AisStoreQueryBuilder.forTime().setInterval(
+                start.getTime(), stop.getTime()));
     }
-
-
 
     @Override
     public void postProcess() {
         LOG.debug("Starting view building");
-        ArrayList<RegularStatement> statements = new ArrayList<RegularStatement>(batchSize + 1);
+        ArrayList<RegularStatement> statements = new ArrayList<RegularStatement>(
+                batchSize + 1);
         long c = 0;
         long start = System.currentTimeMillis();
-        
-        
+
         for (Entry<Key2<Long, String>, Long> e : view.getData()) {
             c++;
-            
-            Update upd = QueryBuilder.update(AisMatSchema.TABLE_MMSI_TIME_COUNT);
+
+            Update upd = QueryBuilder
+                    .update(AisMatSchema.TABLE_MMSI_TIME_COUNT);
             upd.setConsistencyLevel(ConsistencyLevel.ONE);
-            upd.where(QueryBuilder.eq(AisMatSchema.MMSI_KEY, e.getKey().getK1()));
-            upd.where(QueryBuilder.eq(AisMatSchema.TIME_KEY, e.getKey().getK2()));
-            upd.with(QueryBuilder.set(AisMatSchema.RESULT_KEY, e.getValue()));              
+            upd.where(QueryBuilder
+                    .eq(AisMatSchema.MMSI_KEY, e.getKey().getK1()));
+            upd.where(QueryBuilder
+                    .eq(AisMatSchema.TIME_KEY, e.getKey().getK2()));
+            upd.with(QueryBuilder.set(AisMatSchema.RESULT_KEY, e.getValue()));
             statements.add(upd);
 
             if (c % batchSize == 0) {
@@ -113,9 +115,9 @@ public class CountMMSIAis extends AbstractScanHashViewBuilder {
                 long ms = System.currentTimeMillis() - start;
                 LOG.debug("count: " + c + " inserts,  " + c
                         / ((double) ms / 1000) + " inserts/s");
-                
+
                 try {
-                    
+
                     viewSession.execute(QueryBuilder.batch(statements
                             .toArray(new RegularStatement[0])));
                     statements.clear();
@@ -124,14 +126,12 @@ public class CountMMSIAis extends AbstractScanHashViewBuilder {
                     LOG.error(qe);
                     this.sleep(5000);
                 }
-                
+
             }
-            
+
         }
 
     }
-                
-     
 
     private void sleep(Integer ms) {
         try {
@@ -140,15 +140,17 @@ public class CountMMSIAis extends AbstractScanHashViewBuilder {
             // TODO Auto-generated catch block
             e.printStackTrace();
         }
-        
-    }
 
+    }
 
     @Override
     public void accept(AisPacket t) {
-        // TODO Auto-generated method stub
-        
+        view.accept(t);
     }
 
+    @Override
+    public List<RegularStatement> prepare() {
+        return view.prepare();
+    }
 
 }

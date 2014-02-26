@@ -41,7 +41,7 @@ CREATE TABLE cell1_time_count (
 	
 DROP TABLE stream_monitor;
 CREATE TABLE stream_monitor (
-	time text,
-	PRIMARY KEY (time))
+	timeblock int,
+	PRIMARY KEY (timeblock))
 	WITH compression = {'sstable_compression':'SnappyCompressor', 'chunk_length_kb':64}
 	AND comment = 'Materialized View Test schema';	

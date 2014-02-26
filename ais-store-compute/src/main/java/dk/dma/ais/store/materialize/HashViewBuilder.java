@@ -15,5 +15,16 @@
  */
 package dk.dma.ais.store.materialize;
 
-public interface HashViewBuilder {
+import java.util.List;
+
+import com.datastax.driver.core.RegularStatement;
+
+import dk.dma.ais.packet.AisPacket;
+import dk.dma.enav.util.function.Consumer;
+
+public interface HashViewBuilder extends Consumer<AisPacket> {
+
+    
+
+    List<RegularStatement> prepare();
 }

@@ -15,22 +15,23 @@
  */
 package dk.dma.ais.store.materialize.stream;
 
-import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentSkipListMap;
+
+
+
 
 import org.apache.log4j.Logger;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.querybuilder.Update;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.materialize.AisMatSchema;
-import dk.dma.ais.store.materialize.OrderedViewBuilder;
 import dk.dma.db.cassandra.CassandraConnection;
 import dk.dma.enav.util.function.Consumer;
 
@@ -39,17 +40,11 @@ import dk.dma.enav.util.function.Consumer;
  * 
  * @author Jens Tuxen
  */
-public class Monitor implements Consumer<AisPacket>, OrderedViewBuilder {
+public class Monitor implements Consumer<AisPacket>{
 
+    private Session viewSession;
+    private Cluster viewCluster;
     private static final Logger LOG = Logger.getLogger(Monitor.class);
-    protected Cluster viewCluster;
-    protected Session viewSession;
-
-    public Monitor(List<String> viewHosts) {
-        this.viewCluster = Cluster.builder()
-                .addContactPoints(viewHosts.toArray(new String[0])).build();
-        this.viewSession = viewCluster.connect("aismat");
-    }
 
     public Monitor(CassandraConnection con, Cluster viewCluster,
             Session viewSession) {
@@ -61,25 +56,24 @@ public class Monitor implements Consumer<AisPacket>, OrderedViewBuilder {
 
     @Override
     public void accept(AisPacket t) {
-        long timestamp = t.getBestTimestamp() / 1000;
+        long timeblock = t.getBestTimestamp()/10/60/1000;
 
         final ConcurrentSkipListMap<String, Object> m = new ConcurrentSkipListMap<>();
-        m.put(AisMatSchema.TIME_KEY, timestamp);
-
-        this.increment("stream_event", m);
+        m.put(AisMatSchema.STREAM_TIME_KEY, timeblock);
+        
+        this.insert(AisMatSchema.TABLE_STREAM_MONITOR, m);
     }
 
-    @Override
-    public void increment(String tableName, Map<String, Object> keys) {
-        Update upd = QueryBuilder.update(tableName);
-        upd.setConsistencyLevel(ConsistencyLevel.ANY);
+    
+    public void insert(String tableName, Map<String, Object> keys) {
+        Insert insert = QueryBuilder.insertInto(tableName);
+        insert.setConsistencyLevel(ConsistencyLevel.ANY);
 
         for (Entry<String, Object> e : keys.entrySet()) {
-            upd.where(QueryBuilder.eq(e.getKey(), e.getValue().toString()));
+            insert.value(e.getKey(), e.getValue());
         }
-        upd.with(QueryBuilder.incr(AisMatSchema.RESULT_KEY));
 
-        LOG.debug(upd);
+        LOG .debug(insert);
         //viewSession.execute(upd);
     }
 

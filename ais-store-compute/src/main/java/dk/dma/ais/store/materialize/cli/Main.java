@@ -13,15 +13,21 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.ais.store;
+package dk.dma.ais.store.materialize.cli;
 
 
+import dk.dma.ais.store.Archiver;
+import dk.dma.ais.store.DriverFileExport;
+import dk.dma.ais.store.FileExport;
+import dk.dma.ais.store.FileImport;
+import dk.dma.ais.store.materialize.jobs.AisStorePacketsTimeReadTest;
+import dk.dma.ais.store.materialize.jobs.CountMMSIAis;
 import dk.dma.commons.app.CliCommandList;
 
 /**
- * The command line interface to AisStore.
+ * The command line interface to AisMat, baed on Main from dk.dma.ais.Store.
  * 
- * @author Kasper Nielsen
+ * @author Jens Tuxen
  */
 public class Main {
 
@@ -31,6 +37,10 @@ public class Main {
         c.add(FileImport.class, "import", "Imports data from text files and stores data into Cassandra");
         c.add(FileExport.class, "export", "Exports data from Cassandra into text files");
         c.add(DriverFileExport.class, "driverexport", "Exports data using the datastax driver");
+        
+        //ais-store-materialize
+        c.add(CountMMSIAis.class, "mmsi_time_view", "((mmsi,time),count) materialized view");
+        c.add(AisStorePacketsTimeReadTest.class, "time_read_test", "test packets_time read speed of aisstore");
         c.invoke(args);
     }
 }
