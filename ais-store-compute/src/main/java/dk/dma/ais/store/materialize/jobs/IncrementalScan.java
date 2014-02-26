@@ -140,5 +140,10 @@ public class IncrementalScan extends Scan {
         
         
     }
+    
+    public static void main(String[] args) throws Exception {
+        new IncrementalScan().execute(args);
+    }
+
 
 }
