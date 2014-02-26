@@ -33,7 +33,6 @@ public class Main {
 
     public static void main(String[] args) throws Exception {
         CliCommandList c = new CliCommandList("AisStore");
-        c.add(Archiver.class, "archive", "Reads data from AIS datasources and stores data into Cassandra");
         c.add(FileImport.class, "import", "Imports data from text files and stores data into Cassandra");
         c.add(FileExport.class, "export", "Exports data from Cassandra into text files");
         c.add(DriverFileExport.class, "driverexport", "Exports data using the datastax driver");
@@ -41,6 +40,7 @@ public class Main {
         //ais-store-materialize
         c.add(CountMMSIAis.class, "mmsi_time_view", "((mmsi,time),count) materialized view");
         c.add(AisStorePacketsTimeReadTest.class, "time_read_test", "test packets_time read speed of aisstore");
+        c.add(MonitoredArchiver.class, "monitoredarchiver", "test packets_time read speed of aisstore");
         c.invoke(args);
     }
 }
