@@ -52,19 +52,20 @@ public class Archiver extends AbstractDaemon {
     static final String BACKUP_FORMAT = "'ais-store-failed' yyyy.MM.dd HH:mm'.txt.zip'";
 
     @Parameter(names = "-backup", description = "The backup directory")
-    File backup = new File("aisbackup");
+    protected File backup = new File("aisbackup");
 
     @Parameter(names = "-databaseName", description = "The cassandra database to write data to")
-    String databaseName = "aisdata";
+    protected String databaseName = "aisdata";
 
     @Parameter(names = "-batchSize", description = "The number of messages to write to cassandra at a time")
-    int batchSize = 1000;
+    protected int batchSize = 1000;
 
     @Parameter(names = "-database", description = "A list of cassandra hosts that can store the data")
+    protected
     List<String> cassandraSeeds = Arrays.asList("localhost");
     
     /** The stage that is responsible for writing the package */
-    volatile AbstractBatchedStage<AisPacket> mainStage;
+    protected volatile AbstractBatchedStage<AisPacket> mainStage;
 
     @Parameter(description = "A list of AIS sources (sourceName=host:port,host:port sourceName=host:port ...")
     List<String> sources;

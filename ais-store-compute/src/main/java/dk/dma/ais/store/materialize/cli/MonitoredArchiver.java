@@ -16,7 +16,6 @@
 package dk.dma.ais.store.materialize.cli;
 
 import java.io.File;
-import java.util.Arrays;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -24,26 +23,22 @@ import org.slf4j.LoggerFactory;
 
 import com.beust.jcommander.Parameter;
 import com.datastax.driver.core.Cluster;
-import com.datastax.driver.core.Session;
 import com.google.inject.Injector;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.packet.AisPacketOutputSinks;
 import dk.dma.ais.reader.AisReaderGroup;
 import dk.dma.ais.reader.AisReaders;
+import dk.dma.ais.store.Archiver;
+import dk.dma.ais.store.FileImportService;
 import dk.dma.ais.store.materialize.AisMatSchema;
 import dk.dma.ais.store.materialize.write.MonitoredAisStoreWriter;
-import dk.dma.ais.store.write.DefaultAisStoreWriter;
-import dk.dma.commons.app.AbstractDaemon;
 import dk.dma.commons.management.ManagedAttribute;
 import dk.dma.commons.management.ManagedResource;
 import dk.dma.commons.service.AbstractBatchedStage;
 import dk.dma.commons.service.io.MessageToFileService;
 import dk.dma.db.cassandra.CassandraConnection;
 import dk.dma.enav.util.function.Consumer;
-import dk.dma.ais.store.Archiver;
-import dk.dma.ais.store.FileImport;
-import dk.dma.ais.store.FileImportService;
 
 /**
  * Based on the Archiver from dk.dma.ais.store
@@ -61,18 +56,6 @@ public class MonitoredArchiver extends Archiver {
 
     @Parameter(names = "-backup", description = "The backup directory")
     File backup = new File("aisbackup");
-
-    @Parameter(names = "-databaseName", description = "The cassandra database to write data to")
-    String databaseName = "aisdata";
-
-    @Parameter(names = "-batchSize", description = "The number of messages to write to cassandra at a time")
-    int batchSize = 1000;
-
-    @Parameter(names = "-database", description = "A list of cassandra hosts that can store the data")
-    List<String> cassandraSeeds = Arrays.asList("localhost");
-    
-    /** The stage that is responsible for writing the package */
-    volatile AbstractBatchedStage<AisPacket> mainStage;
 
     @Parameter(description = "A list of AIS sources (sourceName=host:port,host:port sourceName=host:port ...")
     List<String> sources;
