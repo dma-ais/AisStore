@@ -6,7 +6,7 @@ USE aismat;
 DROP TABLE mmsi_time_count;
 CREATE TABLE mmsi_time_count (
     mmsi int,
-    result counter,
+    result int,
 	time text,
     PRIMARY KEY (mmsi, time))
 	WITH compression = {'sstable_compression':'SnappyCompressor', 'chunk_length_kb':64}
@@ -17,16 +17,17 @@ CREATE TABLE source_time_count (
     sourceid text,
     result int,
 	time text,
-    PRIMARY KEY (source, time))
+    PRIMARY KEY (sourceid, time))
 	WITH compression = {'sstable_compression':'SnappyCompressor', 'chunk_length_kb':64}
 	AND comment = 'Materialized View Test schema';
 
 DROP TABLE cell1_source_time_count;
 CREATE TABLE cell1_source_time_count (
     cellid int,
+    sourceid text,
     result int,
 	time text,
-    PRIMARY KEY (cell1, source, time))
+    PRIMARY KEY (cellid, sourceid, time))
 	WITH compression = {'sstable_compression':'SnappyCompressor', 'chunk_length_kb':64}
 	AND comment = 'Materialized View Test schema';
 
@@ -35,7 +36,7 @@ CREATE TABLE cell1_time_count (
     cellid int,
     result int,
 	time text,
-    PRIMARY KEY (source, time))
+    PRIMARY KEY (cellid, time))
 	WITH compression = {'sstable_compression':'SnappyCompressor', 'chunk_length_kb':64}
 	AND comment = 'Materialized View Test schema';
 	
