@@ -54,13 +54,6 @@ public class MonitoredArchiver extends Archiver {
     /** The file naming scheme for writing backup files. */
     static final String BACKUP_FORMAT = "'ais-store-failed' yyyy.MM.dd HH:mm'.txt.zip'";
 
-    @Parameter(names = "-backup", description = "The backup directory")
-    File backup = new File("aisbackup");
-
-    @Parameter(description = "A list of AIS sources (sourceName=host:port,host:port sourceName=host:port ...")
-    List<String> sources;
-    
-
     @Parameter(names = "-viewHosts", required = false, description = "hosts in the format host:port,host:port")
     protected List<String> viewHosts;
 
