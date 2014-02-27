@@ -16,12 +16,12 @@
 package dk.dma.ais.store.materialize.stream;
 
 import java.io.PrintWriter;
+import java.util.Calendar;
+import java.util.Date;
+import java.util.GregorianCalendar;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentSkipListMap;
-
-
-
 
 import java.util.concurrent.atomic.AtomicInteger;
 
@@ -33,6 +33,9 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 
+import dk.dma.ais.filter.FarFutureFilter;
+import dk.dma.ais.filter.FutureFilter;
+import dk.dma.ais.filter.IPacketFilter;
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.materialize.AisMatSchema;
 import dk.dma.ais.store.materialize.util.StatisticsWriter;
@@ -56,6 +59,21 @@ public class Monitor implements Consumer<AisPacket>{
 
     StatisticsWriter stat; 
     
+    FarFutureFilter farFuture = new FarFutureFilter();
+    FutureFilter future = new FutureFilter();
+    
+    @SuppressWarnings("deprecation")
+    //TODO: need to implement a general solution for packet sanity
+    IPacketFilter recentPacket = new IPacketFilter() {
+        private final Date dec2013 = new Date(2013-1990,11,1);
+        @Override
+        public boolean rejectedByFilter(AisPacket packet) {
+            final long timestamp = packet.getBestTimestamp();
+            return timestamp < 0 || timestamp < dec2013.getTime() || farFuture.rejectedByFilter(packet) || future.rejectedByFilter(packet);
+
+        }
+    };
+    
     public Monitor(CassandraConnection con, Cluster viewCluster,
             Session viewSession, boolean dummy, PrintWriter pw) {
         super();
@@ -73,7 +91,10 @@ public class Monitor implements Consumer<AisPacket>{
     	if (count.getAndIncrement() % 100000 == 0) {
     		stat.print();
     	}
-    	
+        if (t == null || recentPacket.rejectedByFilter(t)) {
+            return;
+        }
+
     	if (dummy) {
     		return;
     	}
