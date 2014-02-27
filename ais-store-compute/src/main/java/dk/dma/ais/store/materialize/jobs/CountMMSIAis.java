@@ -65,7 +65,7 @@ public class CountMMSIAis extends AbstractScanHashViewBuilder {
     @Parameter(names = "-csv", required = false, description = "absolute path to csv result")
     protected String csvString = "CountMMSIAis.csv";
 
-    MMSITimeCount view = new MMSITimeCount().setTimeFormatter(new SimpleDateFormat(timeformat);
+    MMSITimeCount view = (MMSITimeCount) new MMSITimeCount().level(new SimpleDateFormat(timeformat));
 
     public void run(Injector arg0) throws Exception {
         PrintWriter csv = new PrintWriter(new BufferedOutputStream(
