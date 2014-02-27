@@ -51,10 +51,11 @@ public class IncrementalScan extends Scan {
         // Set up a connection to both AisStore and AisMat
         con = CassandraConnection.create(keySpace, hosts);
         con.start();
-        
-        viewCluster = Cluster.builder().addContactPoints(viewHosts.toArray(new String[0])).build();
+
+        viewCluster = Cluster.builder()
+                .addContactPoints(viewHosts.toArray(new String[0])).build();
         viewSession = viewCluster.connect(viewKeySpace);
-        
+
         try {
             setStartTime(System.currentTimeMillis());
 
@@ -64,43 +65,42 @@ public class IncrementalScan extends Scan {
             RegularStatement select = QueryBuilder.select().from(
                     AisMatSchema.TABLE_STREAM_MONITOR);
             ResultSet s = viewSession.execute(select);
-            
+
             Iterator<Row> iter = s.iterator();
 
             while (iter.hasNext()) {
                 Row row = iter.next();
                 timeIds.add(row.getInt(AisMatSchema.STREAM_TIME_KEY));
-                LOG.debug(AisMatSchema.TABLE_STREAM_MONITOR+" Row contains: "+row.getInt(AisMatSchema.STREAM_TIME_KEY));
-            }            
+                LOG.debug(AisMatSchema.TABLE_STREAM_MONITOR + " Row contains: "
+                        + row.getInt(AisMatSchema.STREAM_TIME_KEY));
+            }
             LOG.debug("Events Retrieved");
-            
-            Iterable<AisPacket> iterable = makeRequest();            
+
+            Iterable<AisPacket> iterable = makeRequest();
             LOG.debug("STARTING SCAN");
-            
-            for (AisPacket p: iterable) {
+
+            for (AisPacket p : iterable) {
                 this.accept(p);
-                
+
                 if (count.get() % batchSize == 0) {
                     long ms = System.currentTimeMillis() - startTime;
                     System.out
                             .println(count.get() + " packets,  " + count.get()
                                     / ((double) ms / 1000) + " packets/s");
                 }
-                
-                
+
             }
-            
+
             long ms = System.currentTimeMillis() - startTime;
             LOG.debug("Total: " + count + " packets,  " + count.get()
                     / ((double) ms / 1000) + " packets/s");
 
-            
             if (!dummy) {
                 postProcess();
             }
 
             setEndTime(System.currentTimeMillis());
-            
+
             this.toCSV();
 
         } finally {
@@ -113,42 +113,40 @@ public class IncrementalScan extends Scan {
     @Override
     public void accept(AisPacket t) {
         this.count.incrementAndGet();
-        
-        for (HashViewBuilder job: jobs) {
+
+        for (HashViewBuilder job : jobs) {
             job.accept(t);
         }
     }
 
     @Override
     protected Iterable<AisPacket> makeRequest() {
-        Long minimum = (long) (Collections.min(timeIds)*10L*60L*1000L);
-        Long maximum = (long) (Collections.max(timeIds)*10L*60L*1000L);
-        
-        
-        return con.execute(AisStoreQueryBuilder.forTime().setInterval(minimum,maximum));
+        Long minimum = (long) (Collections.min(timeIds) * 10L * 60L * 1000L);
+        Long maximum = (long) (Collections.max(timeIds) * 10L * 60L * 1000L);
+
+        return con.execute(AisStoreQueryBuilder.forTime().setInterval(minimum,
+                maximum));
     }
 
     public void postProcess() {
         LinkedList<List<RegularStatement>> batches = new LinkedList<>();
-        
+
         LOG.debug("preparing batches");
-        for (HashViewBuilder job: jobs) {
+        for (HashViewBuilder job : jobs) {
             batches.add(job.prepare());
         }
-        
+
         LOG.debug("printing all statements");
-        for (List<RegularStatement> batch: batches) {
-            for (RegularStatement s: batch) {
+        for (List<RegularStatement> batch : batches) {
+            for (RegularStatement s : batch) {
                 LOG.debug(s.getQueryString());
             }
         }
-        
-        
+
     }
-    
+
     public static void main(String[] args) throws Exception {
         new IncrementalScan().execute(args);
     }
-
 
 }
