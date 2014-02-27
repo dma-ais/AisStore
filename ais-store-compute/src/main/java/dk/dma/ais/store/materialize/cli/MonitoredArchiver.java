@@ -15,6 +15,10 @@
  */
 package dk.dma.ais.store.materialize.cli;
 
+import java.io.BufferedOutputStream;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
+import java.sql.Date;
 import java.util.List;
 
 import org.slf4j.Logger;
@@ -60,6 +64,14 @@ public class MonitoredArchiver extends Archiver {
 
     @Parameter(names = "-viewKeyspace", required = false, description = "keyspace for the views")
     protected String viewKeySpace = AisMatSchema.VIEW_KEYSPACE;
+    
+    @Parameter(names = "-dummyMonitor", required = false, description = "A dumny monitor only records packet count")
+    protected boolean dummy = false;
+    
+    @Parameter(names = "-csv", required = false, description = "Absolute Path to csv file")
+    protected String csvString = "MonitoredArchiver.csv";
+    
+    
 
 
     @ManagedAttribute
@@ -77,6 +89,11 @@ public class MonitoredArchiver extends Archiver {
     /** {@inheritDoc} */
     @Override
     protected void runDaemon(Injector injector) throws Exception {
+    	
+        PrintWriter pw = new PrintWriter(new BufferedOutputStream(new FileOutputStream(
+                 csvString)));
+    	
+    	
         // Setup keyspace for cassandra
         CassandraConnection con = start(CassandraConnection.create(databaseName, cassandraSeeds));
         
@@ -91,7 +108,7 @@ public class MonitoredArchiver extends Archiver {
 
         // Start a stage that will write each packet to cassandra
         // this cassandra stage is monitored
-        final AbstractBatchedStage<AisPacket> cassandra = mainStage = start(new MonitoredAisStoreWriter(con, batchSize, viewCluster, viewKeySpace) {
+        final AbstractBatchedStage<AisPacket> cassandra = mainStage = start(new MonitoredAisStoreWriter(con, batchSize, viewCluster, viewKeySpace, dummy, pw) {
             @Override
             public void onFailure(List<AisPacket> messages, Throwable cause) {
                 LOG.error("Could not write batch to cassandra", cause);

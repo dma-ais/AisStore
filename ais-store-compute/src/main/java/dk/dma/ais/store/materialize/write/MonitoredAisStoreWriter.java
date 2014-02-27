@@ -19,6 +19,7 @@ import static dk.dma.ais.store.AisStoreSchema.storeByArea;
 import static dk.dma.ais.store.AisStoreSchema.storeByMmsi;
 import static dk.dma.ais.store.AisStoreSchema.storeByTime;
 
+import java.io.PrintWriter;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
@@ -64,12 +65,12 @@ public abstract class MonitoredAisStoreWriter extends DefaultAisStoreWriter {
      * @param connection
      * @param batchSize
      */
-    public MonitoredAisStoreWriter(CassandraConnection connection, int batchSize, Cluster viewCluster, String viewKeySpace) {
+    public MonitoredAisStoreWriter(CassandraConnection connection, int batchSize, Cluster viewCluster, String viewKeySpace, boolean dummy, PrintWriter pw) {
         super(connection, batchSize);
         
         
         this.viewSession = viewCluster.connect(viewKeySpace);
-        monitor = new Monitor(connection, viewCluster, viewSession);
+        monitor = new Monitor(connection, viewCluster, viewSession, dummy, pw);
         
         this.viewCluster = viewCluster;
         

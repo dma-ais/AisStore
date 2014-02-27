@@ -15,12 +15,15 @@
  */
 package dk.dma.ais.store.materialize.stream;
 
+import java.io.PrintWriter;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentSkipListMap;
 
 
 
+
+import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
 
@@ -32,6 +35,7 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.materialize.AisMatSchema;
+import dk.dma.ais.store.materialize.util.StatisticsWriter;
 import dk.dma.db.cassandra.CassandraConnection;
 import dk.dma.enav.util.function.Consumer;
 
@@ -45,22 +49,38 @@ public class Monitor implements Consumer<AisPacket>{
     private Session viewSession;
     private Cluster viewCluster;
     private static final Logger LOG = Logger.getLogger(Monitor.class);
+    
+    private boolean dummy;
+    
+    AtomicInteger count = new AtomicInteger();
 
+    StatisticsWriter stat; 
+    
     public Monitor(CassandraConnection con, Cluster viewCluster,
-            Session viewSession) {
+            Session viewSession, boolean dummy, PrintWriter pw) {
         super();
 
         this.viewCluster = viewCluster;
         this.viewSession = viewSession;
+        this.dummy = dummy;
+        
+        stat = new StatisticsWriter(count, this, pw);
+
     }
 
     @Override
     public void accept(AisPacket t) {
+    	if (count.getAndIncrement() % 100000 == 0) {
+    		stat.print();
+    	}
+    	
+    	if (dummy) {
+    		return;
+    	}
+    	
         long timeblock = t.getBestTimestamp()/10/60/1000;
-
         final ConcurrentSkipListMap<String, Object> m = new ConcurrentSkipListMap<>();
-        m.put(AisMatSchema.STREAM_TIME_KEY, timeblock);
-        
+        m.put(AisMatSchema.STREAM_TIME_KEY, timeblock);     
         this.insert(AisMatSchema.TABLE_STREAM_MONITOR, m);
     }
 
@@ -76,5 +96,9 @@ public class Monitor implements Consumer<AisPacket>{
         LOG .debug(insert);
         viewSession.execute(insert);
     }
+    
+ 
+    
+    
 
 }
