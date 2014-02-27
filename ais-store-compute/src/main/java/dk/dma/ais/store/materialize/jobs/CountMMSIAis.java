@@ -45,15 +45,17 @@ import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.AisStoreQueryBuilder;
 import dk.dma.ais.store.materialize.AbstractScanHashViewBuilder;
 import dk.dma.ais.store.materialize.AisMatSchema;
+import dk.dma.ais.store.materialize.HashViewBuilder;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps.Key2;
 import dk.dma.ais.store.materialize.views.MMSITimeCount;
+import dk.dma.enav.util.function.Consumer;
 
 /**
  * @author Jens Tuxen
  * 
  */
-public class CountMMSIAis extends AbstractScanHashViewBuilder {
+public class CountMMSIAis extends AbstractScanHashViewBuilder implements Consumer<AisPacket> {
     private static Logger LOG = Logger
             .getLogger(AbstractScanHashViewBuilder.class);
 
@@ -148,9 +150,6 @@ public class CountMMSIAis extends AbstractScanHashViewBuilder {
         view.accept(t);
     }
 
-    @Override
-    public List<RegularStatement> prepare() {
-        return view.prepare();
-    }
+
 
 }
