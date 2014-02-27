@@ -19,8 +19,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Map.Entry;
+import java.util.Objects;
 
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.RegularStatement;
@@ -33,7 +33,6 @@ import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.materialize.AisMatSchema;
 import dk.dma.ais.store.materialize.HashViewBuilder;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps;
-import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps.Key2;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps.Key3;
 import dk.dma.enav.model.geometry.Position;
 
