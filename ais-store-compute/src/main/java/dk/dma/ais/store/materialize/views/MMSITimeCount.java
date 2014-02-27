@@ -34,15 +34,16 @@ import dk.dma.ais.store.materialize.AisMatSchema;
 import dk.dma.ais.store.materialize.HashViewBuilder;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps.Key2;
-
+/**
+ * 
+ * @author Jens Tuxen
+ *
+ */
 public class MMSITimeCount implements HashViewBuilder {
     TypeSafeMapOfMaps<Key2<Long, String>, Long> data = new TypeSafeMapOfMaps<>();
     private SimpleDateFormat timeFormatter;
 
-    public MMSITimeCount(SimpleDateFormat timeFormatter) {
-        this.timeFormatter = timeFormatter;
 
-    }
 
     @Override
     public void accept(AisPacket aisPacket) {
@@ -89,5 +90,10 @@ public class MMSITimeCount implements HashViewBuilder {
 
         }
         return list;
+    }
+    
+    public HashViewBuilder level(SimpleDateFormat timeFormatter) {
+        this.timeFormatter = timeFormatter;
+        return this;
     }
 }

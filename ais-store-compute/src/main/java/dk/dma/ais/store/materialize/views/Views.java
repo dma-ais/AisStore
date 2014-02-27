@@ -15,6 +15,34 @@
  */
 package dk.dma.ais.store.materialize.views;
 
+import java.text.SimpleDateFormat;
+import java.util.LinkedList;
+import java.util.List;
+
+import dk.dma.ais.store.materialize.HashViewBuilder;
+
+/**
+ *  Views Factory
+ * 
+ * @author Jens Tuxen
+ *
+ */
 public class Views {
+    
+    public static List<HashViewBuilder> allForLevel(String timeFormat) {
+        LinkedList<HashViewBuilder> jobs = new LinkedList<>();
+
+        jobs.add(new CellSourceTime());
+        jobs.add(new CellTimeCount());
+        jobs.add(new MMSITimeCount());
+        jobs.add(new SourceTimeCount());
+        
+        for (HashViewBuilder job: jobs) {
+            job.level(new SimpleDateFormat(timeFormat));
+        }
+        
+        return jobs;
+        
+    }
 
 }

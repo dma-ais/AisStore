@@ -35,7 +35,11 @@ import dk.dma.ais.store.materialize.HashViewBuilder;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps.Key2;
 import dk.dma.enav.model.geometry.Position;
-
+/**
+ * 
+ * @author Jens Tuxen
+ *
+ */
 public class CellTimeCount implements HashViewBuilder {
     TypeSafeMapOfMaps<Key2<Integer, String>, Long> data = new TypeSafeMapOfMaps<>();
     private SimpleDateFormat timeFormatter;
@@ -83,5 +87,11 @@ public class CellTimeCount implements HashViewBuilder {
 
         }
         return list;
+    }
+
+    @Override
+    public HashViewBuilder level(SimpleDateFormat timeFormatter) {
+        this.timeFormatter = timeFormatter;
+        return this;
     }
 }

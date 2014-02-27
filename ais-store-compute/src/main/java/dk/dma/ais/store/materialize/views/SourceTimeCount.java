@@ -32,7 +32,11 @@ import dk.dma.ais.store.materialize.AisMatSchema;
 import dk.dma.ais.store.materialize.HashViewBuilder;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps.Key2;
-
+/**
+ * 
+ * @author Jens Tuxen
+ *
+ */
 public class SourceTimeCount implements HashViewBuilder {
     TypeSafeMapOfMaps<Key2<String, String>, Long> data = new TypeSafeMapOfMaps<>();
     
@@ -76,5 +80,10 @@ public class SourceTimeCount implements HashViewBuilder {
         
         return list;
     }
-
+    
+    @Override
+    public HashViewBuilder level(SimpleDateFormat timeFormatter) {
+        this.timeFormatter = timeFormatter;
+        return this;
+    }
 }

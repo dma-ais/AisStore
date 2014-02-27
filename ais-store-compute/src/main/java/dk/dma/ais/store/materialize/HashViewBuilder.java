@@ -15,6 +15,7 @@
  */
 package dk.dma.ais.store.materialize;
 
+import java.text.SimpleDateFormat;
 import java.util.List;
 
 import com.datastax.driver.core.RegularStatement;
@@ -23,8 +24,7 @@ import dk.dma.ais.packet.AisPacket;
 import dk.dma.enav.util.function.Consumer;
 
 public interface HashViewBuilder extends Consumer<AisPacket> {
-
-    
-
     List<RegularStatement> prepare();
+
+    HashViewBuilder level(SimpleDateFormat simpleDateFormat);
 }

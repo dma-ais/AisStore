@@ -35,7 +35,11 @@ import dk.dma.ais.store.materialize.HashViewBuilder;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps.Key3;
 import dk.dma.enav.model.geometry.Position;
-
+/**
+ * 
+ * @author Jens Tuxen
+ *
+ */
 public class CellSourceTime implements HashViewBuilder {
     TypeSafeMapOfMaps<Key3<Integer, String, String>, Long> data = new TypeSafeMapOfMaps<>();
     private SimpleDateFormat timeFormatter;
@@ -90,5 +94,11 @@ public class CellSourceTime implements HashViewBuilder {
 
         }
         return list;
+    }
+    
+    @Override
+    public HashViewBuilder level(SimpleDateFormat timeFormatter) {
+        this.timeFormatter = timeFormatter;
+        return this;
     }
 }
