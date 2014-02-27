@@ -64,15 +64,12 @@ public class MonitoredArchiver extends Archiver {
 
     @Parameter(names = "-viewKeyspace", required = false, description = "keyspace for the views")
     protected String viewKeySpace = AisMatSchema.VIEW_KEYSPACE;
-    
+
     @Parameter(names = "-dummyMonitor", required = false, description = "A dumny monitor only records packet count")
-    protected boolean dummy = false;
-    
+    protected boolean dummy;
+
     @Parameter(names = "-csv", required = false, description = "Absolute Path to csv file")
     protected String csvString = "MonitoredArchiver.csv";
-    
-    
-
 
     @ManagedAttribute
     public long getNumberOfProcessedPackages() {
@@ -89,26 +86,29 @@ public class MonitoredArchiver extends Archiver {
     /** {@inheritDoc} */
     @Override
     protected void runDaemon(Injector injector) throws Exception {
-    	
-        PrintWriter pw = new PrintWriter(new BufferedOutputStream(new FileOutputStream(
-                 csvString)));
-    	
-    	
-        // Setup keyspace for cassandra
-        CassandraConnection con = start(CassandraConnection.create(databaseName, cassandraSeeds));
-        
-        viewCluster = Cluster.builder().addContactPoints(viewHosts.toArray(new String[0])).build();
+        PrintWriter pw = new PrintWriter(new BufferedOutputStream(
+                new FileOutputStream(csvString)));
 
-        // Starts the backup service that will write files to disk if disconnected
-        final MessageToFileService<AisPacket> backupService = start(MessageToFileService.dateTimeService(
-                backup.toPath(), BACKUP_FORMAT, AisPacketOutputSinks.OUTPUT_TO_TEXT));
+        // Setup keyspace for cassandra
+        CassandraConnection con = start(CassandraConnection.create(
+                databaseName, cassandraSeeds));
+
+        viewCluster = Cluster.builder()
+                .addContactPoints(viewHosts.toArray(new String[0])).build();
+
+        // Starts the backup service that will write files to disk if
+        // disconnected
+        final MessageToFileService<AisPacket> backupService = start(MessageToFileService
+                .dateTimeService(backup.toPath(), BACKUP_FORMAT,
+                        AisPacketOutputSinks.OUTPUT_TO_TEXT));
 
         // setup an AisReader for each source
         AisReaderGroup g = AisReaders.createGroup("AisStoreArchiver", sources);
 
         // Start a stage that will write each packet to cassandra
         // this cassandra stage is monitored
-        final AbstractBatchedStage<AisPacket> cassandra = mainStage = start(new MonitoredAisStoreWriter(con, batchSize, viewCluster, viewKeySpace, dummy, pw) {
+        final AbstractBatchedStage<AisPacket> cassandra = mainStage = start(new MonitoredAisStoreWriter(
+                con, batchSize, viewCluster, viewKeySpace, dummy, pw) {
             @Override
             public void onFailure(List<AisPacket> messages, Throwable cause) {
                 LOG.error("Could not write batch to cassandra", cause);
@@ -118,11 +118,12 @@ public class MonitoredArchiver extends Archiver {
                     }
                 }
             }
-        }); 
+        });
 
         // Start the thread that will read each file from the backup queue
         start(new FileImportService(this));
-        start(backupService.startFlushThread()); // we want to occasional flush and close dormant files
+        start(backupService.startFlushThread()); // we want to occasional flush
+                                                 // and close dormant files
 
         g.stream().subscribe(new Consumer<AisPacket>() {
             public void accept(AisPacket aisPacket) {
@@ -140,7 +141,8 @@ public class MonitoredArchiver extends Archiver {
     public static void main(String[] args) throws Exception {
         // args = AisReaders.getDefaultSources();
         if (args.length == 0) {
-            System.err.println("Must specify at least 1 source (sourceName=host:port,host:port sourceName=host:port)");
+            System.err
+                    .println("Must specify at least 1 source (sourceName=host:port,host:port sourceName=host:port)");
             System.exit(1);
         }
         new MonitoredArchiver().execute(args);

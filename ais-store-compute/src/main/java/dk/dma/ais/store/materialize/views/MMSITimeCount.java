@@ -38,55 +38,57 @@ import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps.Key2;
 
 public class MMSITimeCount implements HashViewBuilder {
-	TypeSafeMapOfMaps<Key2<Long, String>, Long> data = new TypeSafeMapOfMaps<>();
+    TypeSafeMapOfMaps<Key2<Long, String>, Long> data = new TypeSafeMapOfMaps<>();
     private SimpleDateFormat timeFormatter;
-    
+
     public MMSITimeCount(SimpleDateFormat timeFormatter) {
         this.timeFormatter = timeFormatter;
-        
+
     }
-    
 
     @Override
     public void accept(AisPacket aisPacket) {
         try {
             Objects.requireNonNull(aisPacket);
-            Long mmsi = (long)Objects.requireNonNull(aisPacket.getAisMessage().getUserId());
+            Long mmsi = (long) Objects.requireNonNull(aisPacket.getAisMessage()
+                    .getUserId());
             Long timestamp = aisPacket.getBestTimestamp();
-            
+
             if (timestamp > 0) {
-                String time = Objects.requireNonNull(timeFormatter.format(new Date(timestamp)));
+                String time = Objects.requireNonNull(timeFormatter
+                        .format(new Date(timestamp)));
                 try {
                     Long value = data.get(TypeSafeMapOfMaps.key(mmsi, time));
-                    data.put(TypeSafeMapOfMaps.key(mmsi, time),value+1);
+                    data.put(TypeSafeMapOfMaps.key(mmsi, time), value + 1);
                 } catch (Exception e) {
-                    data.put(TypeSafeMapOfMaps.key(mmsi, time),0L);
+                    data.put(TypeSafeMapOfMaps.key(mmsi, time), 0L);
                 }
-                
+
             }
 
         } catch (AisMessageException | SixbitException e) {
-            //e.printStackTrace();
+            // e.printStackTrace();
         }
     }
-
 
     public TypeSafeMapOfMaps<Key2<Long, String>, Long> getData() {
         return data;
     }
 
-
     @Override
     public List<RegularStatement> prepare() {
-        LinkedList<RegularStatement> list = new LinkedList<>();        
+        LinkedList<RegularStatement> list = new LinkedList<>();
         for (Entry<Key2<Long, String>, Long> e : data) {
-            Update upd = QueryBuilder.update(AisMatSchema.TABLE_MMSI_TIME_COUNT);
+            Update upd = QueryBuilder
+                    .update(AisMatSchema.TABLE_MMSI_TIME_COUNT);
             upd.setConsistencyLevel(ConsistencyLevel.ONE);
-            upd.where(QueryBuilder.eq(AisMatSchema.MMSI_KEY, e.getKey().getK1()));
-            upd.where(QueryBuilder.eq(AisMatSchema.TIME_KEY, e.getKey().getK2()));
-            upd.with(QueryBuilder.set(AisMatSchema.RESULT_KEY, e.getValue()));              
+            upd.where(QueryBuilder
+                    .eq(AisMatSchema.MMSI_KEY, e.getKey().getK1()));
+            upd.where(QueryBuilder
+                    .eq(AisMatSchema.TIME_KEY, e.getKey().getK2()));
+            upd.with(QueryBuilder.set(AisMatSchema.RESULT_KEY, e.getValue()));
             list.add(upd);
-        
+
         }
         return list;
     }

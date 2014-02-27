@@ -31,39 +31,38 @@ import com.datastax.driver.core.querybuilder.Update;
 import dk.dma.ais.packet.AisPacket;
 
 public abstract class AbstractOrderedViewBuilder extends Scan implements
-		OrderedViewBuilder {
-	Logger LOG = Logger.getLogger(AbstractScanHashViewBuilder.class);
+        OrderedViewBuilder {
+    Logger LOG = Logger.getLogger(AbstractScanHashViewBuilder.class);
 
-	Integer batchSize = 1000;
-	List<RegularStatement> batch = new ArrayList<>(batchSize * 2);
+    Integer batchSize = 1000;
+    List<RegularStatement> batch = new ArrayList<>(batchSize * 2);
 
-    public void increment(String tableName,Map<String,Object> tuples) {
+    public void increment(String tableName, Map<String, Object> tuples) {
         Update upd = QueryBuilder.update(tableName);
         upd.setConsistencyLevel(ConsistencyLevel.ANY);
-        
-        for (Entry<String,Object> e : tuples.entrySet()) {
+
+        for (Entry<String, Object> e : tuples.entrySet()) {
             upd.where(QueryBuilder.eq(e.getKey(), e.getValue().toString()));
         }
         upd.with(QueryBuilder.incr(AisMatSchema.RESULT_KEY));
-        
+
         if (batch.size() % batchSize == 0 && !isDummy()) {
             try {
-                viewSession.execute(QueryBuilder.batch(batch.toArray(new RegularStatement[0])));
+                viewSession.execute(QueryBuilder.batch(batch
+                        .toArray(new RegularStatement[0])));
                 batch.clear();
             } catch (QueryExecutionException qe) {
                 LOG.error("failed to complete query");
                 LOG.error(qe);
             }
-            
-         
+
         }
     }
 
-
-	/**
-	 * Forces the implementation of the Consumer<AisPacket> from super class
-	 * Scan
-	 */
-	public abstract void accept(AisPacket t);
+    /**
+     * Forces the implementation of the Consumer<AisPacket> from super class
+     * Scan
+     */
+    public abstract void accept(AisPacket t);
 
 }

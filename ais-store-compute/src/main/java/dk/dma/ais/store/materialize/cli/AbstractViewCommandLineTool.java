@@ -49,7 +49,7 @@ public class AbstractViewCommandLineTool extends
     protected Cluster viewCluster;
     protected Session viewSession;
     
-    final protected AtomicInteger count = new AtomicInteger();
+    protected final AtomicInteger count = new AtomicInteger();
     
     @SuppressWarnings("deprecation")
     protected  void run(Injector arg0) throws Exception {

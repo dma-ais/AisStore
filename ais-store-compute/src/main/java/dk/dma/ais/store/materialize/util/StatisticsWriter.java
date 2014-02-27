@@ -1,3 +1,18 @@
+/* Copyright (c) 2011 Danish Maritime Authority
+ *
+ * This library is free software; you can redistribute it and/or
+ * modify it under the terms of the GNU Lesser General Public
+ * License as published by the Free Software Foundation; either
+ * version 3 of the License, or (at your option) any later version.
+ *
+ * This library is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU
+ * Lesser General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this library.  If not, see <http://www.gnu.org/licenses/>.
+ */
 package dk.dma.ais.store.materialize.util;
 
 import java.io.PrintWriter;
@@ -7,85 +22,86 @@ import java.util.concurrent.atomic.AtomicInteger;
 
 public class StatisticsWriter {
 
-	private AtomicInteger count;
-	private long startTime;
-	private long endTime;
-	private Object parent;
-	private PrintWriter pw;
-	
-	private final String[] header = {"getParentClass","getApplicationName","getStartTime","getEndTime","getDuration","getCountValue","getPacketsPerSecond"};
+    private AtomicInteger count;
+    private long startTime;
+    private long endTime;
+    private Object parent;
+    private PrintWriter pw;
 
-	public long getStartTime() {
-		return startTime;
-	}
+    private final String[] header = { "getParentClass", "getApplicationName",
+            "getStartTime", "getEndTime", "getDuration", "getCountValue",
+            "getPacketsPerSecond" };
 
-	public long getDuration() {
-		return endTime - startTime;
-	}
+    public long getStartTime() {
+        return startTime;
+    }
 
-	public long getPacketsPerSecond() {
-		try {
-			return getCountValue() / (getDuration() / 1000);
-		} catch (ArithmeticException e) {
-			return -1L;
-		}
-	}
+    public long getDuration() {
+        return endTime - startTime;
+    }
 
-	private long getCountValue() {
-		return count.get();
-	}
+    public long getPacketsPerSecond() {
+        try {
+            return getCountValue() / (getDuration() / 1000);
+        } catch (ArithmeticException e) {
+            return -1L;
+        }
+    }
 
-	public StatisticsWriter(AtomicInteger count, Object parent, PrintWriter pw) {
-		this.count = count;
-		this.parent = parent;
-		
-		this.setStartTime(System.currentTimeMillis());
-		
-		pw.println(header);
-	}
+    private long getCountValue() {
+        return count.get();
+    }
 
-	public void setStartTime(long startTime) {
-		this.startTime = startTime;
-	}
+    public StatisticsWriter(AtomicInteger count, Object parent, PrintWriter pw) {
+        this.count = count;
+        this.parent = parent;
 
-	public long getEndTime() {
-		return endTime;
-	}
+        this.setStartTime(System.currentTimeMillis());
 
-	public void setEndTime(long endTime) {
-		this.endTime = endTime;
-	}
+        pw.println(header);
+    }
 
-	public String toCSV() {
-		StringBuilder sb = new StringBuilder();
-		
+    public void setStartTime(long startTime) {
+        this.startTime = startTime;
+    }
 
-		for (String method : header) {
-			try {
-				sb.append(this.getClass().getMethod(method).invoke(this));
-			} catch (IllegalAccessException | IllegalArgumentException
-					| InvocationTargetException | NoSuchMethodException
-					| SecurityException e) {
-				// TODO Auto-generated catch block
-				e.printStackTrace();
-			}
-			sb.append(",");
-		}
-		sb.append("\n");
+    public long getEndTime() {
+        return endTime;
+    }
 
-		return sb.toString();
-	}
-	
-	public void print() {
-		pw.print(toCSV());
-	}
+    public void setEndTime(long endTime) {
+        this.endTime = endTime;
+    }
 
-	public Class<? extends Object> getParentClass() {
-		return parent.getClass();
-	}
+    public String toCSV() {
+        StringBuilder sb = new StringBuilder();
 
-	public String getApplicationName() {
-		return "";
-	}
+        for (String method : header) {
+            try {
+                sb.append(this.getClass().getMethod(method).invoke(this));
+            } catch (IllegalAccessException | IllegalArgumentException
+                    | InvocationTargetException | NoSuchMethodException
+                    | SecurityException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            sb.append(",");
+        }
+        sb.append("\n");
+
+        return sb.toString();
+    }
+
+    public void print() {
+        pw.print(toCSV());
+    }
+
+    public Class<? extends Object> getParentClass() {
+        return parent.getClass();
+    }
+
+    public String getApplicationName() {
+        return "";
+    }
 
 }
