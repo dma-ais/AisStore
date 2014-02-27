@@ -47,33 +47,36 @@ import dk.dma.enav.util.function.Consumer;
  * 
  * @author Jens Tuxen
  */
-public class Monitor implements Consumer<AisPacket>{
+public class Monitor implements Consumer<AisPacket> {
 
     private Session viewSession;
     private Cluster viewCluster;
     private static final Logger LOG = Logger.getLogger(Monitor.class);
-    
+
     private boolean dummy;
-    
+
     AtomicInteger count = new AtomicInteger();
 
-    StatisticsWriter stat; 
-    
+    StatisticsWriter stat;
+
     FarFutureFilter farFuture = new FarFutureFilter();
     FutureFilter future = new FutureFilter();
-    
+
     @SuppressWarnings("deprecation")
-    //TODO: need to implement a general solution for packet sanity
+    // TODO: need to implement a general solution for packet sanity
     IPacketFilter recentPacket = new IPacketFilter() {
-        private final Date dec2013 = new Date(2013-1990,11,1);
+        private final Date dec2013 = new Date(2013 - 1990, 11, 1);
+
         @Override
         public boolean rejectedByFilter(AisPacket packet) {
             final long timestamp = packet.getBestTimestamp();
-            return timestamp < 0 || timestamp < dec2013.getTime() || farFuture.rejectedByFilter(packet) || future.rejectedByFilter(packet);
+            return timestamp < 0 || timestamp < dec2013.getTime()
+                    || farFuture.rejectedByFilter(packet)
+                    || future.rejectedByFilter(packet);
 
         }
     };
-    
+
     public Monitor(CassandraConnection con, Cluster viewCluster,
             Session viewSession, boolean dummy, PrintWriter pw) {
         super();
@@ -81,31 +84,30 @@ public class Monitor implements Consumer<AisPacket>{
         this.viewCluster = viewCluster;
         this.viewSession = viewSession;
         this.dummy = dummy;
-        
+
         stat = new StatisticsWriter(count, this, pw);
 
     }
 
     @Override
     public void accept(AisPacket t) {
-    	if (count.getAndIncrement() % 100000 == 0) {
-    		stat.print();
-    	}
+        if (count.getAndIncrement() % 100000 == 0) {
+            stat.print();
+        }
         if (t == null || recentPacket.rejectedByFilter(t)) {
             return;
         }
 
-    	if (dummy) {
-    		return;
-    	}
-    	
-        long timeblock = t.getBestTimestamp()/10/60/1000;
+        if (dummy) {
+            return;
+        }
+
+        long timeblock = t.getBestTimestamp() / 10 / 60 / 1000;
         final ConcurrentSkipListMap<String, Object> m = new ConcurrentSkipListMap<>();
-        m.put(AisMatSchema.STREAM_TIME_KEY, timeblock);     
+        m.put(AisMatSchema.STREAM_TIME_KEY, timeblock);
         this.insert(AisMatSchema.TABLE_STREAM_MONITOR, m);
     }
 
-    
     public void insert(String tableName, Map<String, Object> keys) {
         Insert insert = QueryBuilder.insertInto(tableName);
         insert.setConsistencyLevel(ConsistencyLevel.ANY);
@@ -114,12 +116,8 @@ public class Monitor implements Consumer<AisPacket>{
             insert.value(e.getKey(), e.getValue());
         }
 
-        LOG .debug(insert);
+        LOG.debug(insert);
         viewSession.execute(insert);
     }
-    
- 
-    
-    
 
 }
