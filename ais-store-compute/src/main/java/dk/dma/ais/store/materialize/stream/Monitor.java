@@ -16,13 +16,10 @@
 package dk.dma.ais.store.materialize.stream;
 
 import java.io.PrintWriter;
-import java.util.Calendar;
 import java.util.Date;
-import java.util.GregorianCalendar;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.concurrent.ConcurrentSkipListMap;
-
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.log4j.Logger;
@@ -92,6 +89,7 @@ public class Monitor implements Consumer<AisPacket> {
     @Override
     public void accept(AisPacket t) {
         if (count.getAndIncrement() % 100000 == 0) {
+            stat.setEndTime(System.currentTimeMillis());
             stat.print();
         }
         if (t == null || recentPacket.rejectedByFilter(t)) {

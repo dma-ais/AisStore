@@ -18,7 +18,11 @@ package dk.dma.ais.store.materialize.util;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.concurrent.atomic.AtomicInteger;
-
+/**
+ * 
+ * @author Jens Tuxen
+ *
+ */
 public class StatisticsWriter {
 
     private AtomicInteger count;

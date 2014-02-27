@@ -42,7 +42,7 @@ import dk.dma.db.cassandra.CassandraConnection;
 public class IncrementalScan extends Scan {
     private Logger LOG = Logger.getLogger(IncrementalScan.class);
 
-    // This will be a set of timeids, it is pre-sorted
+    // This will be a set of timeids, it is sorted
     TreeSet<Integer> timeIds;
     ArrayList<HashViewBuilder> jobs = new ArrayList<HashViewBuilder>();
 
