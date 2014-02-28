@@ -49,15 +49,17 @@ public class StatisticsWriter {
         } catch (ArithmeticException e) {
             return -1L;
         }
+
     }
 
-    private long getCountValue() {
+    public long getCountValue() {
         return count.get();
     }
 
     public StatisticsWriter(AtomicInteger count, Object parent, PrintWriter pw) {
         this.count = count;
         this.parent = parent;
+        this.pw = pw;
 
         this.setStartTime(System.currentTimeMillis());
 
@@ -81,9 +83,9 @@ public class StatisticsWriter {
 
         for (String method : header) {
             try {
-                sb.append(this.getClass().getMethod(method).invoke(this));
+                sb.append(this.getClass().getMethod(method).invoke(this).toString());
             } catch (IllegalAccessException | IllegalArgumentException
-                    | InvocationTargetException | NoSuchMethodException
+                    | InvocationTargetException | NoSuchMethodException | NullPointerException
                     | SecurityException e) {
                 // TODO Auto-generated catch block
                 e.printStackTrace();
@@ -96,7 +98,9 @@ public class StatisticsWriter {
     }
 
     public void print() {
+        System.out.println(toCSV());
         pw.print(toCSV());
+        pw.flush();
     }
 
     public Class<? extends Object> getParentClass() {
@@ -104,7 +108,7 @@ public class StatisticsWriter {
     }
 
     public String getApplicationName() {
-        return "";
+        return "StatsWriter";
     }
 
 }

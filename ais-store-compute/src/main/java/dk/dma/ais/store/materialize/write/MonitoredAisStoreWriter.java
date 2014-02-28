@@ -65,15 +65,11 @@ public abstract class MonitoredAisStoreWriter extends DefaultAisStoreWriter {
      * @param connection
      * @param batchSize
      */
-    public MonitoredAisStoreWriter(CassandraConnection connection, int batchSize, Cluster viewCluster, String viewKeySpace, boolean dummy, PrintWriter pw) {
+    public MonitoredAisStoreWriter(CassandraConnection connection, int batchSize, Cluster viewCluster, String viewKeySpace, boolean dummy, String monitorType, PrintWriter pw) {
         super(connection, batchSize);
-        
-        
         this.viewSession = viewCluster.connect(viewKeySpace);
-        monitor = new Monitor(connection, viewCluster, viewSession, dummy, pw);
-        
+        monitor = new Monitor(connection, viewCluster, viewSession, dummy, monitorType, pw);
         this.viewCluster = viewCluster;
-        
     }
 
     public void handleMessage(List<RegularStatement> batch, AisPacket packet) {

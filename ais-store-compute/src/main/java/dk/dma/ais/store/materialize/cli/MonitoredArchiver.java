@@ -70,6 +70,11 @@ public class MonitoredArchiver extends Archiver {
 
     @Parameter(names = "-csv", required = false, description = "Absolute Path to csv file")
     protected String csvString = "MonitoredArchiver.csv";
+    
+    @Parameter(names = "-monitortype", required = false, description = "batched monitor")
+    protected String monitorType;
+    
+    PrintWriter pw;
 
     @ManagedAttribute
     public long getNumberOfProcessedPackages() {
@@ -86,8 +91,9 @@ public class MonitoredArchiver extends Archiver {
     /** {@inheritDoc} */
     @Override
     protected void runDaemon(Injector injector) throws Exception {
-        PrintWriter pw = new PrintWriter(new BufferedOutputStream(
+        pw = new PrintWriter(new BufferedOutputStream(
                 new FileOutputStream(csvString)));
+        
 
         // Setup keyspace for cassandra
         CassandraConnection con = start(CassandraConnection.create(
@@ -108,7 +114,7 @@ public class MonitoredArchiver extends Archiver {
         // Start a stage that will write each packet to cassandra
         // this cassandra stage is monitored
         final AbstractBatchedStage<AisPacket> cassandra = mainStage = start(new MonitoredAisStoreWriter(
-                con, batchSize, viewCluster, viewKeySpace, dummy, pw) {
+                con, batchSize, viewCluster, viewKeySpace, dummy, monitorType, pw) {
             @Override
             public void onFailure(List<AisPacket> messages, Throwable cause) {
                 LOG.error("Could not write batch to cassandra", cause);
