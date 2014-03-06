@@ -16,13 +16,13 @@
 package dk.dma.ais.store.materialize.stream;
 
 import java.io.PrintWriter;
-import java.util.Comparator;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Date;
-import java.util.Map;
-import java.util.Map.Entry;
+import java.util.SortedSet;
 import java.util.TreeSet;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.apache.log4j.Logger;
 
@@ -47,7 +47,7 @@ import dk.dma.enav.util.function.Consumer;
  * 
  * @author Jens Tuxen
  */
-public class Monitor implements Consumer<AisPacket> {
+public class Monitor implements Consumer<AisPacket>, Runnable {
 
     private Session viewSession;
     private Cluster viewCluster;
@@ -62,15 +62,10 @@ public class Monitor implements Consumer<AisPacket> {
     FarFutureFilter farFuture = new FarFutureFilter();
     FutureFilter future = new FutureFilter();
     
-    TreeSet<RegularStatement> tree = new TreeSet<>(new Comparator<RegularStatement>() {
-        @Override
-        public int compare(RegularStatement o1, RegularStatement o2) {
-            return o1.getQueryString().compareTo(o2.getQueryString());
-        }
-    });
-    
-    //TreeSet<RegularStatement> tree = new TreeSet<>();
-
+    //atomical clearing of sortedSet requires a lock, we can't used synchronized because it's random access
+    //that could potentially mean starvation of the Monitor.run() thread
+    final ReentrantLock sortedSetLock = new ReentrantLock(true); 
+    SortedSet<Integer> timeblocks = Collections.synchronizedSortedSet(new TreeSet<Integer>());
     
     //private final SimpleDateFormat parser = new SimpleDateFormat("dd-M-yyyy hh:mm:ss");
     @SuppressWarnings("deprecation")
@@ -100,53 +95,68 @@ public class Monitor implements Consumer<AisPacket> {
         this.monitorType = monitorType;
 
         stat = new StatisticsWriter(count, this, pw);
-
+        
+        new Thread(this).start();
     }
 
     @Override
     public void accept(AisPacket t) {
-        if (count.getAndIncrement() % 10000 == 0) {
-            stat.setEndTime(System.currentTimeMillis());
-            stat.print();
-        }
+        count.incrementAndGet();
         if (dummy || t == null || recentPacket.rejectedByFilter(t)) {
             return;
         }
 
-        long timeblock = t.getBestTimestamp() / 10 / 60 / 1000;
-        final ConcurrentSkipListMap<String, Object> m = new ConcurrentSkipListMap<>();
-        m.put(AisMatSchema.STREAM_TIME_KEY, timeblock);
+        Integer timeblock = (int) (t.getBestTimestamp() / 10L / 60L / 1000L);
         
-        // quick implementation, could be cleaner
-        if ("tree".equals(monitorType)) {
-            tree.add(getStatement(AisMatSchema.TABLE_STREAM_MONITOR,m));
-            
-            if (count.get() % 1000 == 0) {
-                for (RegularStatement s: tree.toArray(new RegularStatement[0])) {
-                   LOG.debug(s.getQueryString()); 
-                }
-                viewSession.execute(QueryBuilder.batch(tree.toArray(new RegularStatement[0])));
-                tree.clear();
-            }            
-        } else {
-            viewSession.execute(getStatement(AisMatSchema.TABLE_STREAM_MONITOR, m));  
+        sortedSetLock.lock();
+        try {
+            this.timeblocks.add(timeblock);
+        } finally {
+            sortedSetLock.unlock();
         }
-        
     }
 
-    public RegularStatement getStatement(String tableName, Map<String, Object> keys) {
+
+    
+    public RegularStatement getStatement(String tableName, String key, Object value) {
         Insert insert = QueryBuilder.insertInto(tableName);
         insert.setConsistencyLevel(ConsistencyLevel.ANY);
-
-        for (Entry<String, Object> e : keys.entrySet()) {
-            insert.value(e.getKey(), e.getValue());
-        }
-
+        insert.value(key, value);
         return insert;
     }
     
     public void insert(RegularStatement s) {
         viewSession.execute(s);
+    }
+
+    @Override
+    public void run() {
+        while (true) {
+            try {
+                Thread.sleep(2000);              
+            } catch (InterruptedException e) {
+                // TODO Auto-generated catch block
+                e.printStackTrace();
+            }
+            
+            if (!dummy) {
+                sortedSetLock.lock();
+                try {
+                    ArrayList<RegularStatement> blocks = new ArrayList<>(timeblocks.size());
+                    for (Integer timeblock: timeblocks) {
+                        blocks.add(getStatement(AisMatSchema.TABLE_STREAM_MONITOR, "timeblock", timeblock));
+                    }
+                    viewSession.execute(QueryBuilder.batch(blocks.toArray(new RegularStatement[0])));                   
+                    timeblocks.clear();
+                } finally {
+                    sortedSetLock.unlock();
+                }    
+            }
+            
+            stat.setEndTime(System.currentTimeMillis());
+            stat.print();
+        }
+        
     }
 
     
