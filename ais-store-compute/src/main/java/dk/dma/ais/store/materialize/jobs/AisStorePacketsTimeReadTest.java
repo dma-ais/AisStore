@@ -44,12 +44,8 @@ import dk.dma.db.cassandra.CassandraConnection;
 @SuppressWarnings("deprecation")
 public final class AisStorePacketsTimeReadTest extends Scan {
     Logger LOG = Logger.getLogger(AisStorePacketsTimeReadTest.class);
-    
-    @Parameter(names = "-csv", required = false, description = "absolute path to csv result")
-    protected String csvString = "AisStorePacketsTimeReadTest.csv";
-    
+        
     BufferedOutputStream bos;
-    PrintWriter csv;
     OutputStreamSink<AisPacket> sink;
     protected CassandraConnection con;
     
@@ -68,32 +64,29 @@ public final class AisStorePacketsTimeReadTest extends Scan {
         con = CassandraConnection.create(keySpace, hosts);
         con.start();
 
+        //sets up protected fields sw, pw, etc.
+        this.init();
         bos = new BufferedOutputStream(new NullOutputStream());
-        csv = new PrintWriter(new BufferedOutputStream(new FileOutputStream(
-                csvString)));
-
-        
         sink = AisPacketOutputSinks.OUTPUT_TO_TEXT;
 
         try {
 
-            setStartTime(System.currentTimeMillis());
+            sw.setStartTime(System.currentTimeMillis());
             Iterable<AisPacket> iter = makeRequest();
 
             for (AisPacket p : iter) {
                 this.accept(p);
 
                 if (count.get() % batchSize == 0) {
-
-                    long ms = System.currentTimeMillis() - startTime;
-                    LOG.debug(count.get() + " packets,  " + count.get()
-                                    / ((double) ms / 1000) + " packets/s");
+                    sw.setEndTime(System.currentTimeMillis());
+                    sw.print();
+                    LOG.debug(sw.toCSV());
                 }
 
             }
 
-            setEndTime(System.currentTimeMillis());
-            long ms = System.currentTimeMillis() - startTime;
+            sw.setEndTime(System.currentTimeMillis());
+            long ms = System.currentTimeMillis() - sw.getStartTime();
             long s = ms / 1000;
 
             LOG.debug("Result:");
@@ -122,13 +115,14 @@ public final class AisStorePacketsTimeReadTest extends Scan {
                     + " minutes");
             LOG.debug("Total Time To Extract 1h:\t" + s / 24 + " seconds");
 
-            LOG.debug(this.toCSV());
-            csv.print(this.toCSV());
+            LOG.debug(sw.toCSV());
+            sw.print();
+
             
 
         } finally {
             con.stop();
-            csv.close();
+            pw.close();
         }
     }
 
@@ -138,8 +132,9 @@ public final class AisStorePacketsTimeReadTest extends Scan {
 
     @Override
     public void accept(AisPacket arg0) {
+        final long c = count.getAndIncrement();
         try {
-            this.process(bos, arg0, count.getAndIncrement());
+            this.process(bos, arg0, c);
         } catch (IOException e) {
             // TODO Auto-generated catch block
             e.printStackTrace();
