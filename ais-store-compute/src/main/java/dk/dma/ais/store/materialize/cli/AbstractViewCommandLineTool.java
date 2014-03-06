@@ -49,8 +49,6 @@ public class AbstractViewCommandLineTool extends
     protected Cluster viewCluster;
     protected Session viewSession;
     
-    protected final AtomicInteger count = new AtomicInteger();
-    
     @SuppressWarnings("deprecation")
     protected  void run(Injector arg0) throws Exception {
         // Set up a connection to both AisStore and AisMat
@@ -60,10 +58,7 @@ public class AbstractViewCommandLineTool extends
         viewCluster = Cluster.builder().addContactPoints(viewHosts.toArray(new String[0])).build();
         viewSession = viewCluster.connect(viewKeySpace);
     }
-    
-    public Integer getCountValue() {
-        return count.get();
-    }
+
     
 
 }
