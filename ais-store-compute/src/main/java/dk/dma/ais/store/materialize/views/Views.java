@@ -18,6 +18,7 @@ package dk.dma.ais.store.materialize.views;
 import java.text.SimpleDateFormat;
 import java.util.LinkedList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import dk.dma.ais.store.materialize.HashViewBuilder;
 
@@ -38,7 +39,7 @@ public class Views {
         jobs.add(new SourceTimeCount());
         
         for (HashViewBuilder job: jobs) {
-            job.level(new SimpleDateFormat(timeFormat));
+            job.level(TimeUnit.MINUTES);
         }
         
         return jobs;

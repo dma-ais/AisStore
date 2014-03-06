@@ -15,8 +15,8 @@
  */
 package dk.dma.ais.store.materialize;
 
-import java.text.SimpleDateFormat;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.RegularStatement;
 
@@ -25,6 +25,7 @@ import dk.dma.enav.util.function.Consumer;
 
 public interface HashViewBuilder extends Consumer<AisPacket> {
     List<RegularStatement> prepare();
-
-    HashViewBuilder level(SimpleDateFormat simpleDateFormat);
+    
+    HashViewBuilder level(TimeUnit unit);
+    
 }

@@ -21,12 +21,15 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.RegularStatement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Update;
 
+import dk.dma.ais.binary.SixbitException;
+import dk.dma.ais.message.AisMessageException;
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.materialize.AisMatSchema;
 import dk.dma.ais.store.materialize.HashViewBuilder;
@@ -38,30 +41,35 @@ import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps.Key2;
  *
  */
 public class SourceTimeCount implements HashViewBuilder {
-    TypeSafeMapOfMaps<Key2<String, String>, Long> data = new TypeSafeMapOfMaps<>();
-    
-    private SimpleDateFormat timeFormatter;
+    TypeSafeMapOfMaps<Key2<String, Integer>, Long> data = new TypeSafeMapOfMaps<>();
+
+    private TimeUnit unit;
     
     @Override
     public void accept(AisPacket aisPacket) {
-        Objects.requireNonNull(aisPacket);
-        String source = Objects.requireNonNull(aisPacket.getTags().getSourceId());
-        Long timestamp = aisPacket.getBestTimestamp();
-        
-        if (timestamp > 0) {
-            String time = Objects.requireNonNull(timeFormatter.format(new Date(timestamp)));
-            try {
-                Long value = data.get(TypeSafeMapOfMaps.key(source, time));
-                data.put(TypeSafeMapOfMaps.key(source, time),value+1);
-            } catch (NullPointerException e) {
-                data.put(TypeSafeMapOfMaps.key(source, time),0L);
-            }
+        try {
+            Objects.requireNonNull(aisPacket);
+            String source = Objects.requireNonNull(aisPacket.getTags().getSourceId());
+            Long timestamp = aisPacket.getBestTimestamp();
             
+            if (timestamp > 0) {
+                Integer time = AisMatSchema.getTimeBlock(timestamp, unit);
+                try {
+                    Long value = data.get(TypeSafeMapOfMaps.key(source, time));
+                    data.put(TypeSafeMapOfMaps.key(source, time),value+1);
+                } catch (NullPointerException e) {
+                    data.put(TypeSafeMapOfMaps.key(source, time),0L);
+                }
+                
+            }
+        } catch (NullPointerException e1) {
+            // TODO Auto-generated catch block
+            //e1.printStackTrace();
         }
     }
 
 
-    public TypeSafeMapOfMaps<Key2<String, String>, Long> getData() {
+    public TypeSafeMapOfMaps<Key2<String, Integer>, Long> getData() {
         return data;
     }
 
@@ -69,7 +77,7 @@ public class SourceTimeCount implements HashViewBuilder {
     public List<RegularStatement> prepare() {
         LinkedList<RegularStatement> list = new LinkedList<>();
         
-        for (Entry<Key2<String, String>, Long> e : data) {
+        for (Entry<Key2<String, Integer>, Long> e : data) {
             Update upd = QueryBuilder.update(AisMatSchema.TABLE_SOURCE_TIME_COUNT);
             upd.setConsistencyLevel(ConsistencyLevel.ONE);
             upd.where(QueryBuilder.eq(AisMatSchema.SOURCE_KEY, e.getKey().getK1()));
@@ -80,10 +88,10 @@ public class SourceTimeCount implements HashViewBuilder {
         
         return list;
     }
-    
+
     @Override
-    public HashViewBuilder level(SimpleDateFormat timeFormatter) {
-        this.timeFormatter = timeFormatter;
+    public HashViewBuilder level(TimeUnit unit) {
+        this.unit = unit;
         return this;
     }
 }

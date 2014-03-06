@@ -21,6 +21,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.RegularStatement;
@@ -40,9 +41,8 @@ import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps.Key2;
  *
  */
 public class MMSITimeCount implements HashViewBuilder {
-    TypeSafeMapOfMaps<Key2<Long, String>, Long> data = new TypeSafeMapOfMaps<>();
-    private SimpleDateFormat timeFormatter;
-
+    TypeSafeMapOfMaps<Key2<Long, Integer>, Long> data = new TypeSafeMapOfMaps<>();
+    TimeUnit unit;
 
 
     @Override
@@ -54,8 +54,7 @@ public class MMSITimeCount implements HashViewBuilder {
             Long timestamp = aisPacket.getBestTimestamp();
 
             if (timestamp > 0) {
-                String time = Objects.requireNonNull(timeFormatter
-                        .format(new Date(timestamp)));
+                Integer time = AisMatSchema.getTimeBlock(timestamp, unit);
                 try {
                     Long value = data.get(TypeSafeMapOfMaps.key(mmsi, time));
                     data.put(TypeSafeMapOfMaps.key(mmsi, time), value + 1);
@@ -65,19 +64,20 @@ public class MMSITimeCount implements HashViewBuilder {
 
             }
 
-        } catch (AisMessageException | SixbitException e) {
-            // e.printStackTrace();
+        } catch (AisMessageException | SixbitException | NullPointerException e1) {
+            // TODO Auto-generated catch block
+            //e1.printStackTrace();
         }
     }
 
-    public TypeSafeMapOfMaps<Key2<Long, String>, Long> getData() {
+    public TypeSafeMapOfMaps<Key2<Long, Integer>, Long> getData() {
         return data;
     }
 
     @Override
     public List<RegularStatement> prepare() {
         LinkedList<RegularStatement> list = new LinkedList<>();
-        for (Entry<Key2<Long, String>, Long> e : data) {
+        for (Entry<Key2<Long, Integer>, Long> e : data) {
             Update upd = QueryBuilder
                     .update(AisMatSchema.TABLE_MMSI_TIME_COUNT);
             upd.setConsistencyLevel(ConsistencyLevel.ONE);
@@ -91,9 +91,10 @@ public class MMSITimeCount implements HashViewBuilder {
         }
         return list;
     }
+
     @Override
-    public HashViewBuilder level(SimpleDateFormat timeFormatter) {
-        this.timeFormatter = timeFormatter;
+    public HashViewBuilder level(TimeUnit unit) {
+        this.unit = unit;
         return this;
     }
 }

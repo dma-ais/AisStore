@@ -21,6 +21,7 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Map.Entry;
+import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.RegularStatement;
@@ -41,8 +42,10 @@ import dk.dma.enav.model.geometry.Position;
  *
  */
 public class CellTimeCount implements HashViewBuilder {
-    TypeSafeMapOfMaps<Key2<Integer, String>, Long> data = new TypeSafeMapOfMaps<>();
+    TypeSafeMapOfMaps<Key2<Integer, Integer>, Long> data = new TypeSafeMapOfMaps<>();
     private SimpleDateFormat timeFormatter;
+    
+    TimeUnit unit;
 
     @Override
     public void accept(AisPacket aisPacket) {
@@ -54,8 +57,7 @@ public class CellTimeCount implements HashViewBuilder {
             Integer cellid = p.getCellInt(1.0);
 
             if (timestamp > 0) {
-                String time = Objects.requireNonNull(timeFormatter
-                        .format(new Date(timestamp)));
+                Integer time = AisMatSchema.getTimeBlock(timestamp,unit);
                 try {
                     Long value = data.get(TypeSafeMapOfMaps.key(cellid, time));
                     data.put(TypeSafeMapOfMaps.key(cellid, time), value + 1);
@@ -64,9 +66,9 @@ public class CellTimeCount implements HashViewBuilder {
                 }
 
             }
-        } catch (AisMessageException | SixbitException e1) {
+        } catch (AisMessageException | SixbitException | NullPointerException e1) {
             // TODO Auto-generated catch block
-            e1.printStackTrace();
+            //e1.printStackTrace();
         }
 
     }
@@ -74,7 +76,7 @@ public class CellTimeCount implements HashViewBuilder {
     @Override
     public List<RegularStatement> prepare() {
         LinkedList<RegularStatement> list = new LinkedList<>();
-        for (Entry<Key2<Integer, String>, Long> e : data) {
+        for (Entry<Key2<Integer, Integer>, Long> e : data) {
             Update upd = QueryBuilder
                     .update(AisMatSchema.TABLE_CELL1_TIME_COUNT);
             upd.setConsistencyLevel(ConsistencyLevel.ONE);
@@ -90,8 +92,8 @@ public class CellTimeCount implements HashViewBuilder {
     }
 
     @Override
-    public HashViewBuilder level(SimpleDateFormat timeFormatter) {
-        this.timeFormatter = timeFormatter;
+    public HashViewBuilder level(TimeUnit unit) {
+        this.unit = unit;
         return this;
     }
 }
