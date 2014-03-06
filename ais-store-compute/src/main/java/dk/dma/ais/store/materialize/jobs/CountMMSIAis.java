@@ -28,6 +28,7 @@ import java.util.Date;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import org.apache.log4j.Logger;
 
@@ -62,22 +63,20 @@ public class CountMMSIAis extends AbstractScanHashViewBuilder implements Consume
     @Parameter(names = "-timeFormatter", description = "time resolution")
     String timeformat = AisMatSchema.HOUR_FORMAT;
 
-    private Integer batchSize = 10000;
+    private Integer batchSize = 100000;
 
     @Parameter(names = "-csv", required = false, description = "absolute path to csv result")
     protected String csvString = "CountMMSIAis.csv";
 
-    MMSITimeCount view = (MMSITimeCount) new MMSITimeCount().level(new SimpleDateFormat(timeformat));
+    MMSITimeCount view = (MMSITimeCount) new MMSITimeCount().level(TimeUnit.DAYS);
 
     public void run(Injector arg0) throws Exception {
-        PrintWriter csv = new PrintWriter(new BufferedOutputStream(
-                new FileOutputStream(csvString)));
-
+        init();
         try {
             super.run(arg0);
-            csv.print(this.toCSV());
+            sw.print();
         } finally {
-            csv.close();
+            pw.close();
         }
     }
 
@@ -99,7 +98,7 @@ public class CountMMSIAis extends AbstractScanHashViewBuilder implements Consume
         long c = 0;
         long start = System.currentTimeMillis();
 
-        for (Entry<Key2<Long, String>, Long> e : view.getData()) {
+        for (Entry<Key2<Long, Integer>, Long> e : view.getData()) {
             c++;
 
             Update upd = QueryBuilder
