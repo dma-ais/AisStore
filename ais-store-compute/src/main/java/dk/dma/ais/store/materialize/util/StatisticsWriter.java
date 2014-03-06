@@ -17,6 +17,13 @@ package dk.dma.ais.store.materialize.util;
 
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.LinkedList;
+import java.util.Map;
+import java.util.Map.Entry;
+import java.util.TreeMap;
+import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
 /**
  * 
@@ -34,6 +41,8 @@ public class StatisticsWriter {
     private final String[] header = { "getParentClass", "getApplicationName",
             "getStartTime", "getEndTime", "getDuration", "getCountValue",
             "getPacketsPerSecond" };
+    
+    private final Map<String, String> extras = Collections.synchronizedMap(new TreeMap<String, String>());
 
     public long getStartTime() {
         return startTime;
@@ -63,7 +72,13 @@ public class StatisticsWriter {
 
         this.setStartTime(System.currentTimeMillis());
 
-        pw.println(header);
+        pw.print(header);
+        for (Entry<String, String> h: extras.entrySet()) {
+            pw.print(h.getKey());
+            pw.print(",");
+        }
+        pw.println();
+        
     }
 
     public void setStartTime(long startTime) {
@@ -92,13 +107,18 @@ public class StatisticsWriter {
             }
             sb.append(",");
         }
+        
+        for (Entry<String, String> e : extras.entrySet()) {
+            sb.append(e.getValue());
+            sb.append(",");
+        }
+        
         sb.append("\n");
 
         return sb.toString();
     }
 
     public void print() {
-        System.out.println(toCSV());
         pw.print(toCSV());
         pw.flush();
     }
@@ -109,6 +129,10 @@ public class StatisticsWriter {
 
     public String getApplicationName() {
         return "StatsWriter";
+    }
+    
+    public void put(String h,String v) {
+        this.extras.put(h, v);
     }
 
 }
