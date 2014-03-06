@@ -15,17 +15,19 @@
  */
 package dk.dma.ais.store.materialize;
 
-import java.lang.reflect.InvocationTargetException;
-import java.util.Arrays;
+import java.io.BufferedOutputStream;
+import java.io.FileNotFoundException;
+import java.io.FileOutputStream;
+import java.io.PrintWriter;
 import java.util.Date;
-
-import org.joda.time.field.DividedDateTimeField;
+import java.util.concurrent.atomic.AtomicInteger;
 
 import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.materialize.cli.AbstractViewCommandLineTool;
+import dk.dma.ais.store.materialize.util.StatisticsWriter;
 import dk.dma.enav.util.function.Consumer;
 
 /**
@@ -43,15 +45,24 @@ public abstract class Scan extends AbstractViewCommandLineTool implements Consum
     protected boolean dummy = true;
 
     protected int batchSize = 1000000;
-    protected long startTime;
-    protected long endTime;
+    
+    @Parameter(names = "-csv", required = false, description = "Absolute Path to csv file")
+    protected String csvString = "Scan.csv";
+
+    protected PrintWriter pw;
+    protected StatisticsWriter sw;
+    
+    protected AtomicInteger count;
     
     @SuppressWarnings("deprecation")
     @Override
     public void run(Injector arg0) throws Exception {
         super.run(arg0);
+        
+        this.init();
+        
         try {
-            setStartTime(System.currentTimeMillis());
+            sw.setStartTime(System.currentTimeMillis());
             Iterable<AisPacket> iter = makeRequest();           
             
             for (AisPacket p : iter) {
@@ -62,12 +73,12 @@ public abstract class Scan extends AbstractViewCommandLineTool implements Consum
                 }
 
                 if (count.get() % batchSize  == 0) {
-                    long ms = System.currentTimeMillis() - startTime;
+                    long ms = System.currentTimeMillis() - sw.getStartTime();
                     System.out.println(count.get() + " packets,  " + count.get()
                             / ((double) ms / 1000) + " packets/s");
                 }
             }
-            long ms = System.currentTimeMillis() - startTime;
+            long ms = System.currentTimeMillis() - sw.getStartTime();
             System.out.println("Total: " + count + " packets,  " + count.get()
                     / ((double) ms / 1000) + " packets/s");
             
@@ -75,11 +86,12 @@ public abstract class Scan extends AbstractViewCommandLineTool implements Consum
                 postProcess();
             }
             
-            setEndTime(System.currentTimeMillis());
+            sw.setEndTime(System.currentTimeMillis());
             
         } finally {
             con.stop();
             viewSession.shutdown();
+            pw.close();
         }
     }
 
@@ -89,67 +101,19 @@ public abstract class Scan extends AbstractViewCommandLineTool implements Consum
         return dummy;
     }
 
-    public long getStartTime() {
-        return startTime;
-    }
-    
-    public long getDuration() {
-        return endTime-startTime;
-    }
-    
-    public long getPacketsPerSecond() {
-        try {
-            return getCountValue()/(getDuration()/1000);
-        } catch (ArithmeticException e) {
-            return -1L;
-        }
-    }
-
-
-
-    public void setStartTime(long startTime) {
-        this.startTime = startTime;
-    }
-
-
-
-    public long getEndTime() {
-        return endTime;
-    }
-
-
-
-    public void setEndTime(long endTime) {
-        this.endTime = endTime;
-    }
-
-    public String toCSV() {
-        StringBuilder sb = new StringBuilder();
-        String header = "getClass,getApplicationName,getStartTime,getEndTime,getDuration,getCountValue,getPacketsPerSecond";
-        sb.append(header);
-        sb.append("\n");
-
-        for (String method: Arrays.asList(header.split(","))) {
-            try {
-                sb.append(this.getClass().getMethod(method).invoke(this));
-            } catch (IllegalAccessException | IllegalArgumentException
-                    | InvocationTargetException | NoSuchMethodException
-                    | SecurityException e) {
-                // TODO Auto-generated catch block
-                e.printStackTrace();
-            }
-            sb.append(",");
-        }
-        sb.append("\n");
-        
-        return sb.toString();
-    }
-
     /**
      * This optional step is run after a scan is completed
      */
     protected void postProcess() {
         
+    }
+
+    
+    protected void init() throws FileNotFoundException {
+        count = new AtomicInteger();
+        pw = new PrintWriter(new BufferedOutputStream(
+                new FileOutputStream(csvString)));
+        sw = new StatisticsWriter(count, this.getApplicationName(), pw);
     }
     
     
