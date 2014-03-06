@@ -23,7 +23,6 @@ import org.apache.log4j.Logger;
 import com.datastax.driver.core.RegularStatement;
 
 public abstract class AbstractScanHashViewBuilder extends Scan {
-    private static Logger LOG = Logger.getLogger(AbstractScanHashViewBuilder.class);
     
     Integer batchSize = 1000;
     List<RegularStatement> batch = new ArrayList<>(batchSize*2);
