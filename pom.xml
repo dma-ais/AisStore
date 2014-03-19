@@ -25,7 +25,7 @@
     <module>ais-store-common</module>
     <module>ais-store-raw</module>
     <module>ais-store-cli</module>
-    <module>ais-store-compute</module>
+    <module>ais-store-materialize</module>
   </modules>
 
   <repositories>
