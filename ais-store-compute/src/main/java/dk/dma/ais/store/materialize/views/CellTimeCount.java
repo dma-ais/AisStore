@@ -74,7 +74,7 @@ public class CellTimeCount implements HashViewBuilder {
         LinkedList<RegularStatement> list = new LinkedList<>();
         for (Entry<Key2<Integer, Integer>, Long> e : data) {
             Insert insert = QueryBuilder
-                    .insertInto(AisMatSchema.KEYSPACE,AisMatSchema.TABLE_CELL1_TIME_COUNT)
+                    .insertInto(AisMatSchema.VIEW_KEYSPACE,AisMatSchema.TABLE_CELL1_TIME_COUNT)
                     .value(AisMatSchema.CELL1_KEY, e.getKey().getK1())
                     .value(AisMatSchema.TIME_KEY, e.getKey().getK2())
                     .value(AisMatSchema.RESULT_KEY, e.getValue());

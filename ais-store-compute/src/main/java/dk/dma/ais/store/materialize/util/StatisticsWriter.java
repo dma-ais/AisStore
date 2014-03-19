@@ -18,12 +18,9 @@ package dk.dma.ais.store.materialize.util;
 import java.io.PrintWriter;
 import java.lang.reflect.InvocationTargetException;
 import java.util.Collections;
-import java.util.HashMap;
-import java.util.LinkedList;
 import java.util.Map;
 import java.util.Map.Entry;
 import java.util.TreeMap;
-import java.util.concurrent.ConcurrentSkipListMap;
 import java.util.concurrent.atomic.AtomicInteger;
 /**
  * 

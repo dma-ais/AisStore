@@ -33,7 +33,6 @@ import com.google.common.primitives.Longs;
 import dk.dma.ais.message.AisMessage;
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.materialize.stream.Monitor;
-import dk.dma.ais.store.write.CassandraBatchedStagedWriter;
 import dk.dma.ais.store.write.DefaultAisStoreWriter;
 import dk.dma.commons.tracker.PositionTracker;
 import dk.dma.db.cassandra.CassandraConnection;

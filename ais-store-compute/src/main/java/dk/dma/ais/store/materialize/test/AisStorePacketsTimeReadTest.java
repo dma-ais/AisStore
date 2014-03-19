@@ -16,18 +16,13 @@
 package dk.dma.ais.store.materialize.test;
 
 import java.io.BufferedOutputStream;
-import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.io.PrintWriter;
 import java.util.Date;
-import java.util.concurrent.atomic.AtomicInteger;
 
 import org.apache.commons.lang.NotImplementedException;
 import org.apache.log4j.Logger;
-import org.joda.time.field.UnsupportedDateTimeField;
 
-import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
 
 import dk.dma.ais.packet.AisPacket;

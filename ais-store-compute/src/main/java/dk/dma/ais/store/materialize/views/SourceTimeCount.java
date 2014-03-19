@@ -79,7 +79,7 @@ public class SourceTimeCount implements HashViewBuilder {
 
         for (Entry<Key2<String, Integer>, Long> e : data) {
             Insert insert = QueryBuilder
-                    .insertInto(AisMatSchema.KEYSPACE,
+                    .insertInto(AisMatSchema.VIEW_KEYSPACE,
                             AisMatSchema.TABLE_CELL1_SOURCE_TIME_COUNT)
                     .value(AisMatSchema.SOURCE_KEY, e.getKey().getK1())
                     .value(AisMatSchema.TIME_KEY, e.getKey().getK2())

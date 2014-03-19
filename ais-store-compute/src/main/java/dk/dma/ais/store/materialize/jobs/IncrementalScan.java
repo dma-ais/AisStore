@@ -165,7 +165,6 @@ public class IncrementalScan extends Scan {
                 .forTime().setInterval(start, end));
 
         LOG.debug("STARTING SCAN OF " + timeId);
-        sw.setStartTime(System.currentTimeMillis());
         sw.put("currentID", timeId.toString());
 
         for (AisPacket p : iterable) {

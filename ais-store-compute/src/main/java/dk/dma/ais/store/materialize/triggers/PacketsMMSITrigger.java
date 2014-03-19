@@ -19,7 +19,6 @@ package dk.dma.ais.store.materialize.triggers;
 import java.nio.ByteBuffer;
 import java.nio.charset.Charset;
 import java.util.Collection;
-import java.util.Random;
 
 import org.apache.cassandra.db.ColumnFamily;
 import org.apache.cassandra.db.RowMutation;
