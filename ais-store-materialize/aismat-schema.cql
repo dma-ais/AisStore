@@ -1,3 +1,4 @@
+
 CREATE KEYSPACE aismat 
        WITH replication = {'class': 'SimpleStrategy', 'replication_factor' : 1};
 	   
