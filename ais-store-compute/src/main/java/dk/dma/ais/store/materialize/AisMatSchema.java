@@ -50,7 +50,7 @@ public class AisMatSchema {
     
     public static final String MMSI_KEY = "mmsi";
     public static final String TIME_KEY = "time";
-    public static final String SOURCE_KEY = "source";
+    public static final String SOURCE_KEY = "sourceid";
     public static final String RESULT_KEY = "result";
     public static final String STREAM_TIME_KEY = "timeblock";
     

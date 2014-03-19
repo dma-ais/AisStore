@@ -41,7 +41,7 @@ public abstract class Scan extends AbstractViewCommandLineTool implements Consum
     protected volatile Date stop;
 
     
-    @Parameter(names = "-dummy", description = "dummy run (won't save view)")
+    @Parameter(names = "-dummy", description = "dummy run (won't save view)", arity = 1)
     protected boolean dummy = true;
 
     protected int batchSize = 1000000;

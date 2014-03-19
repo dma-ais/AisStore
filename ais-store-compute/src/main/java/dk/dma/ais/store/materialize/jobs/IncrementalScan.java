@@ -44,9 +44,10 @@ public class IncrementalScan extends Scan {
     private Logger LOG = Logger.getLogger(IncrementalScan.class);
 
     // This will be a set of timeids, it is sorted
-    TreeSet<Integer> timeIds;
+    private TreeSet<Integer> timeIds;
     ArrayList<HashViewBuilder> jobs = new ArrayList<HashViewBuilder>();
 
+    @SuppressWarnings("deprecation")
     @Override
     public void run(Injector arg0) throws Exception {
         // Set up a connection to both AisStore and AisMat
@@ -158,7 +159,7 @@ public class IncrementalScan extends Scan {
 
     private void scan(Integer timeId) {
         Long start = timeId * 10L * 60L * 1000L;
-        Long end = (timeId + 1) * 10L * 60L * 1000L;
+        Long end = (timeId + 1) * 10L * 60L * 1000L; //exclusive
 
         Iterable<AisPacket> iterable = con.execute(AisStoreQueryBuilder
                 .forTime().setInterval(start, end));
@@ -189,6 +190,12 @@ public class IncrementalScan extends Scan {
                 LOG.debug(s.getQueryString());
             }
         }
+        
+        //fail state not handled
+        for (List<RegularStatement> batch: batches) {
+            viewSession.execute(QueryBuilder.batch(batch.toArray(new RegularStatement[0])));
+        }
+        
 
     }
 

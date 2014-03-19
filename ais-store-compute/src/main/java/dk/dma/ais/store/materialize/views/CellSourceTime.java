@@ -15,18 +15,16 @@
  */
 package dk.dma.ais.store.materialize.views;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
-import java.util.concurrent.TimeUnit;
 import java.util.Objects;
+import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.RegularStatement;
+import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.querybuilder.Update;
 
 import dk.dma.ais.binary.SixbitException;
 import dk.dma.ais.message.AisMessageException;
@@ -52,6 +50,11 @@ public class CellSourceTime implements HashViewBuilder {
         Long timestamp = aisPacket.getBestTimestamp();
         String sourceid = Objects.requireNonNull(aisPacket.getTags()
                 .getSourceId());
+        
+        if (sourceid.equals("")) {
+            return;
+        }
+        
         Position p;
         try {
             p = Objects.requireNonNull(aisPacket.getAisMessage()
@@ -81,17 +84,14 @@ public class CellSourceTime implements HashViewBuilder {
     public List<RegularStatement> prepare() {
         LinkedList<RegularStatement> list = new LinkedList<>();
         for (Entry<Key3<Integer, String, Integer>, Long> e : data) {
-            Update upd = QueryBuilder
-                    .update(AisMatSchema.TABLE_CELL1_TIME_COUNT);
-            upd.setConsistencyLevel(ConsistencyLevel.ONE);
-            upd.where(QueryBuilder.eq(AisMatSchema.CELL1_KEY, e.getKey()
-                    .getK1()));
-            upd.where(QueryBuilder.eq(AisMatSchema.SOURCE_KEY, e.getKey()
-                    .getK2()));
-            upd.where(QueryBuilder
-                    .eq(AisMatSchema.TIME_KEY, e.getKey().getK3()));
-            upd.with(QueryBuilder.set(AisMatSchema.RESULT_KEY, e.getValue()));
-            list.add(upd);
+            Insert insert = QueryBuilder
+                    .insertInto(AisMatSchema.KEYSPACE,AisMatSchema.TABLE_CELL1_SOURCE_TIME_COUNT)
+                    .value(AisMatSchema.CELL1_KEY, e.getKey().getK1())
+                    .value(AisMatSchema.SOURCE_KEY, e.getKey()
+                    .getK2())
+                    .value(AisMatSchema.TIME_KEY, e.getKey().getK3());
+        
+            list.add(insert);
 
         }
         return list;

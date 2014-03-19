@@ -13,7 +13,7 @@
  * You should have received a copy of the GNU General Public License
  * along with this library.  If not, see <http://www.gnu.org/licenses/>.
  */
-package dk.dma.ais.store.materialize.jobs;
+package dk.dma.ais.store.materialize.test;
 
 import java.io.BufferedOutputStream;
 import java.io.FileOutputStream;

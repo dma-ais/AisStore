@@ -16,13 +16,12 @@
 package dk.dma.ais.store.materialize.cli;
 
 
-import dk.dma.ais.store.Archiver;
 import dk.dma.ais.store.DriverFileExport;
 import dk.dma.ais.store.FileExport;
 import dk.dma.ais.store.FileImport;
-import dk.dma.ais.store.materialize.jobs.AisStorePacketsTimeReadTest;
 import dk.dma.ais.store.materialize.jobs.CountMMSIAis;
 import dk.dma.ais.store.materialize.jobs.IncrementalScan;
+import dk.dma.ais.store.materialize.test.AisStorePacketsTimeReadTest;
 import dk.dma.commons.app.CliCommandList;
 
 /**

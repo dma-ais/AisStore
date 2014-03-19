@@ -15,18 +15,15 @@
  */
 package dk.dma.ais.store.materialize.views;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Objects;
 import java.util.Map.Entry;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.RegularStatement;
+import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.querybuilder.Update;
 
 import dk.dma.ais.binary.SixbitException;
 import dk.dma.ais.message.AisMessageException;
@@ -36,15 +33,14 @@ import dk.dma.ais.store.materialize.HashViewBuilder;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps;
 import dk.dma.ais.store.materialize.util.TypeSafeMapOfMaps.Key2;
 import dk.dma.enav.model.geometry.Position;
+
 /**
  * 
  * @author Jens Tuxen
- *
+ * 
  */
 public class CellTimeCount implements HashViewBuilder {
     TypeSafeMapOfMaps<Key2<Integer, Integer>, Long> data = new TypeSafeMapOfMaps<>();
-    private SimpleDateFormat timeFormatter;
-    
     TimeUnit unit;
 
     @Override
@@ -57,7 +53,7 @@ public class CellTimeCount implements HashViewBuilder {
             Integer cellid = p.getCellInt(1.0);
 
             if (timestamp > 0) {
-                Integer time = AisMatSchema.getTimeBlock(timestamp,unit);
+                Integer time = AisMatSchema.getTimeBlock(timestamp, unit);
                 try {
                     Long value = data.get(TypeSafeMapOfMaps.key(cellid, time));
                     data.put(TypeSafeMapOfMaps.key(cellid, time), value + 1);
@@ -68,7 +64,7 @@ public class CellTimeCount implements HashViewBuilder {
             }
         } catch (AisMessageException | SixbitException | NullPointerException e1) {
             // TODO Auto-generated catch block
-            //e1.printStackTrace();
+            // e1.printStackTrace();
         }
 
     }
@@ -77,15 +73,12 @@ public class CellTimeCount implements HashViewBuilder {
     public List<RegularStatement> prepare() {
         LinkedList<RegularStatement> list = new LinkedList<>();
         for (Entry<Key2<Integer, Integer>, Long> e : data) {
-            Update upd = QueryBuilder
-                    .update(AisMatSchema.TABLE_CELL1_TIME_COUNT);
-            upd.setConsistencyLevel(ConsistencyLevel.ONE);
-            upd.where(QueryBuilder.eq(AisMatSchema.CELL1_KEY, e.getKey()
-                    .getK1()));
-            upd.where(QueryBuilder
-                    .eq(AisMatSchema.TIME_KEY, e.getKey().getK2()));
-            upd.with(QueryBuilder.set(AisMatSchema.RESULT_KEY, e.getValue()));
-            list.add(upd);
+            Insert insert = QueryBuilder
+                    .insertInto(AisMatSchema.KEYSPACE,AisMatSchema.TABLE_CELL1_TIME_COUNT)
+                    .value(AisMatSchema.CELL1_KEY, e.getKey().getK1())
+                    .value(AisMatSchema.TIME_KEY, e.getKey().getK2())
+                    .value(AisMatSchema.RESULT_KEY, e.getValue());
+            list.add(insert);
 
         }
         return list;

@@ -15,7 +15,6 @@
  */
 package dk.dma.ais.store.materialize.views;
 
-import java.text.SimpleDateFormat;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;

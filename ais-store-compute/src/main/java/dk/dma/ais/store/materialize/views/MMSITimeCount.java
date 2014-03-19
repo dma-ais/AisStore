@@ -15,18 +15,15 @@
  */
 package dk.dma.ais.store.materialize.views;
 
-import java.text.SimpleDateFormat;
-import java.util.Date;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.RegularStatement;
+import com.datastax.driver.core.querybuilder.Insert;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.querybuilder.Update;
 
 import dk.dma.ais.binary.SixbitException;
 import dk.dma.ais.message.AisMessageException;
@@ -78,15 +75,14 @@ public class MMSITimeCount implements HashViewBuilder {
     public List<RegularStatement> prepare() {
         LinkedList<RegularStatement> list = new LinkedList<>();
         for (Entry<Key2<Long, Integer>, Long> e : data) {
-            Update upd = QueryBuilder
-                    .update(AisMatSchema.TABLE_MMSI_TIME_COUNT);
-            upd.setConsistencyLevel(ConsistencyLevel.ONE);
-            upd.where(QueryBuilder
-                    .eq(AisMatSchema.MMSI_KEY, e.getKey().getK1()));
-            upd.where(QueryBuilder
-                    .eq(AisMatSchema.TIME_KEY, e.getKey().getK2()));
-            upd.with(QueryBuilder.set(AisMatSchema.RESULT_KEY, e.getValue()));
-            list.add(upd);
+            Insert insert = QueryBuilder
+                    .insertInto(AisMatSchema.KEYSPACE,AisMatSchema.TABLE_MMSI_TIME_COUNT)
+                    .value(AisMatSchema.MMSI_KEY, e.getKey().getK1())
+                    .value(AisMatSchema.TIME_KEY, e.getKey().getK2())
+                    .value(AisMatSchema.RESULT_KEY, e.getValue());
+                    
+            
+            list.add(insert);
 
         }
         return list;
