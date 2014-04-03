@@ -76,7 +76,7 @@ public final class CassandraConnection extends AbstractService {
     /** {@inheritDoc} */
     @Override
     protected void doStop() {
-        cluster.shutdown();
+        cluster.close();
         notifyStopped();
     }
 
