@@ -18,12 +18,14 @@ package dk.dma.ais.store;
 import static java.util.Objects.requireNonNull;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
+import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
 
-
+import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
@@ -87,8 +89,12 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
     private volatile long retrievedPackets;
 
     private volatile long lastestDateReceived;
-
+    
     private final AisStoreQueryInnerContext inner;
+    
+    private Iterator<Row> it;
+    private ResultSet rs;
+
 
     AisStorePartialQuery(Session session, AisStoreQueryInnerContext inner, int batchLimit, String tableName,
             String rowName, int rowStart, long timeStartInclusive, long timeStopExclusive) {
@@ -105,9 +111,10 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
         this.batchLimit = batchLimit;
         this.timeStart = ByteBuffer.wrap(Longs.toByteArray(timeStartInclusive));
         this.timeStop = ByteBuffer.wrap(Longs.toByteArray(timeStopExclusive));
-        advance();
         this.inner = inner;
+        execute();
         inner.queries.add(this);
+        
     }
 
     long getNumberOfRetrievedPackets() {
@@ -124,60 +131,89 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
             return next;
         }
         while (currentRow <= lastRow) {
-            List<Row> all;
-            try {
-                all = future.get().all();
-                future = null; // make sure we do not use the same future again
-            } catch (Exception e) {
-                inner.inner.setException(e);
-                throw new RuntimeException(e);
+            Row row = null;
+            int innerReceived = 0;
+            while (it.hasNext() && innerReceived < batchLimit) {
+                //optimistic automatic-paging+fetch
+                if (rs.getAvailableWithoutFetching() == batchLimit && !rs.isFullyFetched()) {
+                    rs.fetchMoreResults();
+                }
+                    
+                row = it.next();
+                packets.add(AisPacket.fromByteBuffer(row.getBytes(1)));
+                retrievedPackets++;
+                innerReceived++;
             }
 
-            // advance to next row, we did not get a complete result set
-            if (all.size() < batchLimit) {
-                currentRow++;
-            }
-            if (all.size() > 0) {
-                retrievedPackets += all.size();
-                Row row = all.get(all.size() - 1);
-                
-                //byte[] bytes = ByteBufferUtil.getArray(row.getBytes(0));
-                //http://stackoverflow.com/questions/679298/gets-byte-array-from-a-bytebuffer-in-java
+            if (innerReceived > 0) {
                 ByteBuffer buf = row.getBytes(0);
                 byte[] bytes = new byte[buf.remaining()];
                 buf.get(bytes);
 
                 lastestDateReceived = Longs.fromByteArray(bytes);
-                System.out.println(new Date(lastestDateReceived));
-                timeStart = ByteBuffer.wrap(bytes);
+                
+                //currentRow == lastRow when packets_mmsi for instance
+                if (!(currentRow == lastRow)){
+                    currentRow = AisStoreSchema.getTimeBlock(new Date(lastestDateReceived).getTime());
+                    System.out.println("Currently at: "+currentRow+" Last ROW is: "+lastRow);
+                }
+                
+                System.out.println("Currently at: "+new Date(lastestDateReceived));
+                
             }
-            advance(); // make sure to fetch next before we start the parsing
-
-            for (Row row : all) {
-                packets.add(AisPacket.fromByteBuffer(row.getBytes(1)));
-            }
-
+            
+            
+            
+            
             if (!packets.isEmpty()) {
                 return packets.poll();
             }
+            
+            if (rs.isFullyFetched() || future.isDone()) {
+                System.out.println("WE ARE DONE");
+                currentRow = lastRow+1;
+                inner.finished(this);
+                return endOfData();
+            }
+            
         }
+        
         inner.finished(this);
         return endOfData();
     }
 
-    /** If the current row is less than or equal to the current row. We will fetch the next data. */
-    void advance() {
-        if (currentRow <= lastRow) {
-            // We need timehash to find out what the timestamp of the last received packet is.
-            // When the datastax driver supports unlimited fetching we will only need aisdata
-            Select s = QueryBuilder.select("timehash", "aisdata").from(tableName);
-            Where w = s.where(QueryBuilder.eq(rowName, currentRow));
-            w.and(QueryBuilder.gt("timehash", timeStart)); // timehash must be greater than start
-            w.and(QueryBuilder.lt("timehash", timeStop)); // timehash must be less that stop
-            s.limit(batchLimit); // Sets the limit
-            // System.out.println(s.getQueryString());
-            future = session.executeAsync(s);
+    /** execute takes over from advance, which is not necessary anymore */
+    void execute() {
+        System.out.println("HI mom!");
+        // We need timehash to find out what the timestamp of the last received packet is.
+        // When the datastax driver supports unlimited fetching we will only need aisdata
+        Select s = QueryBuilder.select("timehash", "aisdata").from(tableName);
+        Where w = null;
+        switch(tableName) {
+            case AisStoreSchema.TABLE_TIME:
+                List<Integer>blocks = new ArrayList<>();
+                int block = currentRow;
+                while (block <= lastRow) {
+                    blocks.add(block);
+                    block++;
+                }
+                Integer[] blocksInt = blocks.toArray(new Integer[blocks.size()]);
+                w = s.where(QueryBuilder.in(rowName,(Object[])blocksInt)); //timehash must be greater than start
+                break;
+            default:
+                w = s.where(QueryBuilder.eq(rowName, currentRow));
+                break;
         }
+        
+        
+        
+        w.and(QueryBuilder.gt("timehash", timeStart));
+        w.and(QueryBuilder.lt("timehash", timeStop)); // timehash must be less that stop
+        s.limit(Integer.MAX_VALUE); // Sets the limit
+        System.out.println(s.getQueryString());
+        future = session.executeAsync(s);
+        rs = future.getUninterruptibly();
+        it = rs.iterator();
     }
 
 }
