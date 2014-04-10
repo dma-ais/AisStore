@@ -184,7 +184,6 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
 
     /** execute takes over from advance, which is not necessary anymore */
     void execute() {
-        System.out.println("HI mom!");
         // We need timehash to find out what the timestamp of the last received packet is.
         // When the datastax driver supports unlimited fetching we will only need aisdata
         Select s = QueryBuilder.select("timehash", "aisdata").from(tableName);
@@ -204,8 +203,6 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
                 w = s.where(QueryBuilder.eq(rowName, currentRow));
                 break;
         }
-        
-        
         
         w.and(QueryBuilder.gt("timehash", timeStart));
         w.and(QueryBuilder.lt("timehash", timeStop)); // timehash must be less that stop
