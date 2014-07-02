@@ -93,7 +93,7 @@ public abstract class CassandraBatchedStagedWriter<T> extends AbstractBatchedSta
             boolean isSlow = TimeUnit.MILLISECONDS.convert(total - start, TimeUnit.NANOSECONDS) > 200
                     || messages.size() >= getBatchSize();
             if (isSlow || lastSlowBatch > 0) {
-                LOG.info("Total time: " + DurationFormatter.DEFAULT.formatNanos(total - start) + ", preping="
+                LOG.info("Total time: " + DurationFormatter.DEFAULT.formatNanos(total - start) + ", prepping="
                         + DurationFormatter.DEFAULT.formatNanos(beforeSend - start) + ", sending="
                         + DurationFormatter.DEFAULT.formatNanos(total - beforeSend) + ", size=" + messages.size());
                 // makes sure we write 10 info statements after the last slow batch we insert
