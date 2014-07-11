@@ -64,7 +64,7 @@ public class FileImport extends AbstractCommandLineTool {
     List<String> cassandraSeeds = Arrays.asList("localhost");
     
     @Parameter(names = "-tag", description = "Overwrite the tag")
-    String tag = null;
+    String tag;
 
     /** {@inheritDoc} */
     @Override
