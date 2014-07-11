@@ -15,11 +15,14 @@
  */
 package dk.dma.ais.store.job;
 
+
 import static java.util.Objects.requireNonNull;
 
+import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
 
-import jsr166e.ConcurrentHashMapV8;
 import dk.dma.ais.store.AisStoreQueryResult;
 import dk.dma.commons.util.JSONObject;
 
@@ -30,7 +33,7 @@ import dk.dma.commons.util.JSONObject;
  */
 public class JobManager {
 
-    private final ConcurrentHashMapV8<String, Job> jobs = new ConcurrentHashMapV8<>();
+    private final ConcurrentHashMap<String, Job> jobs = new ConcurrentHashMap<>();
 
     /**
      * Adds the specified job to the manager.
@@ -50,6 +53,19 @@ public class JobManager {
 
     public Job getResult(String key) {
         return jobs.get(key);
+    }
+    
+    public Map<String, Job> getJobs() {
+        return jobs;
+    }
+    
+    public JSONObject toJSON() {
+        return JSONObject.singleList("jobs", jobs.values().stream().map(new Function<Job, JSONObject>() {
+            @Override
+            public JSONObject apply(Job t) {
+                return t.toJSON();
+            }
+        })); 
     }
 
     public static class Job {
