@@ -36,7 +36,7 @@ public class QueryTest {
     public static void main(String[] args) {
         CassandraConnection con = CassandraConnection.create("aisdata", "10.3.240.203");
 
-        con.start();
+        con.startAsync();
         try {
             int count = 0;
 
@@ -68,7 +68,7 @@ public class QueryTest {
             long ms = System.currentTimeMillis() - start;
             System.out.println("Total: " + count + " packets,  " + count / ((double) ms / 1000) + " packets/s");
         } finally {
-            con.stop();
+            con.stopAsync();
         }
     }
 }
