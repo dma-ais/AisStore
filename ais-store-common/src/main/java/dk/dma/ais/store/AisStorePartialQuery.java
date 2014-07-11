@@ -18,6 +18,7 @@ package dk.dma.ais.store;
 import static java.util.Objects.requireNonNull;
 
 import java.nio.ByteBuffer;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -41,12 +42,13 @@ import dk.dma.ais.packet.AisPacket;
  * This class implements the actual query.
  * 
  * @author Kasper Nielsen
+ * @author Jens Tuxen
  */
 class AisStorePartialQuery extends AbstractIterator<AisPacket> {
 
     /**
-     * AisPacket implements Comparable. But I'm to afraid someone might break the functionality someday. So we make a
-     * manual iterator
+     * AisPacket implements Comparable. But I'm to afraid someone might break
+     * the functionality someday. So we make a manual iterator
      * */
     static final Comparator<AisPacket> COMPARATOR = new Comparator<AisPacket>() {
         public int compare(AisPacket p1, AisPacket p2) {
@@ -67,8 +69,8 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
     private final String rowName;
 
     /**
-     * The first timestamp for which to get packets (inclusive). Is constantly updated to the timestamp of the last
-     * received packet as data comes in.
+     * The first timestamp for which to get packets (inclusive). Is constantly
+     * updated to the timestamp of the last received packet as data comes in.
      */
     private ByteBuffer timeStart;
 
@@ -79,30 +81,38 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
 
     private final int lastRow;
 
-    /** All queries are done asynchronously. This future holds the result of the last query we made. */
+    /**
+     * All queries are done asynchronously. This future holds the result of the
+     * last query we made.
+     */
     private ResultSetFuture future;
 
-    /** A list of packets that we have received from AisStore but have not yet returned to the user. */
+    /**
+     * A list of packets that we have received from AisStore but have not yet
+     * returned to the user.
+     */
     private LinkedList<AisPacket> packets = new LinkedList<>();
 
     /** The number of packets that was retrieved. */
     private volatile long retrievedPackets;
 
     private volatile long lastestDateReceived;
-    
+
     private final AisStoreQueryInnerContext inner;
-    
+
     private Iterator<Row> it;
     private ResultSet rs;
 
-
-    AisStorePartialQuery(Session session, AisStoreQueryInnerContext inner, int batchLimit, String tableName,
-            String rowName, int rowStart, long timeStartInclusive, long timeStopExclusive) {
-        this(session, inner, batchLimit, tableName, rowName, rowStart, rowStart, timeStartInclusive, timeStopExclusive);
+    AisStorePartialQuery(Session session, AisStoreQueryInnerContext inner,
+            int batchLimit, String tableName, String rowName, int rowStart,
+            long timeStartInclusive, long timeStopExclusive) {
+        this(session, inner, batchLimit, tableName, rowName, rowStart,
+                rowStart, timeStartInclusive, timeStopExclusive);
     }
 
-    AisStorePartialQuery(Session session, AisStoreQueryInnerContext inner, int batchLimit, String tableName,
-            String rowName, int rowStart, int rowStop, long timeStartInclusive, long timeStopExclusive) {
+    AisStorePartialQuery(Session session, AisStoreQueryInnerContext inner,
+            int batchLimit, String tableName, String rowName, int rowStart,
+            int rowStop, long timeStartInclusive, long timeStopExclusive) {
         this.session = requireNonNull(session);
         this.tableName = requireNonNull(tableName);
         this.rowName = requireNonNull(rowName);
@@ -112,9 +122,10 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
         this.timeStart = ByteBuffer.wrap(Longs.toByteArray(timeStartInclusive));
         this.timeStop = ByteBuffer.wrap(Longs.toByteArray(timeStopExclusive));
         this.inner = inner;
+
         execute();
         inner.queries.add(this);
-        
+
     }
 
     long getNumberOfRetrievedPackets() {
@@ -134,11 +145,13 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
             Row row = null;
             int innerReceived = 0;
             while (it.hasNext() && innerReceived < batchLimit) {
-                //optimistic automatic-paging+fetch
-                if (rs.getAvailableWithoutFetching() == batchLimit && !rs.isFullyFetched()) {
+
+                // optimistic automatic-paging+fetch
+                if (rs.getAvailableWithoutFetching() == 200000
+                        && !rs.isFullyFetched()) {
                     rs.fetchMoreResults();
                 }
-                    
+
                 row = it.next();
                 packets.add(AisPacket.fromByteBuffer(row.getBytes(1)));
                 retrievedPackets++;
@@ -151,61 +164,64 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
                 buf.get(bytes);
 
                 lastestDateReceived = Longs.fromByteArray(bytes);
-                
-                //currentRow == lastRow when packets_mmsi for instance
-                if (!(currentRow == lastRow)){
-                    currentRow = AisStoreSchema.getTimeBlock(new Date(lastestDateReceived).getTime());
-                    System.out.println("Currently at: "+currentRow+" Last ROW is: "+lastRow);
+
+                // currentRow == lastRow when packets_mmsi or packets_cell
+                if (!(currentRow == lastRow)) {
+                    currentRow = AisStoreSchema.getTimeBlock(new Date(
+                            lastestDateReceived).getTime());
+                    // System.out.println("Currently at: "+currentRow+" Last ROW is: "+lastRow);
                 }
-                
-                System.out.println("Currently at: "+new Date(lastestDateReceived));
-                
+
+                System.out.println("Currently at: "
+                        + new Date(lastestDateReceived));
+
             }
-            
-            
-            
-            
+
             if (!packets.isEmpty()) {
                 return packets.poll();
             }
-            
+
             if (rs.isFullyFetched() || future.isDone()) {
                 System.out.println("WE ARE DONE");
-                currentRow = lastRow+1;
+                currentRow = lastRow + 1;
                 inner.finished(this);
                 return endOfData();
             }
-            
+
         }
-        
+
         inner.finished(this);
         return endOfData();
     }
 
     /** execute takes over from advance, which is not necessary anymore */
     void execute() {
-        // We need timehash to find out what the timestamp of the last received packet is.
-        // When the datastax driver supports unlimited fetching we will only need aisdata
+        // We need timehash to find out what the timestamp of the last received
+        // packet is.
+        // When the datastax driver supports unlimited fetching we will only
+        // need aisdata
         Select s = QueryBuilder.select("timehash", "aisdata").from(tableName);
         Where w = null;
-        switch(tableName) {
-            case AisStoreSchema.TABLE_TIME:
-                List<Integer>blocks = new ArrayList<>();
-                int block = currentRow;
-                while (block <= lastRow) {
-                    blocks.add(block);
-                    block++;
-                }
-                Integer[] blocksInt = blocks.toArray(new Integer[blocks.size()]);
-                w = s.where(QueryBuilder.in(rowName,(Object[])blocksInt)); //timehash must be greater than start
-                break;
-            default:
-                w = s.where(QueryBuilder.eq(rowName, currentRow));
-                break;
+        switch (tableName) {
+        case AisStoreSchema.TABLE_TIME:
+            List<Integer> blocks = new ArrayList<>();
+            int block = currentRow;
+            while (block <= lastRow) {
+                blocks.add(block);
+                block++;
+            }
+            Integer[] blocksInt = blocks.toArray(new Integer[blocks.size()]);
+            // timehash must be greater than start
+            w = s.where(QueryBuilder.in(rowName, (Object[]) blocksInt));
+            break;
+        default:
+            w = s.where(QueryBuilder.eq(rowName, currentRow));
+            break;
         }
-        
+
         w.and(QueryBuilder.gt("timehash", timeStart));
-        w.and(QueryBuilder.lt("timehash", timeStop)); // timehash must be less that stop
+        w.and(QueryBuilder.lt("timehash", timeStop)); // timehash must be less
+                                                      // that stop
         s.limit(Integer.MAX_VALUE); // Sets the limit
         System.out.println(s.getQueryString());
         future = session.executeAsync(s);
