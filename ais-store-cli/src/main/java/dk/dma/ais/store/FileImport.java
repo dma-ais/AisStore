@@ -23,6 +23,7 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -65,6 +66,9 @@ public class FileImport extends AbstractCommandLineTool {
     
     @Parameter(names = "-tag", description = "Overwrite the tag")
     String tag;
+    
+    @Parameter(names = "-rate", description = "Set desired import rate in packets/second")
+    Long rate = 0L;
 
     /** {@inheritDoc} */
     @Override
@@ -78,7 +82,6 @@ public class FileImport extends AbstractCommandLineTool {
             }
         });
 
-        start(cassandra);
 
         Set<Path> paths = new HashSet<>();
         ArrayList<AisReader> readers = new ArrayList<>();
@@ -99,16 +102,37 @@ public class FileImport extends AbstractCommandLineTool {
                         public void accept(AisPacket p) {
                             try {
                                 while(!cassandra.getInputQueue().offer(p)) {
-                                    Thread.sleep(2);
+                                    Thread.sleep(2000);
                                 }
                                 
                                 count.incrementAndGet();
                             } catch (InterruptedException e) {
-                                e.printStackTrace();
+                                LOG.debug("failed to sleep (cassandra input queue was full and sleep was interrupted)");
                             }
                             
                         }
                     });
+                    
+                    //Gate packet reading speed by blocking for 1 second every x packets
+                    if (rate > 0L) {
+                        apis.registerPacketHandler(new Consumer<AisPacket>() {
+
+                            @Override
+                            public void accept(AisPacket arg0) {
+                                if (apis.getNumberOfLinesRead() % rate == 0) {
+                                    try {
+                                        Thread.sleep(1000);
+                                    } catch (InterruptedException e) {
+                                        LOG.debug("failed to block reader (sleep interrupted)");
+                                    }
+                                }
+                                
+                            }
+                            
+                        });
+                        
+                    }
+                                        
                     readers.add(apis);
                     apis.start();
                     apis.join();
