@@ -4,13 +4,13 @@
   <parent>
     <groupId>dk.dma</groupId>
     <artifactId>dma-root-pom</artifactId>
-    <version>11</version>
+    <version>20</version>
   </parent>
 
   <modelVersion>4.0.0</modelVersion>
   <groupId>dk.dma.ais.store</groupId>
   <artifactId>ais-store-parent</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.2-SNAPSHOT</version>
   <packaging>pom</packaging>
   <name>AisStore Parent</name>
   <description>AisStore parent module</description>

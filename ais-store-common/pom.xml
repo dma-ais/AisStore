@@ -6,7 +6,7 @@
   <parent>
     <groupId>dk.dma.ais.store</groupId>
     <artifactId>ais-store-parent</artifactId>
-    <version>0.1-SNAPSHOT</version>
+    <version>0.2-SNAPSHOT</version>
   </parent>
 
   <artifactId>ais-store-common</artifactId>
@@ -27,7 +27,7 @@
     <dependency>
       <groupId>dk.dma.commons</groupId>
       <artifactId>dma-commons-tracker</artifactId>
-      <version>0.1</version>
+      <version>0.2-SNAPSHOT</version>
     </dependency>
         <dependency>
       <groupId>com.google.guava</groupId>
