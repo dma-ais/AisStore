@@ -69,11 +69,18 @@ public class FileImport extends AbstractCommandLineTool {
     
     @Parameter(names = "-rate", description = "Set desired import rate in packets/second")
     Long rate = 0L;
+    
+    @Parameter(names = "-verbose", description = "verbose prints packets/second stats")
+    boolean verbose;
+    
 
     /** {@inheritDoc} */
     @Override
     protected void run(Injector injector) throws Exception {
         CassandraConnection con = start(CassandraConnection.create(cassandraDatabase, cassandraSeeds));
+        
+        final AtomicInteger counter = new AtomicInteger();
+        final long start = System.currentTimeMillis();
 
         final AbstractBatchedStage<AisPacket> cassandra = start(new DefaultAisStoreWriter(con, batchSize) {
             public void onFailure(List<AisPacket> messages, Throwable cause) {
@@ -112,6 +119,24 @@ public class FileImport extends AbstractCommandLineTool {
                             
                         }
                     });
+                    
+                    //print stats if verbose
+                    if (verbose) {
+                        apis.registerPacketHandler(new Consumer<AisPacket>() {
+                            
+                            
+                            @Override
+                            public void accept(AisPacket arg0) {
+                                
+                                long count = counter.incrementAndGet();
+                                if (count % 10000 == 0) {
+                                    long end = System.currentTimeMillis();
+                                    LOG.info("Average Import rate "+(double)count/((double)(end-start)/1000.0) +" packets/s");
+                                }
+                                
+                            }
+                        });
+                    }
                     
                     //Gate packet reading speed by blocking for 1 second every x packets
                     if (rate > 0L) {
