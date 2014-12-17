@@ -43,7 +43,6 @@ import com.google.common.util.concurrent.RateLimiter;
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.commons.util.FormatUtil;
 import dk.dma.enav.util.function.EConsumer;
-import dk.dma.enav.util.function.Function;
 
 /**
  * Processes Cassandras SSTables.
@@ -80,7 +79,7 @@ public class CassandraColumnFamilyProcessor {
         this.maxRead = maxRead;
     }
 
-    public void process(Function<AisPacket, AisPacket> producer) throws Exception {
+    public void process(java.util.function.Function<AisPacket, AisPacket> producer) throws Exception {
         if (used.getAndSet(true)) { // make sure we only use this instance once (statistics)
             throw new IllegalStateException("This processor can only be used one time");
         }

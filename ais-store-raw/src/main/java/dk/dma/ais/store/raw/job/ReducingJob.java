@@ -15,11 +15,11 @@
 package dk.dma.ais.store.raw.job;
 
 import java.io.Serializable;
+import java.util.function.Consumer;
 
 import com.google.common.base.Supplier;
 
 import dk.dma.ais.packet.AisPacket;
-import dk.dma.enav.util.function.Consumer;
 
 /**
  * 
