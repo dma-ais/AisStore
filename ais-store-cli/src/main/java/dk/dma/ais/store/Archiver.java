@@ -17,6 +17,7 @@ package dk.dma.ais.store;
 import java.io.File;
 import java.util.Arrays;
 import java.util.List;
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -35,7 +36,6 @@ import dk.dma.commons.management.ManagedResource;
 import dk.dma.commons.service.AbstractBatchedStage;
 import dk.dma.commons.service.io.MessageToFileService;
 import dk.dma.db.cassandra.CassandraConnection;
-import dk.dma.enav.util.function.Consumer;
 
 /**
  * 

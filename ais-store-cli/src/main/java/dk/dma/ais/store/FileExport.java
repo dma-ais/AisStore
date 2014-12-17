@@ -14,36 +14,126 @@
  */
 package dk.dma.ais.store;
 
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
+
+import org.apache.commons.lang.ArrayUtils;
+
 import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
 
-import dk.dma.ais.store.exporter.RawSSTableAccessor;
+import dk.dma.ais.packet.AisPacket;
+import dk.dma.ais.packet.AisPacketFilters;
+import dk.dma.ais.packet.AisPacketOutputSinks;
 import dk.dma.commons.app.AbstractCommandLineTool;
+import dk.dma.commons.util.DateTimeUtil;
+import dk.dma.commons.util.Iterables;
+import dk.dma.commons.util.io.OutputStreamSink;
+import dk.dma.db.cassandra.CassandraConnection;
+import dk.dma.enav.model.geometry.BoundingBox;
+import dk.dma.enav.model.geometry.CoordinateSystem;
+import dk.dma.enav.model.geometry.Position;
 
 /**
  * 
  * @author Kasper Nielsen
+ * @author Jens Tuxen
  */
 public class FileExport extends AbstractCommandLineTool {
 
-    @Parameter(names = "-database", description = "The cassandra database to write data to")
-    String cassandraDatabase = "aisdata";
+    @Parameter(names = "-keyspace", description = "The keyspace in cassandra")
+    String keyspace = "aisdata";
+    
+    @Parameter(names = "-seeds", description = "List of Cassandra nodes (minimum one is needed)")
+    ArrayList<String> seeds = new ArrayList<String>();
 
-    @Parameter(names = "-sourceFilter", description = "The sourceFilter to apply")
-    String sourceFilter;
+    @Parameter(names = "-filter", description = "The filter to apply")
+    String filter;
 
     @Parameter(names = "-interval", description = "The ISO 8601 time interval for data to export")
     String interval;
+    
+    @Parameter(names = "-mmsi", description = "Extract from mmsi schema")
+    List<String> mmsis = new ArrayList<String>();
+    
+    
+    @Parameter(names = "-area", description = "Extract from geopgraphic cells schema")
+    String area;
+    
+    
+    @Parameter(names = "-outputFormat", description = "Output format, options: raw, json, jsonObject (use -columns), kml, kmz, table (use -columns)")
+    String outputFormat = "raw";
+    
+    @Parameter(names = "-columns", description = "Optional columns, used for jsonObject and table.")
+    String columns;
+    
+    @Parameter(names = "-file", description = "File to extract to (default is stdout)")
+    String filePath;
 
-    @Parameter(names = "cassandraConfig", description = "cassandra.yaml")
-    String cassandraYaml = "/Applications/apache-cassandra-1.2.5/conf/cassandra.yaml";
+    @Parameter(names = "-fetchSize", description = "internal fetch size buffer")
+    Integer fetchSize = 3000;
+    
 
     /** {@inheritDoc} */
     @Override
     protected void run(Injector injector) throws Exception {
-        RawSSTableAccessor a = new RawSSTableAccessor(cassandraYaml, cassandraDatabase);
-        a.process(null, null);
-        System.exit(0);// Cassandra internals are a mess, no support for shutting it down without system.exit
+        AisStoreQueryBuilder b;
+        if (!mmsis.isEmpty()) {
+            b = AisStoreQueryBuilder.forMmsi(ArrayUtils.toPrimitive(mmsis.toArray(new Integer[0])));  
+            b.setFetchSize(fetchSize);
+        } else if (area != null) {            
+            BoundingBox bbox = findBoundingBox(area);
+            b = AisStoreQueryBuilder.forArea(bbox);
+            b.setFetchSize(200);
+        } else {
+            b = AisStoreQueryBuilder.forTime();
+            b.setFetchSize(fetchSize);
+        }
+        
+        b.setInterval(DateTimeUtil.toInterval(interval));
+        
+        CassandraConnection conn = CassandraConnection.create(keyspace, seeds);
+        AisStoreQueryResult result = conn.execute(b);
+        Iterable<AisPacket> iterableResult = result;
+        
+        if (filter != null) {
+            iterableResult = Iterables.filter(iterableResult, AisPacketFilters.parseExpressionFilter(filter));
+        }
+        
+        OutputStreamSink<AisPacket> sink = AisPacketOutputSinks.getOutputSink(outputFormat);
+        
+        FileOutputStream fos;
+        if (filePath != null) {
+            fos  = new FileOutputStream(new File(filePath));
+        } else {
+            fos = new FileOutputStream(FileDescriptor.out);
+        }
+        
+        sink.closeWhenFooterWritten();
+        
+        sink.header(fos);
+        
+        sink.writeAll(iterableResult, fos);
+        
+        
+    }
+    
+    private BoundingBox findBoundingBox(String s) {
+        String[] arr = s.split(",");
+        
+        if (arr.length != 4) {
+            return null;
+        }
+        
+        Double[] coords = new Double[4];
+        for (int i=0; i<4; i++) {
+            coords[i] = Double.parseDouble(arr[i]);
+        }
+        
+        return BoundingBox.create(Position.create(coords[0], coords[1]), Position.create(coords[2],coords[3]), CoordinateSystem.CARTESIAN);
     }
 
     public static void main(String[] args) throws Exception {

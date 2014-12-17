@@ -22,7 +22,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
-
+import java.util.function.Consumer;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -37,7 +37,6 @@ import dk.dma.ais.store.write.DefaultAisStoreWriter;
 import dk.dma.commons.app.AbstractCommandLineTool;
 import dk.dma.commons.service.AbstractBatchedStage;
 import dk.dma.db.cassandra.CassandraConnection;
-import dk.dma.enav.util.function.Consumer;
 
 /**
  * 
@@ -58,10 +57,10 @@ public class FileImport extends AbstractCommandLineTool {
     /** Where files should be moved to after having been processed. */
     Path moveTo;
 
-    @Parameter(names = "-databaseName", description = "The cassandra database to write data to")
+    @Parameter(names = "-keyspace", description = "The cassandra database to write data to")
     String cassandraDatabase = "aisdata";
 
-    @Parameter(names = "-database", description = "A list of cassandra hosts that can store the data")
+    @Parameter(names = "-seeds", description = "A list of cassandra hosts that can store the data")
     List<String> cassandraSeeds = Arrays.asList("localhost");
     
     @Parameter(names = "-tag", description = "Overwrite the tag")

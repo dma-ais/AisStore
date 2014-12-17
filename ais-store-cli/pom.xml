@@ -12,7 +12,7 @@
   <parent>
     <groupId>dk.dma.ais.store</groupId>
     <artifactId>ais-store-parent</artifactId>
-    <version>0.2-SNAPSHOT</version>
+    <version>0.3-SNAPSHOT</version>
   </parent>
 
   <packaging>jar</packaging>
