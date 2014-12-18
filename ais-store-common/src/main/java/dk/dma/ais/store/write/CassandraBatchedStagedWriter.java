@@ -27,6 +27,7 @@ import com.codahale.metrics.JmxReporter;
 import com.codahale.metrics.Meter;
 import com.codahale.metrics.MetricRegistry;
 import com.datastax.driver.core.RegularStatement;
+import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.exceptions.QueryValidationException;
 import com.datastax.driver.core.querybuilder.Batch;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
@@ -86,7 +87,10 @@ public abstract class CassandraBatchedStagedWriter<T> extends AbstractBatchedSta
             
             
             long beforeSend = System.nanoTime();
-            connection.getSession().execute(batch);
+            
+            ResultSetFuture f = connection.getSession().executeAsync(batch);
+            f.getUninterruptibly(); //throws QueryValidationExecption etc
+            
             long total = System.nanoTime();
             // Is this an abnormal slow batch?
             boolean isSlow = TimeUnit.MILLISECONDS.convert(total - start, TimeUnit.NANOSECONDS) > 200
