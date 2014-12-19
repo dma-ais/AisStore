@@ -57,7 +57,7 @@ public class FileExport extends AbstractCommandLineTool {
     String interval;
     
     @Parameter(names = "-mmsi", description = "Extract from mmsi schema")
-    List<String> mmsis = new ArrayList<String>();
+    List<Integer> mmsis = new ArrayList<Integer>();
     
     
     @Parameter(names = "-area", description = "Extract from geopgraphic cells schema")
@@ -96,6 +96,8 @@ public class FileExport extends AbstractCommandLineTool {
         b.setInterval(DateTimeUtil.toInterval(interval));
         
         CassandraConnection conn = CassandraConnection.create(keyspace, seeds);
+        conn.startAsync();
+        
         AisStoreQueryResult result = conn.execute(b);
         Iterable<AisPacket> iterableResult = result;
         
