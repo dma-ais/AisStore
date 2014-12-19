@@ -171,8 +171,8 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
                     // System.out.println("Currently at: "+currentRow+" Last ROW is: "+lastRow);
                 }
 
-                System.out.println("Currently at: "
-                        + new Date(lastestDateReceived));
+                /*System.out.println("Currently at: "
+                        + new Date(lastestDateReceived));*/
 
             }
 
@@ -181,7 +181,6 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
             }
 
             if (rs.isFullyFetched() || future.isDone()) {
-                System.out.println("WE ARE DONE");
                 currentRow = lastRow + 1;
                 inner.finished(this);
                 return endOfData();
