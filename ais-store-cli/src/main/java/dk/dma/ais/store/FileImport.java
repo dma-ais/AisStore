@@ -14,13 +14,8 @@
  */
 package dk.dma.ais.store;
 
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
-import java.util.Set;
 import java.util.concurrent.atomic.AtomicInteger;
 import java.util.function.Consumer;
 
@@ -51,11 +46,15 @@ public class FileImport extends AbstractCommandLineTool {
     @Parameter(names = "-batchSize", description = "The number of messages to write to cassandra at a time")
     int batchSize = 3000;
 
-    @Parameter(required = true, description = "files to import...")
-    List<String> sources;
-
-    /** Where files should be moved to after having been processed. */
-    Path moveTo;
+    @Parameter(names = {"-import", "-input", "-i"}, description = "Path to directory with files to import", required = true)
+    String path;
+    
+    @Parameter(names = "-glob", description = "pattern for files to read (default *)")
+    String glob = "*";
+    
+    @Parameter(names = "-recursive", description = "recursive directory reader")
+    boolean recursive = true;
+        
 
     @Parameter(names = "-keyspace", description = "The cassandra database to write data to")
     String cassandraDatabase = "aisdata";
@@ -78,7 +77,9 @@ public class FileImport extends AbstractCommandLineTool {
     protected void run(Injector injector) throws Exception {
         CassandraConnection con = start(CassandraConnection.create(cassandraDatabase, cassandraSeeds));
         
-        final AtomicInteger counter = new AtomicInteger();
+        
+        final AtomicInteger acceptedCount = new AtomicInteger();
+        
         final long start = System.currentTimeMillis();
 
         final AbstractBatchedStage<AisPacket> cassandra = start(new DefaultAisStoreWriter(con, batchSize) {
@@ -87,98 +88,76 @@ public class FileImport extends AbstractCommandLineTool {
                 shutdown();
             }
         });
+      
+        AisReader reader = AisReaders.createDirectoryReader(path, glob, recursive);
+        
+        if (tag != null) {
+            reader.setSourceId(tag);
+        }
+        
+        
+        reader.registerPacketHandler(new Consumer<AisPacket>() {
 
-
-        Set<Path> paths = new HashSet<>();
-        ArrayList<AisReader> readers = new ArrayList<>();
-        for (String s : sources) {
-            Path path = Paths.get(s);
-            if (paths.add(path)) {
-                final AtomicInteger count = new AtomicInteger();
-                LOG.info("Starting processing file " + path);
-                try {
-                    AisReader apis = AisReaders.createReaderFromFile(path.toAbsolutePath().toString()); 
-                    if (tag != null) {
-                        apis.setSourceId(tag);
-                    }
-                    
-                    apis.registerPacketHandler(new Consumer<AisPacket>() {
-
-                        @Override
-                        public void accept(AisPacket p) {
-                            try {
-                                while(!cassandra.getInputQueue().offer(p)) {
-                                    Thread.sleep(2000);
-                                }
-                                
-                                count.incrementAndGet();
-                            } catch (InterruptedException e) {
-                                LOG.debug("failed to sleep (cassandra input queue was full and sleep was interrupted)");
-                            }
-                            
+            @Override
+            public void accept(AisPacket p) {
+                    try {
+                        while(!cassandra.getInputQueue().offer(p)) {
+                            Thread.sleep(2000);
+                            LOG.debug("waiting for queue to open");
                         }
-                    });
-                    
-                    //print stats if verbose
-                    if (verbose) {
-                        apis.registerPacketHandler(new Consumer<AisPacket>() {
-                            
-                            
-                            @Override
-                            public void accept(AisPacket arg0) {
-                                
-                                long count = counter.incrementAndGet();
-                                if (count % 10000 == 0) {
-                                    long end = System.currentTimeMillis();
-                                    LOG.info("Average Import rate "+(double)count/((double)(end-start)/1000.0) +" packets/s");
-                                }
-                                
-                            }
-                        });
-                    }
-                    
-                    //Gate packet reading speed by blocking for 1 second every x packets
-                    if (rate > 0L) {
-                        apis.registerPacketHandler(new Consumer<AisPacket>() {
-
-                            @Override
-                            public void accept(AisPacket arg0) {
-                                if (apis.getNumberOfLinesRead() % rate == 0) {
-                                    try {
-                                        Thread.sleep(1000);
-                                    } catch (InterruptedException e) {
-                                        LOG.debug("failed to block reader (sleep interrupted)");
-                                    }
-                                }
-                                
-                            }
-                            
-                        });
                         
+                        acceptedCount.incrementAndGet();
+                    } catch (InterruptedException e) {
+                        LOG.debug("failed to sleep (cassandra input queue was full and sleep was interrupted)");
                     }
-                                        
-                    readers.add(apis);
-                    apis.start();
-                    apis.join();
                     
+                }
+            });
                     
-                } finally {
+        //print stats if verbose
+        if (verbose) {
+            final AtomicInteger verboseCounter = new AtomicInteger();
+            reader.registerPacketHandler(new Consumer<AisPacket>() {
+                
+                
+                @Override
+                public void accept(AisPacket arg0) {
+                    
+                    long count = verboseCounter.incrementAndGet();
+                    if (count % 10000 == 0) {
+                        long end = System.currentTimeMillis();
+                        LOG.info("Average Import rate "+(double)count/((double)(end-start)/1000.0) +" packets/s");
+                    }
+                    
+                }
+            });
+        }
+                    
+        //Gate packet reading speed by blocking for 1 second every x packets
+        if (rate > 0L) {
+            reader.registerPacketHandler(new Consumer<AisPacket>() {
+
+                @Override
+                public void accept(AisPacket arg0) {
+                    if (acceptedCount.get() % rate == 0) {
+                        try {
+                            Thread.sleep(1000);
+                        } catch (InterruptedException e) {
+                            LOG.debug("failed to block reader (sleep interrupted)");
+                        }
+                    }
                     
                 }
                 
-                LOG.info("Finished processing file, " + count + " packets was imported from " + path);
-                
-                
-            }
+            });
+            
+            
         }
         
-        //one at a time ladies.
-        /*
-        for (AisReader r: readers) {
-            r.start();
-            r.join();
-        }
-        */
+        reader.start();
+        reader.join();
+        LOG.info("Finished processing directory, " + acceptedCount + " packets was imported from " + path);
+        
         
     }
 
