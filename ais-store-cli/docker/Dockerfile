@@ -1,13 +1,8 @@
-FROM kaspernielsen/javabox
+FROM java:8
 
-RUN apt-get install maven -y
 RUN mkdir -p /data
-RUN git clone https://github.com/dma-ais/AisStore /AisStore
-RUN (cd /AisStore; mvn clean install)
-
+RUN wget --progress=bar "https://dma.ci.cloudbees.com/job/AisStore/lastSuccessfulBuild/artifact/ais-store-cli/target/*zip*/target.zip" -O /archive.zip
+RUN unzip /archive.zip -d /
 ADD ./start.sh /start.sh
-
-ENV SOURCES "sourceName=1.2.3.4"
-ENV BACKUP "/data"
-
+ENV ARGUMENTS -help
 CMD ["/bin/bash", "/start.sh"]
