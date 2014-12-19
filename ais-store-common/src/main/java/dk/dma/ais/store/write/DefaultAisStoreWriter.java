@@ -22,15 +22,17 @@ import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import com.datastax.driver.core.RegularStatement;
+import com.google.common.cache.Cache;
+import com.google.common.cache.CacheBuilder;
 import com.google.common.hash.Hashing;
 import com.google.common.primitives.Bytes;
 import com.google.common.primitives.Longs;
 
 import dk.dma.ais.message.AisMessage;
 import dk.dma.ais.packet.AisPacket;
-import dk.dma.commons.tracker.PositionTracker;
 import dk.dma.db.cassandra.CassandraConnection;
 import dk.dma.enav.model.geometry.Position;
+import dk.dma.enav.model.geometry.PositionTime;
 
 /**
  * The schema used in AisStore.
@@ -47,7 +49,11 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
     public static final long POSITION_TIMEOUT_MS = TimeUnit.MILLISECONDS.convert(20, TimeUnit.MINUTES);
 
     /** A position tracker used to keeping an eye on previously received messages. */
-    private final PositionTracker<Integer> tracker = new PositionTracker<>();
+    private final Cache<Integer,PositionTime> tracker = CacheBuilder
+            .newBuilder()
+            .expireAfterWrite(POSITION_TIMEOUT_MS,TimeUnit.MILLISECONDS)
+            .build();        
+
 
     /**
      * @param connection
@@ -55,6 +61,7 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
      */
     public DefaultAisStoreWriter(CassandraConnection connection, int batchSize) {
         super(connection, batchSize);
+        
     }
 
     public void handleMessage(List<RegularStatement> batch, AisPacket packet) {
@@ -77,11 +84,16 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
             storeByMmsi(batch, ts, column, message.getUserId(), data); // Store packet by mmsi
 
             Position p = message.getValidPosition();
+                        
             if (p == null) { // Try to find an estimated position
                 // Use the last received position message unless the position has timed out (POSITION_TIMEOUT_MS)
-                p = tracker.getLatestIfLaterThan(message.getUserId(), ts - POSITION_TIMEOUT_MS);
+                p = tracker.asMap().getOrDefault(message.getUserId(),null);                
             } else { // Update the tracker with latest position
-                tracker.update(message.getUserId(), p.withTime(ts));
+                
+                //but only update the tracker IF the new time is better
+                tracker.asMap().merge(message.getUserId(), p.withTime(ts), (a,b) -> {
+                    return a.getTime() > b.getTime() ? a : b ;
+                });
             }
             storeByArea(batch, ts, column, message.getUserId(), p, data);
         }
