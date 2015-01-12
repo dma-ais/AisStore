@@ -59,10 +59,8 @@ public class FileExport extends AbstractCommandLineTool {
     @Parameter(names = "-mmsi", description = "Extract from mmsi schema")
     List<Integer> mmsis = new ArrayList<Integer>();
     
-    
     @Parameter(names = "-area", description = "Extract from geopgraphic cells schema")
     String area;
-    
     
     @Parameter(names = "-outputFormat", description = "Output format, options: raw, json, jsonObject (use -columns), kml, kmz, table (use -columns)")
     String outputFormat = "raw";
@@ -87,7 +85,7 @@ public class FileExport extends AbstractCommandLineTool {
         } else if (area != null) {            
             BoundingBox bbox = findBoundingBox(area);
             b = AisStoreQueryBuilder.forArea(bbox);
-            b.setFetchSize(200);
+            b.setFetchSize(fetchSize);
         } else {
             b = AisStoreQueryBuilder.forTime();
             b.setFetchSize(fetchSize);
@@ -114,13 +112,9 @@ public class FileExport extends AbstractCommandLineTool {
             fos = new FileOutputStream(FileDescriptor.out);
         }
         
-        sink.closeWhenFooterWritten();
-        
-        sink.header(fos);
-        
-        sink.writeAll(iterableResult, fos);
-        
-        
+        sink.closeWhenFooterWritten();       
+        sink.writeAll(iterableResult, fos);               
+        conn.stopAsync();
     }
     
     private BoundingBox findBoundingBox(String s) {
