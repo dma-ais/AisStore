@@ -68,6 +68,9 @@ public class FileExport extends AbstractCommandLineTool {
     @Parameter(names = "-columns", description = "Optional columns, used for jsonObject and table.")
     String columns;
     
+    @Parameter(names = "-seperator", description = "Optional seperator, used for table format.")
+    String seperator = ",";
+    
     @Parameter(names = "-file", description = "File to extract to (default is stdout)")
     String filePath;
 
@@ -103,7 +106,7 @@ public class FileExport extends AbstractCommandLineTool {
             iterableResult = Iterables.filter(iterableResult, AisPacketFilters.parseExpressionFilter(filter));
         }
         
-        OutputStreamSink<AisPacket> sink = AisPacketOutputSinks.getOutputSink(outputFormat);
+        OutputStreamSink<AisPacket> sink = AisPacketOutputSinks.getOutputSink(outputFormat,columns,seperator);
         
         FileOutputStream fos;
         if (filePath != null) {
