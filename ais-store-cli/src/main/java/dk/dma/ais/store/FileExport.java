@@ -59,7 +59,7 @@ public class FileExport extends AbstractCommandLineTool {
     @Parameter(names = "-mmsi", description = "Extract from mmsi schema")
     List<Integer> mmsis = new ArrayList<Integer>();
     
-    @Parameter(names = { "-area", "-box" }, description = "Extract from geopgraphic cells schema within bounding box lat1,lon1,lat2,lon2")
+    @Parameter(names = { "-area", "-box", "-geo" }, description = "Extract from geopgraphic cells schema within bounding box lat1,lon1,lat2,lon2")
     String area;
     
     @Parameter(names = "-outputFormat", description = "Output format, options: raw, json, jsonObject (use -columns), kml, kmz, table (use -columns)")
@@ -71,7 +71,7 @@ public class FileExport extends AbstractCommandLineTool {
     @Parameter(names = "-separator", description = "Optional separator, used for table format.")
     String separator = ",";
     
-    @Parameter(names = "-file", description = "File to extract to (default is stdout)")
+    @Parameter(names = { "-file", "-output", "-o" }, description = "File to extract to (default is stdout)")
     String filePath;
 
     @Parameter(names = "-fetchSize", description = "internal fetch size buffer")
