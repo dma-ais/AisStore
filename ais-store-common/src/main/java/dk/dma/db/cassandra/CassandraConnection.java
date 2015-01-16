@@ -21,6 +21,7 @@ import java.util.List;
 
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.SocketOptions;
 import com.google.common.util.concurrent.AbstractService;
 
 /**
@@ -119,7 +120,7 @@ public final class CassandraConnection extends AbstractService {
      * @return a new connection
      */
     public static CassandraConnection create(String keyspace, List<String> connectionPoints) {
-        Cluster cluster = Cluster.builder().addContactPoints(connectionPoints.toArray(new String[0])).build();
+        Cluster cluster = Cluster.builder().addContactPoints(connectionPoints.toArray(new String[0])).withSocketOptions(new SocketOptions().setConnectTimeoutMillis(1000*60)).build();
         return new CassandraConnection(cluster, keyspace);
     }
 }
