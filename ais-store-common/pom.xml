@@ -1,39 +1,45 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
-  <modelVersion>4.0.0</modelVersion>
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+	<modelVersion>4.0.0</modelVersion>
 
-  <parent>
-    <groupId>dk.dma.ais.store</groupId>
-    <artifactId>ais-store-parent</artifactId>
-    <version>0.3-SNAPSHOT</version>
-  </parent>
+	<parent>
+		<groupId>dk.dma.ais.store</groupId>
+		<artifactId>ais-store-parent</artifactId>
+		<version>0.3-SNAPSHOT</version>
+	</parent>
 
-  <artifactId>ais-store-common</artifactId>
-  <name>AisStore Common</name>
-  <description>AisStore Common</description>
+	<artifactId>ais-store-common</artifactId>
+	<name>AisStore Common</name>
+	<description>AisStore Common</description>
 
-  <dependencies>
-	<dependency>
-	    <groupId>com.datastax.cassandra</groupId>
-	    <artifactId>cassandra-driver-core</artifactId>
-	    <version>2.1.4</version>
-	</dependency>
-    <dependency>
-      <groupId>dk.dma.ais.lib</groupId>
-      <artifactId>ais-lib-communication</artifactId>
-      <version>2.2-SNAPSHOT</version>
-    </dependency>
-    <dependency>
-      <groupId>dk.dma.commons</groupId>
-      <artifactId>dma-commons-tracker</artifactId>
-      <version>0.3-SNAPSHOT</version>
-    </dependency>
-        <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-      <version>${dependencies.guava.version}</version>
-    </dependency> 
-  </dependencies>
+	<dependencies>
+		<dependency>
+			<groupId>com.datastax.cassandra</groupId>
+			<artifactId>cassandra-driver-core</artifactId>
+			<version>2.1.4</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.cassandra</groupId>
+			<artifactId>cassandra-all</artifactId>
+			<version>2.1.2</version>
+		</dependency>
+
+		<dependency>
+			<groupId>dk.dma.ais.lib</groupId>
+			<artifactId>ais-lib-communication</artifactId>
+			<version>2.2-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>dk.dma.commons</groupId>
+			<artifactId>dma-commons-tracker</artifactId>
+			<version>0.3-SNAPSHOT</version>
+		</dependency>
+		<dependency>
+			<groupId>com.google.guava</groupId>
+			<artifactId>guava</artifactId>
+			<version>${dependencies.guava.version}</version>
+		</dependency>
+	</dependencies>
 
 </project>

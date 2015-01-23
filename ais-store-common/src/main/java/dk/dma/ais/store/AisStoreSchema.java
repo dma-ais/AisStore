@@ -84,7 +84,7 @@ public class AisStoreSchema {
      *            the timestamp to convert
      * @return the converted value
      */
-    static int getTimeBlock(long timestamp) {
+    public static int getTimeBlock(long timestamp) {
         return Ints.checkedCast(timestamp / 10 / 60 / 1000);
     }
 
