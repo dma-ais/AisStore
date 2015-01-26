@@ -78,6 +78,10 @@ public class FileExport extends AbstractCommandLineTool {
     Integer fetchSize = 3000;
     
 
+    @Parameter(names = "-dryrun", description = "generate the cqlsh commands only")
+    Boolean dryrun = false;
+    
+
     /** {@inheritDoc} */
     @Override
     protected void run(Injector injector) throws Exception {
@@ -95,6 +99,12 @@ public class FileExport extends AbstractCommandLineTool {
         }
         
         b.setInterval(DateTimeUtil.toInterval(interval));
+        
+        
+        if (dryrun) {
+            System.out.println(b);
+            return;
+        }
         
         CassandraConnection conn = CassandraConnection.create(keyspace, seeds);
         conn.startAsync();
