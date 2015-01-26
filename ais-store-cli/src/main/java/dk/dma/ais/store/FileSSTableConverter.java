@@ -54,21 +54,25 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
 
     @Parameter(names = "-verbose", description = "verbose prints packets/second stats")
     boolean verbose;
+    
+    @Parameter(names = "-tag", description = "Overwrite the tag")
+    String tag;
+    
 
     /** {@inheritDoc} */
     @Override
     protected void run(Injector injector) throws Exception {
-        Properties props = System.getProperties();
-        props.setProperty("cassandra.config", "file://"+inDirectory+"cassandra.yaml");
 
         AisStoreSSTableGenerator gen = AisStoreSSTableGenerator
-                .createAisStoreSSTableGenerator(inDirectory);
+                .createAisStoreSSTableGenerator(inDirectory,keyspace);
         final AtomicInteger acceptedCount = new AtomicInteger();
         final long start = System.currentTimeMillis();
         AisReader reader = AisReaders.createDirectoryReader(path, glob,
                 recursive);
 
-        reader.registerPacketHandler(gen);
+        if (tag != null) {
+            reader.setSourceId(tag);
+        }
 
         // print stats if verbose
         if (verbose) {
@@ -83,10 +87,12 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
                 }
             });
         }
+        
+        reader.registerPacketHandler(gen);
 
         reader.start();
         reader.join();
-        gen.stop();
+        gen.close();
         LOG.info("Finished processing directory, " + acceptedCount
                 + " packets was converted from " + path);
         

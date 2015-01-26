@@ -1,0 +1,93 @@
+#placeholder config for use with SSTable generators
+
+compaction_throughput_mb_per_sec: 0
+row_cache_save_period: 0
+cross_node_timeout: false
+internode_compression: all
+storage_port: 7000
+key_cache_save_period: 14400
+inter_dc_tcp_nodelay: false
+start_rpc: true
+trickle_fsync_interval_in_kb: 10240
+dynamic_snitch_update_interval_in_ms: 100
+column_index_size_in_kb: 64
+disk_failure_policy: stop
+thrift_framed_transport_size_in_mb: 15
+authorizer: AllowAllAuthorizer
+read_request_timeout_in_ms: 45000
+hinted_handoff_enabled: 'true'
+dynamic_snitch_reset_interval_in_ms: 600000
+snapshot_before_compaction: false
+request_scheduler: org.apache.cassandra.scheduler.NoScheduler
+max_hints_delivery_threads: 2
+tombstone_failure_threshold: 100000
+incremental_backups: false
+memory_allocator: NativeAllocator
+commitlog_sync: periodic
+permissions_validity_in_ms: 2000
+trickle_fsync: false
+rpc_keepalive: true
+max_hint_window_in_ms: 10800000
+commitlog_segment_size_in_mb: 32
+commit_failure_policy: stop
+native_transport_max_threads: 128
+cluster_name: supertemporary
+range_request_timeout_in_ms: 10000
+write_request_timeout_in_ms: 2000
+request_timeout_in_ms: 10000
+internode_authenticator: org.apache.cassandra.auth.AllowAllInternodeAuthenticator
+num_tokens: 256
+authenticator: AllowAllAuthenticator
+row_cache_size_in_mb: 0
+dynamic_snitch_badness_threshold: 0.1
+commitlog_sync_period_in_ms: 10000
+auto_snapshot: true
+hinted_handoff_throttle_in_kb: 1024
+concurrent_reads: 32
+endpoint_snitch: org.apache.cassandra.locator.SimpleSnitch
+client_encryption_options:
+  enabled: false
+  require_client_auth: false
+  keystore: conf/.keystore
+  truststore: conf/.truststore
+  algorithm: SunX509
+  cipher_suites: [TLS_RSA_WITH_AES_128_CBC_SHA, TLS_RSA_WITH_AES_256_CBC_SHA, TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
+    TLS_DHE_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA]
+  truststore_password: cassandra
+  keystore_password: cassandra
+  protocol: TLS
+  store_type: JKS
+partitioner: org.apache.cassandra.dht.Murmur3Partitioner
+saved_caches_directory: PLACEHOLDER_SAVED_CACHES
+ssl_storage_port: 7001
+truncate_request_timeout_in_ms: 60000
+rpc_address: 10.51.78.14
+rpc_port: 9160
+commitlog_directory: PLACEHOLDER_COMMIT_LOG
+cas_contention_timeout_in_ms: 1000
+native_transport_max_frame_size_in_mb: 256
+listen_address: 10.51.78.14
+tombstone_warn_threshold: 1000
+rpc_server_type: sync
+concurrent_writes: 32
+data_file_directories: [PLACEHOLDER_DATA_FILE_DIRECTORIES]
+batch_size_warn_threshold_in_kb: 5
+server_encryption_options:
+  require_client_auth: false
+  keystore: conf/.keystore
+  internode_encryption: none
+  truststore: conf/.truststore
+  algorithm: SunX509
+  cipher_suites: [TLS_RSA_WITH_AES_128_CBC_SHA, TLS_RSA_WITH_AES_256_CBC_SHA, TLS_DHE_RSA_WITH_AES_128_CBC_SHA,
+    TLS_DHE_RSA_WITH_AES_256_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_128_CBC_SHA, TLS_ECDHE_RSA_WITH_AES_256_CBC_SHA]
+  truststore_password: cassandra
+  keystore_password: cassandra
+  protocol: TLS
+  store_type: JKS
+start_native_transport: true
+native_transport_port: 9042
+seed_provider:
+- class_name: org.apache.cassandra.locator.SimpleSeedProvider
+  parameters:
+  - {seeds: '127.0.0.1'}
+batchlog_replay_throttle_in_kb: 1024

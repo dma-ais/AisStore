@@ -17,13 +17,14 @@ package dk.dma.ais.store.importer;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
-import org.apache.cassandra.dht.Murmur3Partitioner;
-import org.apache.cassandra.exceptions.InvalidRequestException;
-import org.apache.cassandra.io.sstable.CQLSSTableWriter;
-import org.apache.cassandra.io.sstable.CQLSSTableWriter.Builder;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -47,21 +48,10 @@ import dk.dma.enav.model.geometry.PositionTime;
  *
  */
 public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
-    
+
     /** The logger. */
-    static final Logger LOG = LoggerFactory.getLogger(AisStoreSSTableGenerator.class);
-
-    private static final String packetsTimeSchema = "CREATE TABLE aisdata.packets_time (timeblock int,timehash blob,aisdata blob,PRIMARY KEY (timeblock, timehash))";//+"WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':1024} AND comment = 'Contains AIS data ordered by receive time.'";
-    private static final String packetsMmsiSchema = "CREATE TABLE aisdata.packets_mmsi (mmsi int,timehash blob,aisdata blob,PRIMARY KEY (mmsi, timehash)) WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':256} AND comment     = 'Contains AIS data ordered by mmsi number.'";
-    private static final String packetsAreaCell1Schema = "CREATE TABLE aisdata.packets_area_cell1 (cellid int,timehash blob,aisdata blob,PRIMARY KEY (cellid, timehash)) WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':1024} AND comment = 'Contains AIS data ordered by cells of size 1 degree.'";
-    private static final String packetsAreaCell10Schema = "CREATE TABLE aisdata.packets_area_cell10 (cellid int,timehash blob,aisdata blob,PRIMARY KEY (cellid, timehash)) WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':1024} AND comment = 'Contains AIS data ordered by cells of size 10 degree.'";
-    private static final String packetsAreaUnknownSchema = "CREATE TABLE aisdata.packets_area_unknown (mmsi int,timehash blob,aisdata blob,PRIMARY KEY (mmsi, timehash)) WITH compression = {'sstable_compression':'DeflateCompressor', 'chunk_length_kb':256} AND comment = 'Contains AIS data where the area has not yet been determined.'";
-
-    CQLSSTableWriter packetsTime = null;
-    CQLSSTableWriter packetsMmsi = null;
-    CQLSSTableWriter packets_area_cell1 = null;
-    CQLSSTableWriter packets_area_cell10 = null;
-    CQLSSTableWriter packets_area_unknown = null;
+    static final Logger LOG = LoggerFactory
+            .getLogger(AisStoreSSTableGenerator.class);
 
     public static final long POSITION_TIMEOUT_MS = TimeUnit.MILLISECONDS
             .convert(20, TimeUnit.MINUTES);
@@ -75,57 +65,56 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
             .expireAfterWrite(POSITION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             .build();
 
-    public AisStoreSSTableGenerator(String inDirectory) {
-        Builder builder = CQLSSTableWriter
-                .builder();
+    
 
+    private AisStoreTableWriter packetsTimeWriter;
+
+    private AisStoreTableWriter packetsMmsiWriter;
+
+    private AisStoreTableWriter packetsAreaCell1Writer;
+
+    private AisStoreTableWriter packetsAreaCell10Writer;
+
+    private AisStoreTableWriter packetsAreaUnknownWriter;
+
+    public AisStoreSSTableGenerator(String inDirectory, String keyspace) {
         
-        packetsTime = builder
-                .inDirectory(inDirectory)
-                .forTable(packetsTimeSchema)
-                .using("INSERT INTO aisdata.packets_time (timeblock, timehash, aisdata) VALUES (?, ?, ?) using TIMESTAMP ?")
-                .withPartitioner(new Murmur3Partitioner())
-                .withBufferSizeInMB(64)
-                .build();
-        
-        
-        /*
-        packetsMmsi = builder
-                .inDirectory(inDirectory+"packets_mmsi")
-                .forTable(packetsMmsiSchema)
-                .using("INSERT INTO aisdata.packets_mmsi (mmsi, timehash, aisdata) VALUES (?,?,?) using TIMESTAMP ?")
-                .withPartitioner(new Murmur3Partitioner())
-                .build();
+        Properties props = System.getProperties();
+        props.setProperty("cassandra.config", "file://"+inDirectory+"cassandra.yaml");
 
-        packets_area_cell1 = builder
-                .inDirectory(inDirectory)
-                .forTable(packetsAreaCell1Schema)
-                .using("INSERT INTO aisdata.packets_area_cell1 (cellid, timehash, aisdata) VALUES (?,?,?) using TIMESTAMP ?")
-                .withPartitioner(new Murmur3Partitioner())
-                .build();
 
-        packets_area_cell10 = builder
-                .inDirectory(inDirectory)
-                .forTable(packetsAreaCell10Schema)
-                .using("INSERT INTO aisdata.packets_area_cell10 (cellid, timehash, aisdata) VALUES (?,?,?) using TIMESTAMP ?")
-                .withPartitioner(new Murmur3Partitioner())
-                .build();
+        Arrays.asList(AisStoreSchema.TABLE_MMSI, AisStoreSchema.TABLE_TIME,
+                AisStoreSchema.TABLE_AREA_CELL1,
+                AisStoreSchema.TABLE_AREA_CELL10,
+                AisStoreSchema.TABLE_AREA_UNKNOWN).stream().sequential()
+                .forEach(directory -> {
+                    try {
+                        Files.createDirectory(Paths.get(inDirectory, directory));
+                    } catch (FileAlreadyExistsException e) {
+                        //do nothing
+                    } catch (Exception e) {
+                        // TODO Auto-generated catch block
+                        e.printStackTrace();
+                    }
+                });
 
-        packets_area_unknown = builder
-                .inDirectory(inDirectory+"_packets_area_unknown")
-                .forTable(packetsAreaUnknownSchema)
-                .using("INSERT INTO aisdata.packets_area_unknown (mmsi, timehash, aisdata) VALUES (?,?,?) using TIMESTAMP ?")
-                .withPartitioner(new Murmur3Partitioner())
-                .build();
-                
-                */
-
+        packetsTimeWriter = AisStoreTableWriters.newPacketTimeWriter(
+                inDirectory, keyspace);
+        packetsMmsiWriter = AisStoreTableWriters.newPacketMmsiWriter(
+                inDirectory, keyspace);
+        packetsAreaCell1Writer = AisStoreTableWriters.newPacketAreaCell1Writer(
+                inDirectory, keyspace);
+        packetsAreaCell10Writer = AisStoreTableWriters
+                .newPacketAreaCell10Writer(inDirectory, keyspace);
+        packetsAreaUnknownWriter = AisStoreTableWriters
+                .newPacketAreaUnknownWriter(inDirectory, keyspace);
+        packetsTimeWriter = AisStoreTableWriters.newPacketTimeWriter(
+                inDirectory, keyspace);
     }
 
-    private void process(AisPacket packet) throws InvalidRequestException, IOException {
+    private void process(AisPacket packet) throws IOException {
 
         long ts = packet.getBestTimestamp();
-        ByteBuffer tsByteBuffer = ByteBuffer.wrap(Longs.toByteArray(ts));
         if (ts > 0) { // only save packets with a valid timestamp
 
             byte[] hash = Hashing.murmur3_128()
@@ -139,10 +128,9 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
             ByteBuffer timehash = ByteBuffer.wrap(column);
             ByteBuffer aisdata = ByteBuffer.wrap(data);
 
-            
-            packetsTime.rawAddRow(timeblock, timehash, aisdata, tsByteBuffer);
+            packetsTimeWriter.addRow(new ByteBuffer[] { timeblock, timehash,
+                    aisdata }, ts);
 
-            /*
             // packets are only stored by time, if they are not a proper message
             AisMessage message = packet.tryGetAisMessage();
             if (message == null) {
@@ -151,7 +139,9 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
 
             ByteBuffer mmsi = ByteBuffer.wrap(Ints.toByteArray(message
                     .getUserId()));
-            //packetsMmsi.rawAddRow(mmsi, timehash, aisdata, tsByteBuffer);
+
+            packetsMmsiWriter.addRow(
+                    new ByteBuffer[] { mmsi, timehash, aisdata }, ts);
 
             Position p = message.getValidPosition();
 
@@ -168,54 +158,60 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
                         });
             }
 
-            
-            ByteBuffer cell1 = ByteBuffer.wrap(Ints.toByteArray(p
-                    .getCellInt(1.0)));
-            ByteBuffer cell10 = ByteBuffer.wrap(Ints.toByteArray(p
-                    .getCellInt(10.0)));
-            
-            if (p != null && Position.isValid(p.getLatitude(), p.getLongitude())) {
-                //packets_area_cell1.rawAddRow(cell1, timehash, aisdata,
-                //        tsByteBuffer);
-                //packets_area_cell10.rawAddRow(cell10, timehash, aisdata,
-                //        tsByteBuffer);
+
+
+            if (p != null
+                    && Position.isValid(p.getLatitude(), p.getLongitude())) {
+                
+                ByteBuffer cell1 = ByteBuffer.wrap(Ints.toByteArray(p
+                        .getCellInt(1.0)));
+                ByteBuffer cell10 = ByteBuffer.wrap(Ints.toByteArray(p
+                        .getCellInt(10.0)));
+                
+                packetsAreaCell1Writer.addRow(new ByteBuffer[] { cell1,
+                        timehash, aisdata }, ts);
+                packetsAreaCell10Writer.addRow(new ByteBuffer[] { cell10,
+                        timehash, aisdata }, ts);
             } else {
-                //packets_area_unknown.rawAddRow(mmsi, timehash, aisdata,
-                //        tsByteBuffer);
+                packetsAreaUnknownWriter.addRow(new ByteBuffer[] { mmsi,
+                        timehash, aisdata }, ts);
             }
-            */
-            
+
         }
-            
-       
+
     }
 
     /**
      * 
-     * @param inDirectory which directory to place sstables in
+     * @param inDirectory
+     *            which directory to place sstables in
      * @return
      */
     public static AisStoreSSTableGenerator createAisStoreSSTableGenerator(
-            String inDirectory) {
+            String inDirectory, String keyspace) {
 
-        return new AisStoreSSTableGenerator(inDirectory);
+        return new AisStoreSSTableGenerator(inDirectory, keyspace);
 
     }
-    
-    
-    public void stop() throws IOException {
-        packetsTime.close();
+
+    public void close() throws IOException {
+        packetsTimeWriter.close();
+        packetsMmsiWriter.close();
+        packetsAreaCell10Writer.close();
+        packetsAreaUnknownWriter.close();
+        packetsAreaCell1Writer.close();
     }
 
     @Override
     public void accept(AisPacket t) {
         try {
             this.process(t);
-        } catch (InvalidRequestException | IOException e) {
-            LOG.warn("Failed to convert packet");
+        } catch (IOException e) {
+            LOG.warn("Failed to convert packet with timestamp "
+                    + t.getBestTimestamp());
             e.printStackTrace();
         }
-        
+
     }
 
 }
