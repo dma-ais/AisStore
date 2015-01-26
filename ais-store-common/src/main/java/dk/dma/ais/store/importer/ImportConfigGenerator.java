@@ -15,11 +15,13 @@
  */
 package dk.dma.ais.store.importer;
 
+import java.io.BufferedReader;
 import java.io.IOException;
+import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.net.URISyntaxException;
 import java.nio.charset.Charset;
 import java.nio.file.Files;
-import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
@@ -27,12 +29,10 @@ import java.util.stream.Stream;
 public class ImportConfigGenerator {
     
     public static final void generate(String inDirectory) throws IOException, URISyntaxException {
-        
-        Path p = Paths.get(ImportConfigGenerator.class.getResource("/cassandra.yaml").toURI());
+        InputStream inputStream = ImportConfigGenerator.class.getResourceAsStream("/cassandra.yaml");
+        BufferedReader buf = new BufferedReader(new InputStreamReader(inputStream));
 
-        Stream<String> r = Files.lines(p);
-        
-        Stream<String> result = r.map(line -> {
+        Stream<String> result = buf.lines().map(line -> {
         
             if (line.contains("saved_caches_directory: PLACEHOLDER_SAVED_CACHES")) {
                 return "saved_caches_directory: "+Paths.get(inDirectory, "/saved_caches").toAbsolutePath().toString();
