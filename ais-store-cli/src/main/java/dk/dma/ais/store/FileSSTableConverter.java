@@ -14,6 +14,8 @@
  */
 package dk.dma.ais.store;
 
+import java.nio.file.Paths;
+import java.util.Properties;
 import java.util.concurrent.atomic.AtomicInteger;
 
 import org.slf4j.Logger;
@@ -25,6 +27,7 @@ import com.google.inject.Injector;
 import dk.dma.ais.reader.AisReader;
 import dk.dma.ais.reader.AisReaders;
 import dk.dma.ais.store.importer.AisStoreSSTableGenerator;
+import dk.dma.ais.store.importer.ImportConfigGenerator;
 import dk.dma.commons.app.AbstractCommandLineTool;
 
 /**
@@ -39,6 +42,9 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
     @Parameter(names = "-keyspace", description = "The keyspace in cassandra")
     String keyspace = "aisdata";
 
+    /**
+     * Naming scheme "in directory" comes from Cassandra
+     */
     @Parameter(names = { "-path", "-output", "-o" }, description = "path to extract to")
     String inDirectory;
 
@@ -61,9 +67,16 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
     /** {@inheritDoc} */
     @Override
     protected void run(Injector injector) throws Exception {
-
+        
+        //bootstrap a valid cassandra.yaml config file into the inDirectory
+        ImportConfigGenerator.generate(inDirectory);
+        Properties props = System.getProperties();
+        props.setProperty("cassandra.config", Paths.get("file://",inDirectory, "cassandra.yaml").toString());
+        
         AisStoreSSTableGenerator gen = AisStoreSSTableGenerator
                 .createAisStoreSSTableGenerator(inDirectory,keyspace);
+        
+        
         final AtomicInteger acceptedCount = new AtomicInteger();
         final long start = System.currentTimeMillis();
         AisReader reader = AisReaders.createDirectoryReader(path, glob,

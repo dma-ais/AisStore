@@ -19,11 +19,14 @@ import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.nio.file.Paths;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.stream.Collectors;
 
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.db.marshal.CompositeType;
 import org.apache.cassandra.dht.Murmur3Partitioner;
+import org.apache.cassandra.exceptions.ConfigurationException;
+import org.apache.cassandra.io.compress.CompressionParameters;
 import org.apache.cassandra.io.sstable.SSTableSimpleUnsortedWriter;
 
 /**
@@ -40,16 +43,21 @@ public class AisStoreTableWriter implements AisStoreRowGenerator {
     SSTableSimpleUnsortedWriter writer;
     AbstractType<?>[] types;
     ByteBuffer[] keys;
+    
+    int chunkLength = 256;
 
 
     public final SSTableSimpleUnsortedWriter getWriter() {
         return writer;
     }
 
-    public AisStoreTableWriter(String inDirectory,String keyspace,String tableName,Collection<String>keyNames, AbstractType<?>... types) {
+    public AisStoreTableWriter(String inDirectory,String keyspace,String tableName,Collection<String>keyNames, int chunkLength,AbstractType<?>... types) throws ConfigurationException {
         cmpType = CompositeType.getInstance(types);
         keys = keyNames.stream().map(keyName -> cmpType.builder().add((ByteBuffer.wrap(keyName.getBytes()))).build()).collect(Collectors.toList()).toArray(new ByteBuffer[0]);
-        writer = new SSTableSimpleUnsortedWriter(Paths.get(inDirectory, "/"+tableName).toFile(), partitioner, keyspace, tableName, cmpType, null,128);
+        this.chunkLength = chunkLength;
+        CompressionParameters compOpts = new CompressionParameters("LZ4Compressor", chunkLength, new HashMap<String,String>());
+        writer = new SSTableSimpleUnsortedWriter(Paths.get(inDirectory, "/"+tableName).toFile(), partitioner, keyspace, tableName, cmpType, null,128, compOpts);
+        
     }
     
     public void addRow(ByteBuffer[] values, long timestamp) throws IOException {        

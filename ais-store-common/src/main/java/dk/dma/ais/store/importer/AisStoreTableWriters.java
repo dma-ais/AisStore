@@ -15,14 +15,13 @@
  */
 package dk.dma.ais.store.importer;
 
-import java.io.IOException;
-import java.nio.ByteBuffer;
 import java.util.Arrays;
 import java.util.List;
 
 import org.apache.cassandra.db.marshal.AbstractType;
 import org.apache.cassandra.db.marshal.BytesType;
 import org.apache.cassandra.db.marshal.IntegerType;
+import org.apache.cassandra.exceptions.ConfigurationException;
 
 import dk.dma.ais.store.AisStoreSchema;
 /**
@@ -32,40 +31,40 @@ import dk.dma.ais.store.AisStoreSchema;
  */
 public class AisStoreTableWriters {
     
-    static final AisStoreTableWriter newPacketTimeWriter(String inDirectory,String keyspace) {
+    static final AisStoreTableWriter newPacketTimeWriter(String inDirectory,String keyspace) throws ConfigurationException {
         @SuppressWarnings("rawtypes")
         AbstractType[] types = {IntegerType.instance, BytesType.instance, BytesType.instance};
         List<String> keys = Arrays.asList(AisStoreSchema.TABLE_TIME_KEY,AisStoreSchema.COLUMN_TIMEHASH,AisStoreSchema.COLUMN_AISDATA);
-        return new AisStoreTableWriter(inDirectory,keyspace,AisStoreSchema.TABLE_TIME, keys, types);
+        return new AisStoreTableWriter(inDirectory,keyspace,AisStoreSchema.TABLE_TIME, keys, 1024, types);
     }
     
-    static final AisStoreTableWriter newPacketMmsiWriter(String inDirectory,String keyspace) {
+    static final AisStoreTableWriter newPacketMmsiWriter(String inDirectory,String keyspace) throws ConfigurationException {
         @SuppressWarnings("rawtypes")
         AbstractType[] types = {IntegerType.instance, BytesType.instance, BytesType.instance};
         List<String> keys = Arrays.asList(AisStoreSchema.TABLE_MMSI_KEY,AisStoreSchema.COLUMN_TIMEHASH,AisStoreSchema.COLUMN_AISDATA);
-        return new AisStoreTableWriter(inDirectory,keyspace,AisStoreSchema.TABLE_MMSI, keys, types);
+        return new AisStoreTableWriter(inDirectory,keyspace,AisStoreSchema.TABLE_MMSI, keys, 256, types);
     }
     
     
-    static final AisStoreTableWriter newPacketAreaCell1Writer(String inDirectory,String keyspace) {
+    static final AisStoreTableWriter newPacketAreaCell1Writer(String inDirectory,String keyspace) throws ConfigurationException {
         @SuppressWarnings("rawtypes")
         AbstractType[] types = {IntegerType.instance, BytesType.instance, BytesType.instance};
         List<String> keys = Arrays.asList(AisStoreSchema.TABLE_AREA_CELL1_KEY,AisStoreSchema.COLUMN_TIMEHASH,AisStoreSchema.COLUMN_AISDATA);
-        return new AisStoreTableWriter(inDirectory,keyspace,AisStoreSchema.TABLE_AREA_CELL1, keys, types);
+        return new AisStoreTableWriter(inDirectory,keyspace,AisStoreSchema.TABLE_AREA_CELL1, keys, 1024, types);
     }
     
-    static final AisStoreTableWriter newPacketAreaCell10Writer(String inDirectory,String keyspace) {
+    static final AisStoreTableWriter newPacketAreaCell10Writer(String inDirectory,String keyspace) throws ConfigurationException {
         @SuppressWarnings("rawtypes")
         AbstractType[] types = {IntegerType.instance, BytesType.instance, BytesType.instance};
         List<String> keys = Arrays.asList(AisStoreSchema.TABLE_AREA_CELL10_KEY,AisStoreSchema.COLUMN_TIMEHASH,AisStoreSchema.COLUMN_AISDATA);
-        return new AisStoreTableWriter(inDirectory,keyspace,AisStoreSchema.TABLE_AREA_CELL10, keys, types);
+        return new AisStoreTableWriter(inDirectory,keyspace,AisStoreSchema.TABLE_AREA_CELL10, keys, 1024, types);
     }
 
-    static final AisStoreTableWriter newPacketAreaUnknownWriter(String inDirectory,String keyspace) {
+    static final AisStoreTableWriter newPacketAreaUnknownWriter(String inDirectory,String keyspace) throws ConfigurationException {
         @SuppressWarnings("rawtypes")
         AbstractType[] types = {IntegerType.instance, BytesType.instance, BytesType.instance};
         List<String> keys = Arrays.asList(AisStoreSchema.TABLE_AREA_UNKNOWN_KEY,AisStoreSchema.COLUMN_TIMEHASH,AisStoreSchema.COLUMN_AISDATA);
-        return new AisStoreTableWriter(inDirectory,keyspace,AisStoreSchema.TABLE_AREA_UNKNOWN, keys, types);
+        return new AisStoreTableWriter(inDirectory,keyspace,AisStoreSchema.TABLE_AREA_UNKNOWN, keys, 256, types);
     }
             
 

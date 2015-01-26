@@ -16,6 +16,7 @@
 package dk.dma.ais.store.importer;
 
 import java.io.IOException;
+import java.net.URISyntaxException;
 import java.nio.ByteBuffer;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
@@ -25,6 +26,7 @@ import java.util.Properties;
 import java.util.concurrent.TimeUnit;
 import java.util.function.Consumer;
 
+import org.apache.cassandra.exceptions.ConfigurationException;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -77,12 +79,7 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
 
     private AisStoreTableWriter packetsAreaUnknownWriter;
 
-    public AisStoreSSTableGenerator(String inDirectory, String keyspace) {
-        
-        Properties props = System.getProperties();
-        props.setProperty("cassandra.config", "file://"+inDirectory+"cassandra.yaml");
-
-
+    public AisStoreSSTableGenerator(String inDirectory, String keyspace) throws ConfigurationException, IOException, URISyntaxException {
         Arrays.asList(AisStoreSchema.TABLE_MMSI, AisStoreSchema.TABLE_TIME,
                 AisStoreSchema.TABLE_AREA_CELL1,
                 AisStoreSchema.TABLE_AREA_CELL10,
@@ -186,9 +183,12 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
      * @param inDirectory
      *            which directory to place sstables in
      * @return
+     * @throws ConfigurationException 
+     * @throws URISyntaxException 
+     * @throws IOException 
      */
     public static AisStoreSSTableGenerator createAisStoreSSTableGenerator(
-            String inDirectory, String keyspace) {
+            String inDirectory, String keyspace) throws ConfigurationException, IOException, URISyntaxException {
 
         return new AisStoreSSTableGenerator(inDirectory, keyspace);
 
