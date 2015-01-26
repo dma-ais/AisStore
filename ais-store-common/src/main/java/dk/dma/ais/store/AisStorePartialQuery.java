@@ -146,7 +146,7 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
             while (it.hasNext() && innerReceived < batchLimit) {
 
                 // optimistic automatic-paging+fetch
-                if (rs.getAvailableWithoutFetching() == 200000
+                if (rs.getAvailableWithoutFetching() == 100
                         && !rs.isFullyFetched()) {
                     rs.fetchMoreResults();
                 }
