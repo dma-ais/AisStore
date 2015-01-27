@@ -69,7 +69,7 @@ public class AisStoreTableWriter implements AisStoreRowGenerator {
         writer.newRow(values[0]);
         
         //writer.addColumn(cmpType.builder().add(values[1]).build(), ByteBuffer.wrap(new byte[0]), timestamp);
-        writer.addColumn(cmpType.builder().add(values[1]).add(keys[2]).build(),values[2], timestamp);
+        writer.addColumn(cmpType.builder().add(values[1]).add(keys[2]).build(),values[2], timestamp*1000);
         
     }
     

@@ -23,7 +23,7 @@ public interface AisStoreRowGenerator {
     /**
      * Column values to add + same timestamp for each
      * @param values
-     * @param timestamp
+     * @param timestamp in milliseconds
      * @throws IOException 
      */
     public void addRow(ByteBuffer[] values, long timestamp) throws IOException;
