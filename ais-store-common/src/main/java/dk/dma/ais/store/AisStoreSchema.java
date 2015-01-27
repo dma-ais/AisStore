@@ -109,7 +109,7 @@ public class AisStoreSchema {
         i.value(keyName, key);
         i.value(COLUMN_TIMEHASH, ByteBuffer.wrap(time_hash));
         i.value(COLUMN_AISDATA, ByteBuffer.wrap(aisData));
-        i.using(QueryBuilder.timestamp(timestamp));
+        i.using(QueryBuilder.timestamp(timestamp*1000));
         return i;
     }
 
