@@ -86,7 +86,7 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
                 AisStoreSchema.TABLE_AREA_UNKNOWN).stream().sequential()
                 .forEach(directory -> {
                     try {
-                        Files.createDirectory(Paths.get(inDirectory, directory));
+                        Files.createDirectories(Paths.get(inDirectory,keyspace, directory));
                     } catch (FileAlreadyExistsException e) {
                         //do nothing
                     } catch (Exception e) {

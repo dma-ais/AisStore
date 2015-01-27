@@ -33,14 +33,14 @@ public class AisStoreTableWriters {
     
     static final AisStoreTableWriter newPacketTimeWriter(String inDirectory,String keyspace) throws ConfigurationException {
         @SuppressWarnings("rawtypes")
-        AbstractType[] types = {IntegerType.instance, BytesType.instance, BytesType.instance};
+        AbstractType[] types = {IntegerType.instance, BytesType.instance};
         List<String> keys = Arrays.asList(AisStoreSchema.TABLE_TIME_KEY,AisStoreSchema.COLUMN_TIMEHASH,AisStoreSchema.COLUMN_AISDATA);
         return new AisStoreTableWriter(inDirectory,keyspace,AisStoreSchema.TABLE_TIME, keys, 1024, types);
     }
     
     static final AisStoreTableWriter newPacketMmsiWriter(String inDirectory,String keyspace) throws ConfigurationException {
         @SuppressWarnings("rawtypes")
-        AbstractType[] types = {IntegerType.instance, BytesType.instance, BytesType.instance};
+        AbstractType[] types = {IntegerType.instance, BytesType.instance};
         List<String> keys = Arrays.asList(AisStoreSchema.TABLE_MMSI_KEY,AisStoreSchema.COLUMN_TIMEHASH,AisStoreSchema.COLUMN_AISDATA);
         return new AisStoreTableWriter(inDirectory,keyspace,AisStoreSchema.TABLE_MMSI, keys, 256, types);
     }
@@ -48,21 +48,21 @@ public class AisStoreTableWriters {
     
     static final AisStoreTableWriter newPacketAreaCell1Writer(String inDirectory,String keyspace) throws ConfigurationException {
         @SuppressWarnings("rawtypes")
-        AbstractType[] types = {IntegerType.instance, BytesType.instance, BytesType.instance};
+        AbstractType[] types = {IntegerType.instance, BytesType.instance};
         List<String> keys = Arrays.asList(AisStoreSchema.TABLE_AREA_CELL1_KEY,AisStoreSchema.COLUMN_TIMEHASH,AisStoreSchema.COLUMN_AISDATA);
         return new AisStoreTableWriter(inDirectory,keyspace,AisStoreSchema.TABLE_AREA_CELL1, keys, 1024, types);
     }
     
     static final AisStoreTableWriter newPacketAreaCell10Writer(String inDirectory,String keyspace) throws ConfigurationException {
         @SuppressWarnings("rawtypes")
-        AbstractType[] types = {IntegerType.instance, BytesType.instance, BytesType.instance};
+        AbstractType[] types = {IntegerType.instance, BytesType.instance};
         List<String> keys = Arrays.asList(AisStoreSchema.TABLE_AREA_CELL10_KEY,AisStoreSchema.COLUMN_TIMEHASH,AisStoreSchema.COLUMN_AISDATA);
         return new AisStoreTableWriter(inDirectory,keyspace,AisStoreSchema.TABLE_AREA_CELL10, keys, 1024, types);
     }
 
     static final AisStoreTableWriter newPacketAreaUnknownWriter(String inDirectory,String keyspace) throws ConfigurationException {
         @SuppressWarnings("rawtypes")
-        AbstractType[] types = {IntegerType.instance, BytesType.instance, BytesType.instance};
+        AbstractType[] types = {IntegerType.instance, BytesType.instance};
         List<String> keys = Arrays.asList(AisStoreSchema.TABLE_AREA_UNKNOWN_KEY,AisStoreSchema.COLUMN_TIMEHASH,AisStoreSchema.COLUMN_AISDATA);
         return new AisStoreTableWriter(inDirectory,keyspace,AisStoreSchema.TABLE_AREA_UNKNOWN, keys, 256, types);
     }
