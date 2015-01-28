@@ -108,6 +108,8 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
         LOG.info("Finished processing directory, " + acceptedCount
                 + " packets was converted from " + path);
         
+        shutdown();
+        System.exit(0);
         
     }
 
