@@ -46,19 +46,21 @@ public class AisStoreTableWriter implements AisStoreRowGenerator {
     ByteBuffer[] keys;
     
     int chunkLength = 256;
+    int bufferSize = 128;
 
 
     public final SSTableSimpleUnsortedWriter getWriter() {
         return writer;
     }
 
-    public AisStoreTableWriter(String inDirectory,String keyspace,String tableName,Collection<String>keyNames, int chunkLength, String compressor,AbstractType<?>... types) throws ConfigurationException {
+    public AisStoreTableWriter(String inDirectory,String keyspace,String tableName,Collection<String>keyNames, int chunkLength, String compressor, int bufferSize, AbstractType<?>... types) throws ConfigurationException {
         cmpType = CompositeType.getInstance(types);
         
         keys = keyNames.stream().map(keyName -> ByteBuffer.wrap(keyName.getBytes())).collect(Collectors.toList()).toArray(new ByteBuffer[0]);
         this.chunkLength = chunkLength;
+        this.bufferSize = bufferSize;
         CompressionParameters compOpts = new CompressionParameters(compressor, chunkLength, new HashMap<String,String>());
-        writer = new SSTableSimpleUnsortedWriter(Paths.get(inDirectory, "/"+keyspace,"/"+tableName).toFile(), partitioner, keyspace, tableName, cmpType, null,128, compOpts);
+        writer = new SSTableSimpleUnsortedWriter(Paths.get(inDirectory, "/"+keyspace,"/"+tableName).toFile(), partitioner, keyspace, tableName, cmpType, null,this.bufferSize, compOpts);
         
     }
     
