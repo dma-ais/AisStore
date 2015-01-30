@@ -63,6 +63,9 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
     @Parameter(names = "-tag", description = "Overwrite the tag")
     String tag;
     
+    @Parameter(names = "-compressor", description = "LZ4Compressor, DeflateCompressor")
+    String compressor = "LZ4Compressor";
+    
 
     /** {@inheritDoc} */
     @Override
@@ -74,7 +77,7 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
         props.setProperty("cassandra.config", Paths.get("file://",inDirectory, "cassandra.yaml").toString());
         
         AisStoreSSTableGenerator gen = AisStoreSSTableGenerator
-                .createAisStoreSSTableGenerator(inDirectory,keyspace);
+                .createAisStoreSSTableGenerator(inDirectory,keyspace,compressor);
         
         
         final AtomicInteger acceptedCount = new AtomicInteger();

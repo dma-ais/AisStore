@@ -52,12 +52,12 @@ public class AisStoreTableWriter implements AisStoreRowGenerator {
         return writer;
     }
 
-    public AisStoreTableWriter(String inDirectory,String keyspace,String tableName,Collection<String>keyNames, int chunkLength,AbstractType<?>... types) throws ConfigurationException {
+    public AisStoreTableWriter(String inDirectory,String keyspace,String tableName,Collection<String>keyNames, int chunkLength, String compressor,AbstractType<?>... types) throws ConfigurationException {
         cmpType = CompositeType.getInstance(types);
         
         keys = keyNames.stream().map(keyName -> ByteBuffer.wrap(keyName.getBytes())).collect(Collectors.toList()).toArray(new ByteBuffer[0]);
         this.chunkLength = chunkLength;
-        CompressionParameters compOpts = new CompressionParameters("LZ4Compressor", chunkLength, new HashMap<String,String>());
+        CompressionParameters compOpts = new CompressionParameters(compressor, chunkLength, new HashMap<String,String>());
         writer = new SSTableSimpleUnsortedWriter(Paths.get(inDirectory, "/"+keyspace,"/"+tableName).toFile(), partitioner, keyspace, tableName, cmpType, null,128, compOpts);
         
     }

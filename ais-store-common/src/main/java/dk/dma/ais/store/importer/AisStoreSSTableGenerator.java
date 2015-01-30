@@ -79,7 +79,7 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
 
     private AisStoreTableWriter packetsAreaUnknownWriter;
 
-    public AisStoreSSTableGenerator(String inDirectory, String keyspace) throws ConfigurationException, IOException, URISyntaxException {
+    public AisStoreSSTableGenerator(String inDirectory, String keyspace, String compressor) throws ConfigurationException, IOException, URISyntaxException {
         Arrays.asList(AisStoreSchema.TABLE_MMSI, AisStoreSchema.TABLE_TIME,
                 AisStoreSchema.TABLE_AREA_CELL1,
                 AisStoreSchema.TABLE_AREA_CELL10,
@@ -96,17 +96,17 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
                 });
 
         packetsTimeWriter = AisStoreTableWriters.newPacketTimeWriter(
-                inDirectory, keyspace);
+                inDirectory, keyspace, compressor);
         packetsMmsiWriter = AisStoreTableWriters.newPacketMmsiWriter(
-                inDirectory, keyspace);
+                inDirectory, keyspace, compressor);
         packetsAreaCell1Writer = AisStoreTableWriters.newPacketAreaCell1Writer(
-                inDirectory, keyspace);
+                inDirectory, keyspace, compressor);
         packetsAreaCell10Writer = AisStoreTableWriters
-                .newPacketAreaCell10Writer(inDirectory, keyspace);
+                .newPacketAreaCell10Writer(inDirectory, keyspace, compressor);
         packetsAreaUnknownWriter = AisStoreTableWriters
-                .newPacketAreaUnknownWriter(inDirectory, keyspace);
+                .newPacketAreaUnknownWriter(inDirectory, keyspace, compressor);
         packetsTimeWriter = AisStoreTableWriters.newPacketTimeWriter(
-                inDirectory, keyspace);
+                inDirectory, keyspace, compressor);
     }
 
     private void process(AisPacket packet) throws IOException {
@@ -188,9 +188,9 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
      * @throws IOException 
      */
     public static AisStoreSSTableGenerator createAisStoreSSTableGenerator(
-            String inDirectory, String keyspace) throws ConfigurationException, IOException, URISyntaxException {
+            String inDirectory, String keyspace, String compressor) throws ConfigurationException, IOException, URISyntaxException {
 
-        return new AisStoreSSTableGenerator(inDirectory, keyspace);
+        return new AisStoreSSTableGenerator(inDirectory, keyspace, compressor);
 
     }
 
