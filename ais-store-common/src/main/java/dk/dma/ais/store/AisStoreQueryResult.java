@@ -26,6 +26,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
+import com.google.common.collect.AbstractIterator;
 import com.google.common.util.concurrent.ListenableFuture;
 
 import dk.dma.ais.packet.AisPacket;
@@ -42,13 +43,13 @@ public class AisStoreQueryResult extends CassandraQuery implements Iterable<AisP
 
     private final Object lock = new Object();
 
-    private final List<AisStorePartialQuery> queries = new ArrayList<>();
+    private final List<AbstractIterator<AisPacket>> queries = new ArrayList<>();
 
     private Iterator<AisPacket> iterator;
 
     final AtomicLong releasedPackets = new AtomicLong();
 
-    AisStoreQueryResult(AisStoreQueryInnerContext context, List<AisStorePartialQuery> queries) {
+    AisStoreQueryResult(AisStoreQueryInnerContext context, List<AbstractIterator<AisPacket>> queries) {
         this.context = context;
         this.queries.addAll(queries);
     }
@@ -101,7 +102,7 @@ public class AisStoreQueryResult extends CassandraQuery implements Iterable<AisP
                 if (queries.size() == 1) {
                     iterator = queries.get(0);
                 } else {
-                    iterator = Iterators.combine(queries, AisStorePartialQuery.COMPARATOR);
+                    iterator = Iterators.combine(queries, AisStoreCompleteQuery.COMPARATOR);
                 }
                 return this.iterator = new WrappingIterator(iterator);
             }
