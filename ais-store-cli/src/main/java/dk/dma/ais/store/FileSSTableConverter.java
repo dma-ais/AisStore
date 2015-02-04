@@ -106,6 +106,9 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
             });
         }
         
+        //add "accepted" counter
+        reader.registerPacketHandler(p -> acceptedCount.incrementAndGet());
+        
         reader.registerPacketHandler(gen);
 
         reader.start();
