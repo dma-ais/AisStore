@@ -14,15 +14,19 @@
  */
 package dk.dma.db.cassandra;
 
-import static java.util.Objects.requireNonNull;
-
-import java.util.Arrays;
-import java.util.List;
-
 import com.datastax.driver.core.Cluster;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.SocketOptions;
 import com.google.common.util.concurrent.AbstractService;
+import org.apache.commons.lang3.StringUtils;
+
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.List;
+
+import static java.util.Objects.requireNonNull;
 
 /**
  * A connection to Cassandra.
@@ -116,11 +120,46 @@ public final class CassandraConnection extends AbstractService {
      * @param keyspace
      *            the name of the keyspace
      * @param connectionPoints
-     *            the connection points
+     *            a comma-separated list of connection points expressed as <hostname>[:<port>]
      * @return a new connection
      */
     public static CassandraConnection create(String keyspace, List<String> connectionPoints) {
-        Cluster cluster = Cluster.builder().addContactPoints(connectionPoints.toArray(new String[0])).withSocketOptions(new SocketOptions().setConnectTimeoutMillis(1000*60)).build();
+        Cluster cluster;
+
+        if (seedsContainPortNumbers(connectionPoints)) {
+            Collection<InetSocketAddress> cassandraSeeds = new ArrayList<>();
+            connectionPoints.forEach(cp -> cassandraSeeds.add(connectionPointToInetAddress(cp)));
+            cluster = Cluster.builder()
+                .addContactPointsWithPorts(cassandraSeeds)
+                .withSocketOptions(new SocketOptions().setConnectTimeoutMillis(1000*60))
+                .build();
+        } else {
+            cluster = Cluster.builder()
+                .addContactPoints(connectionPoints.toArray(new String[0]))
+                .withSocketOptions(new SocketOptions().setConnectTimeoutMillis(1000*60))
+                .build();
+        }
+
         return new CassandraConnection(cluster, keyspace);
+    }
+
+    private static InetSocketAddress connectionPointToInetAddress(String connectionPoint) {
+        InetSocketAddress inetSocketAddress;
+
+        if (StringUtils.countMatches(connectionPoint, ":") == 1) {
+            String[] split = connectionPoint.split(":");
+            String ipv4 = split[0];
+            Integer port = Integer.parseInt(split[1]);
+            inetSocketAddress = new InetSocketAddress(ipv4, port);
+        } else {
+            inetSocketAddress = new InetSocketAddress(connectionPoint, 9042 /* default port */);
+        }
+
+        return inetSocketAddress;
+    }
+
+    private static boolean seedsContainPortNumbers(Collection<String> connectionPoints) {
+        requireNonNull(connectionPoints);
+        return connectionPoints.stream().filter(cp -> StringUtils.countMatches(cp, ":") == 1).count() > 0;
     }
 }
