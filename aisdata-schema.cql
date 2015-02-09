@@ -9,8 +9,10 @@ CREATE TABLE packets_time (
     aisdata blob,
     PRIMARY KEY (timeblock, timehash)
     ) 
-  WITH compression = {'sstable_compression':'LZ4Compressor', 'chunk_length_kb':1024} AND
-       comment     = 'Contains AIS data ordered by receive time.';
+  WITH compression = {'sstable_compression':'LZ4Compressor', 'chunk_length_kb':2048} AND
+       comment     = 'Contains AIS data ordered by receive time.'
+       AND speculative_retry = '99percentile'
+       AND caching = 'keys_only';
 
 CREATE TABLE packets_mmsi (
     mmsi int,
@@ -19,7 +21,9 @@ CREATE TABLE packets_mmsi (
     PRIMARY KEY (mmsi, timehash)
     ) 
   WITH compression = {'sstable_compression':'LZ4Compressor', 'chunk_length_kb':256} AND
-       comment     = 'Contains AIS data ordered by mmsi number.';
+       comment     = 'Contains AIS data ordered by mmsi number.'
+       AND speculative_retry = '99percentile'
+       AND caching = 'keys_only';
 
 CREATE TABLE packets_area_cell1 (
     cellid int,
@@ -28,7 +32,9 @@ CREATE TABLE packets_area_cell1 (
     PRIMARY KEY (cellid, timehash)
     ) 
   WITH compression = {'sstable_compression':'LZ4Compressor', 'chunk_length_kb':1024} AND
-       comment     = 'Contains AIS data ordered by cells of size 1 degree.';
+       comment     = 'Contains AIS data ordered by cells of size 1 degree.'
+       AND speculative_retry = '99percentile'
+       AND caching = 'keys_only';
 
 CREATE TABLE packets_area_cell10 (
     cellid int,
@@ -37,7 +43,9 @@ CREATE TABLE packets_area_cell10 (
     PRIMARY KEY (cellid, timehash)
     ) 
   WITH compression = {'sstable_compression':'LZ4Compressor', 'chunk_length_kb':1024} AND
-       comment     = 'Contains AIS data ordered by cells of size 10 degree.';
+       comment     = 'Contains AIS data ordered by cells of size 10 degree.'
+       AND speculative_retry = '99percentile'
+       AND caching = 'keys_only';
 
 
 CREATE TABLE packets_area_unknown (
@@ -47,5 +55,7 @@ CREATE TABLE packets_area_unknown (
     PRIMARY KEY (mmsi, timehash)
     ) 
   WITH compression = {'sstable_compression':'LZ4Compressor', 'chunk_length_kb':256} AND
-       comment     = 'Contains AIS data where the area has not yet been determined.';
+       comment     = 'Contains AIS data where the area has not yet been determined.' 
+       AND speculative_retry = '99percentile'
+       AND caching = 'none';
 

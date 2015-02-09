@@ -22,6 +22,7 @@ import java.util.concurrent.CountDownLatch;
 
 import java.util.concurrent.atomic.LongAdder;
 
+import com.google.common.collect.AbstractIterator;
 import com.google.common.util.concurrent.SettableFuture;
 
 /**
@@ -39,14 +40,14 @@ class AisStoreQueryInnerContext {
     volatile long finishTime;
     final CountDownLatch latch = new CountDownLatch(10);
 
-    final CopyOnWriteArrayList<AisStorePartialQuery> queries = new CopyOnWriteArrayList<>();
+    final CopyOnWriteArrayList<AbstractIterator<?>> queries = new CopyOnWriteArrayList<>();
 
     long getTotalProcessed() {
 
         return processedPackets.sum();
     }
 
-    void finished(AisStorePartialQuery q) {
+    void finished(AbstractIterator<?> q) {
         queries.remove(q);
         if (queries.isEmpty()) {
             inner.set(null);

@@ -63,6 +63,12 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
     @Parameter(names = "-tag", description = "Overwrite the tag")
     String tag;
     
+    @Parameter(names = "-compressor", description = "LZ4Compressor, DeflateCompressor")
+    String compressor = "LZ4Compressor";
+    
+    @Parameter(names = "-bufferSize", description = "buffer size in mb (roughly the size of each flush to sstable, beware of heap usage, 128m ~ 1g heap")
+    int bufferSize = 128;
+    
 
     /** {@inheritDoc} */
     @Override
@@ -74,7 +80,7 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
         props.setProperty("cassandra.config", Paths.get("file://",inDirectory, "cassandra.yaml").toString());
         
         AisStoreSSTableGenerator gen = AisStoreSSTableGenerator
-                .createAisStoreSSTableGenerator(inDirectory,keyspace);
+                .createAisStoreSSTableGenerator(inDirectory,keyspace,compressor, bufferSize);
         
         
         final AtomicInteger acceptedCount = new AtomicInteger();
@@ -99,6 +105,9 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
                 }
             });
         }
+        
+        //add "accepted" counter
+        reader.registerPacketHandler(p -> acceptedCount.incrementAndGet());
         
         reader.registerPacketHandler(gen);
 

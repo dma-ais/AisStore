@@ -30,7 +30,9 @@ import java.util.Set;
 import org.joda.time.Interval;
 
 import com.datastax.driver.core.Session;
+import com.google.common.collect.AbstractIterator;
 
+import dk.dma.ais.packet.AisPacket;
 import dk.dma.db.cassandra.CassandraQueryBuilder;
 import dk.dma.enav.model.geometry.Area;
 import dk.dma.enav.model.geometry.grid.Cell;
@@ -65,7 +67,7 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
     protected AisStoreQueryResult execute(Session s) {
         requireNonNull(s);
         AisStoreQueryInnerContext inner = new AisStoreQueryInnerContext();
-        ArrayList<AisStorePartialQuery> queries = new ArrayList<>();
+        ArrayList<AbstractIterator<AisPacket>> queries = new ArrayList<>();
         if (area != null) {
             Set<Cell> cells1 = Grid.GRID_1_DEGREE.getCells(area);
             Set<Cell> cells10 = Grid.GRID_10_DEGREES.getCells(area);
@@ -81,19 +83,33 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
             // We create multiple queries and use a priority queue to return packets from each ship sorted by their
             // timestamp
             for (Cell c : cells) {
-                queries.add(new AisStorePartialQuery(s, inner, batchLimit, tableName, keyName, (int)c.getCellId(),
+                queries.add(new AisStoreCompleteQuery(s, inner, batchLimit, tableName, keyName, (int)c.getCellId(),
                         startTimeInclusive, stopTimeExclusive));
+                try {
+                    Thread.sleep(500);
+                } catch (InterruptedException e) {
+                }
             }
         } else if (mmsi != null) {
             for (int m : mmsi) {
-                queries.add(new AisStorePartialQuery(s, inner, batchLimit, TABLE_MMSI, TABLE_MMSI_KEY, m,
+                queries.add(new AisStoreCompleteQuery(s, inner, batchLimit, TABLE_MMSI, TABLE_MMSI_KEY, m,
                         startTimeInclusive, stopTimeExclusive));
             }
         } else {
             int start = AisStoreSchema.getTimeBlock(startTimeInclusive);
             int stop = AisStoreSchema.getTimeBlock(stopTimeExclusive - 1);
-            queries.add(new AisStorePartialQuery(s, inner, batchLimit, TABLE_TIME, TABLE_TIME_KEY, start, stop,
+            
+            //7 days or more, use partial queries
+            if ((stop - start)*10/60/24 > 7) {
+                System.out.println("Using Partial Queries");
+                queries.add(new AisStorePartialQuery(s, inner, batchLimit, TABLE_TIME, TABLE_TIME_KEY, start, stop,
                     startTimeInclusive, stopTimeExclusive));
+            } else {
+                queries.add(new AisStoreCompleteQuery(s, inner, batchLimit, TABLE_TIME, TABLE_TIME_KEY, start, stop,
+                        startTimeInclusive, stopTimeExclusive));
+            }
+            
+            
         }
         return new AisStoreQueryResult(inner, queries);
 
