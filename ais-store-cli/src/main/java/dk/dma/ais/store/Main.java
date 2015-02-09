@@ -29,6 +29,7 @@ public class Main {
         c.add(FileImport.class, "import", "Imports data from text files and stores data into Cassandra");
         c.add(FileExport.class, "export", "Exports data from Cassandra into text files");
         c.add(FileSSTableConverter.class, "generate", "Generate SSTables from AIS data, which can be imported into Cassandra later");
+        c.add(FileExportRest.class, "exportRest", "Utilize REST to retrieve data from AisStore");
         c.invoke(args);
     }
 }
