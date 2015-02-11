@@ -55,6 +55,7 @@ import com.google.inject.Injector;
 
 import dk.dma.ais.message.AisMessage;
 import dk.dma.ais.packet.AisPacket;
+import dk.dma.ais.packet.AisPacketFilters;
 import dk.dma.ais.packet.AisPacketOutputSinks;
 import dk.dma.ais.reader.AisReader;
 import dk.dma.ais.reader.AisReaders;
@@ -189,10 +190,17 @@ public class FileExportRest extends AbstractCommandLineTool {
         // CHeck if url filter is valid, then url encode it and add to request
 
         // filter = "t.name like H* & t.name like HAMLET";
-        filter = "s.country in (DNK)";
+        // filter = "s.country in (DNK)";
 
         if (filter != null && !filter.equals("")) {
             String encodedFilter = URLEncoder.encode(filter, "UTF-8");
+
+            try {
+                AisPacketFilters.parseExpressionFilter(filter);
+            } catch (Exception e) {
+                printAisStoreNL("Invalid filter expression");
+                terminateAndPrintHelp();
+            }
 
             request = request + "&filter=" + encodedFilter;
         }
@@ -240,7 +248,7 @@ public class FileExportRest extends AbstractCommandLineTool {
         }
 
         // fetchSize
-        if (fetchSize != null || fetchSize instanceof Integer) {
+        if (fetchSize != -1) {
             request = request + "&fetchsize=" + fetchSize;
         }
 
@@ -428,9 +436,8 @@ public class FileExportRest extends AbstractCommandLineTool {
             fileOutputStream.close();
         }
 
-        //print a new line to move on from previous /r
-        
-        
+        // print a new line to move on from previous /r
+
         printAisStoreNL("Downloading AIS Data 100% Estimated Time Left: 00:00:00                                       ");
         printAisStoreLine();
         printAisStoreNL("DOWNLOAD SUCCESS");
