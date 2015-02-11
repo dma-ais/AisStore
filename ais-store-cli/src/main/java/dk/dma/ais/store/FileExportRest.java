@@ -21,19 +21,24 @@ import java.io.FileReader;
 import java.io.FileWriter;
 import java.io.IOException;
 import java.io.InputStream;
-import java.io.InputStreamReader;
 import java.io.OutputStream;
-import java.io.Reader;
-import java.io.UnsupportedEncodingException;
+import java.net.URLEncoder;
+import java.security.MessageDigest;
+import java.text.DecimalFormat;
 import java.util.ArrayList;
+import java.util.Date;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
+import javax.xml.bind.annotation.adapters.HexBinaryAdapter;
+
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpHost;
 import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.StatusLine;
 import org.apache.http.client.methods.HttpGet;
 import org.apache.http.impl.client.DefaultHttpClient;
 import org.joda.time.DateTime;
@@ -54,7 +59,6 @@ import dk.dma.ais.packet.AisPacketOutputSinks;
 import dk.dma.ais.reader.AisReader;
 import dk.dma.ais.reader.AisReaders;
 import dk.dma.commons.app.AbstractCommandLineTool;
-import dk.dma.commons.util.DateTimeUtil;
 import dk.dma.commons.util.io.OutputStreamSink;
 
 /**
@@ -71,6 +75,8 @@ public class FileExportRest extends AbstractCommandLineTool {
     // Status Variables
     long timeStart = System.currentTimeMillis();
 
+    DecimalFormat decimalFormatter = new DecimalFormat("0.00");
+
     // Meta data
     private long currentTimeStamp;
     private Long packageCount = 0L;
@@ -83,6 +89,8 @@ public class FileExportRest extends AbstractCommandLineTool {
     private long lastLoadedTimestamp;
 
     private String metaFileName;
+
+    String printPrefix = "[AIS-STORE] ";
 
     /** A date time formatter for utc. */
     DateTimeFormatter dateTimeFormatter = DateTimeFormat.forPattern("yyyy-M-d'T'HH:mm:ss'Z");
@@ -115,7 +123,7 @@ public class FileExportRest extends AbstractCommandLineTool {
     String fileName;
 
     @Parameter(names = "-fetchSize", description = "internal fetch size buffer")
-    Integer fetchSize = 3000;
+    Integer fetchSize = -1;
 
     @Parameter(names = "-force", description = "Disregard existing download and force redownload")
     boolean forceDownload = false;
@@ -123,21 +131,149 @@ public class FileExportRest extends AbstractCommandLineTool {
     /** {@inheritDoc} */
     @Override
     protected void run(Injector injector) throws Exception {
-        System.out.println("AIS Store Command Line Tool with mmsi arg " + mmsis.get(0));
+        printAisStoreNL("AIS STORE COMMAND LINE TOOL INITIATED");
+        printAisStoreLine();
+
+        // Hardcoded values
+        // interval = "2015-1-5T14:00:00Z/2015-1-5T14:10:00Z";
+        // java -jar ais-store-cli-0.3-SNAPSHOT.jar export -area 15,-18,-10,14 -filter
+        // "m.country=DNK & t.pos within bbox(15,-18,-10,14) & (t.lat<-0.3|t.lat>0.3) & (t.lon<-0.3|t.lon>0.3)" -fetchSize 30000
+        // -interval
+        // java -jar ais-store-cli-0.3-SNAPSHOT.jar export -area 15,-18,-10,14 -filter
+        // "m.country=DNK & t.pos within bbox(15,-18,-10,14) & (t.lat<-0.3|t.lat>0.3) & (t.lon<-0.3|t.lon>0.3)" -fetchSize 30000
+        // -interval 2015-1-5T14:00:00Z/2015-1-5T14:10:00Z
 
         // Create request
+        String request = "";
+
+        if (interval == null || interval.equals("")) {
+            printAisStoreNL("No Interval provided, please check your request.");
+
+            // return;
+            terminateAndPrintHelp();
+        }
+
+        try {
+            intervalVar = Interval.parse(interval);
+        } catch (Exception e) {
+            printAisStoreNL("Invalid Interval provided, please check your request.");
+            terminateAndPrintHelp();
+        }
+
+        // intervalVar = DateTimeUtil.toInterval(intervalStr);
+        intervalStartTime = intervalVar.getStartMillis();
+        String intervalStr = interval.toString();
+
+        request = request + "?interval=" + interval;
+
+        // System.out.println("Interval parsed correct " + intervalStr);
+
+        // Check if interval is valid, throw exception etc
+
+        // Create task for exception throwing if args are required
+        // If error, throw exception of error description then -help
+
+        if (mmsis.size() > 0) {
+            request = request + "&mmsi=";
+
+            for (int i = 0; i < mmsis.size() - 1; i++) {
+                request = request + mmsis.get(i) + ",";
+            }
+
+            request = request + mmsis.get(mmsis.size() - 1);
+        }
+
+        // filter
+        // Google URL Encoder
+        // "t.name like H* & t.name like HAMLET"
+        // CHeck if url filter is valid, then url encode it and add to request
+
+        // filter = "t.name like H* & t.name like HAMLET";
+        filter = "s.country in (DNK)";
+
+        if (filter != null && !filter.equals("")) {
+            String encodedFilter = URLEncoder.encode(filter, "UTF-8");
+
+            request = request + "&filter=" + encodedFilter;
+        }
+
+        // area
+        // "&box=lat1,lon1,lat2,lon2"
+        // blabla check if valid
+
+        if (area != null && !area.equals("")) {
+            request = request + "&box=" + area;
+        }
+
+        try {
+            sink = AisPacketOutputSinks.getOutputSink(outputFormat);
+            request = request + "&outputFormat=" + outputFormat;
+        } catch (Exception e) {
+            printAisStoreNL("Invalid output format provided, " + outputFormat + ", please check your request.");
+            terminateAndPrintHelp();
+        }
+
+        // If table, make sure column is added
+        if ((columns == null || columns.equals("")) && (outputFormat.equals("table") || outputFormat.equals("jsonObject"))) {
+            printAisStoreNL("When using outputFormat " + outputFormat + ", columns are required");
+            terminateAndPrintHelp();
+        }
+
+        // if table do shit
+        // columns \/ REQUIRED
+        // "columns=mmsi;time;timestamp"
+
+        // Check if valid
+        // Split on ";"
+        // "columns=<listElement0>:list1"
+
+        if (columns != null) {
+            request = request + "&columns=" + columns;
+        }
+
+        // seperator
+        // "seperator=\t"
+        // Url encode and add
+        if (separator != null || !separator.equals("")) {
+            String encodedSeparator = URLEncoder.encode(separator, "UTF-8");
+            request = request + "&seperator=" + encodedSeparator;
+        }
+
+        // fetchSize
+        if (fetchSize != null || fetchSize instanceof Integer) {
+            request = request + "&fetchsize=" + fetchSize;
+        }
 
         // Get path from request, if none it will store in root of ais store client
-        filePath = "C:\\AisStoreData\\";
+        // filePath = "C:\\AisStoreData\\";
+
+        if (filePath == null) {
+            filePath = "";
+        } else {
+            filePath = filePath + "/";
+        }
+
+        // No filename provided, generate unique based on request parameters
+        if (fileName == null || fileName.equals("")) {
+            MessageDigest md5 = MessageDigest.getInstance("MD5");
+            String hex = (new HexBinaryAdapter()).marshal(md5.digest(request.getBytes()));
+            fileName = hex;
+        }
 
         // Generate unique hashsum based on request
-        metaFileName = "uniqueHash.aisstore";
-        fileName = "uniqueHashOrUserSelected";
+        metaFileName = fileName + ".aisstore";
 
         // boolean isTryResume = true;
 
         // If we are trying to resume, don't override previous file
-        fileOutputStream = new FileOutputStream(filePath + fileName, !forceDownload);
+
+        try {
+            fileOutputStream = new FileOutputStream(filePath + fileName, !forceDownload);
+        } catch (Exception e) {
+            printAisStoreNL("Error occuring writing to disk, make sure the folder path exists ");
+            terminateAndPrintHelp();
+        }
+
         outputStream = new BufferedOutputStream(fileOutputStream);
 
         // Should we resume anything
@@ -145,12 +281,6 @@ public class FileExportRest extends AbstractCommandLineTool {
         // If the file exists that means a previous transaction has been done
 
         // Do we resume, if we do, we need to find the resume point ie move the start interval
-
-        // Example interval test
-        // String intervalStr = "2015-1-5T14:00:00Z/2015-1-5T14:10:00Z";
-        String intervalStr = "2015-1-1T14:00:00Z/2015-1-1T15:00:00Z";
-        intervalVar = DateTimeUtil.toInterval(intervalStr);
-        intervalStartTime = intervalVar.getStartMillis();
 
         /**
          * System.out.println("Test Compare"); System.out.println(intervalStr);
@@ -170,6 +300,10 @@ public class FileExportRest extends AbstractCommandLineTool {
          * System.exit(0);
          **/
 
+        printAisStoreNL("Request generation complete.");
+        printAisStoreNL("AIS Data will be saved to " + filePath + fileName);
+        // System.out.println("--------------------------------------------------------------------------------");
+
         // We are resuming, insert a Carriage Return Line Feed
         if (!forceDownload) {
 
@@ -178,20 +312,20 @@ public class FileExportRest extends AbstractCommandLineTool {
 
             // We have processed some packages already
             if (packageCount != 0) {
+
                 String str = "\r\n";
                 outputStream.write(str.getBytes());
-                System.out.println("----------------------------------------");
-                System.out.println("Resume detected");
-                System.out.println("Interval updated");
-                System.out.println("From " + intervalStr);
+                printAisStoreLine();
+                printAisStoreNL("Resume detected - Updating Request");
+                // System.out.println("From " + intervalStr);
 
                 // Update intervalStr
                 DateTime time = new DateTime(lastLoadedTimestamp, DateTimeZone.UTC);
                 DateTime time2 = new DateTime(intervalVar.getEndMillis(), DateTimeZone.UTC);
 
                 intervalStr = dateTimeFormatter.withZoneUTC().print(time) + "/" + dateTimeFormatter.withZoneUTC().print(time2);
-                System.out.println("To " + intervalStr);
-                System.out.println("----------------------------------------");
+                // System.out.println("To " + intervalStr);
+                printAisStoreLine();
 
                 // System.out.println("The last stored timestamp was \n" + lastLoadedTimestamp);
                 // Interval interval2 = DateTimeUtil.toInterval(intervalStr);
@@ -220,25 +354,56 @@ public class FileExportRest extends AbstractCommandLineTool {
         HttpHost target = new HttpHost("ais2.e-navigation.net", 443, "https");
 
         HttpGet getRequest = new HttpGet("/aisview/rest/store/query?interval=" + intervalStr);
+        // HttpGet getRequest = new
+        // HttpGet("/aisview/rest/store/query?interval=2015-1-1T10:00:00Z/2015-2-1T10:10:00Z&box=65.145,-5.373,34.450,76.893");
         // + "&mmsi=219230000"
         // + "&mmsi=219230000"
-        System.out.println("Executing request to " + target);
+        printAisStoreNL("Executing request to " + target);
 
         HttpResponse httpResponse = httpClient.execute(target, getRequest);
         HttpEntity entity = httpResponse.getEntity();
 
         // Check we have an OK from server etc.
-        /**
-         * System.out.println("----------------------------------------"); System.out.println(httpResponse.getStatusLine());
-         * Header[] headers = httpResponse.getAllHeaders(); for (int i = 0; i < headers.length; i++) {
-         * System.out.println(headers[i]); } System.out.println("----------------------------------------");
-         **/
+
+        printAisStoreLine();
+
+        boolean terminateFailure = false;
+
+        StatusLine reply = httpResponse.getStatusLine();
+        switch (reply.getStatusCode()) {
+        case HttpStatus.SC_OK:
+            printAisStoreNL("Server Accepted Connection, download will begin shortly");
+            printAisStoreLine();
+            break;
+        case HttpStatus.SC_CONTINUE:
+        case HttpStatus.SC_CREATED:
+        case HttpStatus.SC_ACCEPTED:
+        case HttpStatus.SC_NON_AUTHORITATIVE_INFORMATION:
+        case HttpStatus.SC_NO_CONTENT:
+        case HttpStatus.SC_RESET_CONTENT:
+        case HttpStatus.SC_PARTIAL_CONTENT:
+        case HttpStatus.SC_MULTI_STATUS:
+            printAisStoreNL("An error occured establishing connection to the server. ");
+            printAisStoreNL("Server returned Status Code " + reply.getStatusCode() + " with " + reply.getReasonPhrase());
+            terminateFailure = true;
+            break;
+        }
+
+        if (terminateFailure) {
+            return;
+        }
+
+        // String httpServerReply = httpResponse.getStatusLine();
+        // System.out.println(httpResponse.getStatusLine());
+        //
+        // Header[] headers = httpResponse.getAllHeaders();
+        // for (int i = 0; i < headers.length; i++) {
+        // System.out.println(headers[i]);
+        // }
 
         // Do we use the footer?
 
         AisReader aisReader;
-
-        sink = AisPacketOutputSinks.getOutputSink("json");
 
         if (entity != null) {
             InputStream inputStream = entity.getContent();
@@ -263,18 +428,27 @@ public class FileExportRest extends AbstractCommandLineTool {
             fileOutputStream.close();
         }
 
-        System.out.println("Message recieved " + counter);
+        //print a new line to move on from previous /r
+        
+        
+        printAisStoreNL("Downloading AIS Data 100% Estimated Time Left: 00:00:00                                       ");
+        printAisStoreLine();
+        printAisStoreNL("DOWNLOAD SUCCESS");
+        printAisStoreLine();
 
         // We know current time
         long currentTime = System.currentTimeMillis();
         // How long have we been running
         long millis = currentTime - timeStart;
-
         String timeLeftStr = String.format("%02d:%02d:%02d", TimeUnit.MILLISECONDS.toHours(millis),
                 TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
                 TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)));
 
-        System.out.println("Query took " + timeLeftStr);
+        printAisStoreNL("Total Time " + timeLeftStr);
+        printAisStoreNL("Finished at: " + new Date());
+        printAisStoreNL("Messages recieved " + counter);
+
+        // printAisStore("Query took " + timeLeftStr);
     }
 
     private void printDownloadStatus() {
@@ -295,10 +469,8 @@ public class FileExportRest extends AbstractCommandLineTool {
 
         double percentDoneOriginal = (double) processedAisTimeOriginal / (double) aisTimeTotalOriginal * 100;
 
-        
-        
-        //Calculate the estimated time
-        
+        // Calculate the estimated time
+
         // Total AIS time to process in miliseconds
         long aisTimeTotal = intervalVar.getEndMillis() - lastLoadedTimestamp;
 
@@ -318,10 +490,16 @@ public class FileExportRest extends AbstractCommandLineTool {
                 TimeUnit.MILLISECONDS.toMinutes(millis) - TimeUnit.HOURS.toMinutes(TimeUnit.MILLISECONDS.toHours(millis)),
                 TimeUnit.MILLISECONDS.toSeconds(millis) - TimeUnit.MINUTES.toSeconds(TimeUnit.MILLISECONDS.toMinutes(millis)));
 
-        String percentDoneStr = ((double) ((int) (percentDoneOriginal * 100))) / 100 + "%";
+        String percentDoneStr = decimalFormatter.format(percentDoneOriginal) + "%";
+        // String percentDoneStr = ((double) ((int) (percentDoneOriginal * 100))) / 100 + "%";
 
-        System.out.println("Downloading AIS Data " + percentDoneStr + " Estimated Time Left: " + timeLeftStr);
+        // String part1DownloadMessage = "Downloading AIS Data " + percentDoneStr;
+        // String part2DownloadMessage = " Estimated Time Left: " + timeLeftStr;
 
+        // if (part1DownloadMessage.length() < )
+
+        printAisStore("Downloading AIS Data " + percentDoneStr + " Estimated Time Left: " + timeLeftStr + "\r");
+        // printAisStore();
         // int seconds = (int) (timeLeft / 1000) % 60;
         // int minutes = (int) ((timeLeft / (1000 * 60)) % 60);
         // int hours = (int) ((timeLeft / (1000 * 60 * 60)) % 24);
@@ -376,16 +554,16 @@ public class FileExportRest extends AbstractCommandLineTool {
 
                 // if (jsonObject.get("filename") != null) {
                 fileName = (String) jsonObject.get("filename");
-                System.out.println(fileName);
+                // System.out.println(fileName);
 
                 // }
 
                 lastLoadedTimestamp = (Long) jsonObject.get("timestamp");
-                System.out.println(lastFlushTimestamp);
+                // System.out.println(lastFlushTimestamp);
 
                 packageCount = (Long) jsonObject.get("packageCount");
 
-                System.out.println(packageCount);
+                // System.out.println(packageCount);
 
             }
 
@@ -404,7 +582,7 @@ public class FileExportRest extends AbstractCommandLineTool {
         obj.put("packageCount", packageCount);
 
         try {
-            System.out.println("Writing");
+            // System.out.println("Writing");
             FileWriter file = new FileWriter(filePath + metaFileName);
             file.write(obj.toJSONString());
             file.flush();
@@ -460,7 +638,7 @@ public class FileExportRest extends AbstractCommandLineTool {
                 currentTimeStamp = t.getBestTimestamp();
 
                 if (lastLoadedTimestamp >= currentTimeStamp) {
-                    System.out.println("Skipping Message!");
+                    // System.out.println("Skipping Message!");
                     return;
                 }
 
@@ -510,32 +688,29 @@ public class FileExportRest extends AbstractCommandLineTool {
 
     }
 
-    private void readInputStreamer(InputStream inputStream, final int bufferSize) {
-        final char[] buffer = new char[bufferSize];
-        final StringBuilder out = new StringBuilder();
-        try {
-            final Reader in = new InputStreamReader(inputStream, "UTF-8");
-            try {
-                for (;;) {
-                    int rsz = in.read(buffer, 0, buffer.length);
-                    if (rsz < 0)
-                        break;
-                    out.append(buffer, 0, rsz);
-                    String output = new String(buffer);
-                    System.out.println("New Line " + output);
-                }
-            } finally {
-                in.close();
-            }
-        } catch (UnsupportedEncodingException ex) {
-            /* ... */
-        } catch (IOException ex) {
-            /* ... */
-        }
-
-    }
-
     public static void main(String[] args) throws Exception {
         new FileExportRest().execute(args);
+    }
+
+    private void terminateAndPrintHelp() {
+        System.out.println("Terminating AIS Store Command Line");
+
+        try {
+            new FileExportRest().execute(new String[] { "-help" });
+        } catch (Exception e) {
+        }
+        System.exit(-1);
+    }
+
+    private void printAisStore(String toPrint) {
+        System.out.print(printPrefix + toPrint);
+    }
+
+    private void printAisStoreNL(String toPrint) {
+        System.out.println(printPrefix + toPrint);
+    }
+
+    private void printAisStoreLine() {
+        System.out.println(printPrefix + "--------------------------------------------------------------------------------");
     }
 }
