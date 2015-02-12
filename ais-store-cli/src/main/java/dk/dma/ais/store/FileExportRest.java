@@ -212,7 +212,8 @@ public class FileExportRest extends AbstractCommandLineTool {
         if (area != null && !area.equals("")) {
             request = request + "&box=" + area;
         }
-
+        outputFormat = outputFormat.trim();
+        
         try {
             sink = AisPacketOutputSinks.getOutputSink(outputFormat);
             request = request + "&outputFormat=" + outputFormat;
