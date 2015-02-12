@@ -136,7 +136,7 @@ public class FileExportRest extends AbstractCommandLineTool {
         printAisStoreLine();
 
         // Hardcoded values
-        // interval = "2015-1-5T14:00:00Z/2015-1-5T14:10:00Z";
+//        interval = "2015-1-5T14:00:00Z/2015-1-5T14:10:00Z";
         // java -jar ais-store-cli-0.3-SNAPSHOT.jar export -area 15,-18,-10,14 -filter
         // "m.country=DNK & t.pos within bbox(15,-18,-10,14) & (t.lat<-0.3|t.lat>0.3) & (t.lon<-0.3|t.lon>0.3)" -fetchSize 30000
         // -interval
@@ -383,14 +383,7 @@ public class FileExportRest extends AbstractCommandLineTool {
             printAisStoreNL("Server Accepted Connection, download will begin shortly");
             printAisStoreLine();
             break;
-        case HttpStatus.SC_CONTINUE:
-        case HttpStatus.SC_CREATED:
-        case HttpStatus.SC_ACCEPTED:
-        case HttpStatus.SC_NON_AUTHORITATIVE_INFORMATION:
-        case HttpStatus.SC_NO_CONTENT:
-        case HttpStatus.SC_RESET_CONTENT:
-        case HttpStatus.SC_PARTIAL_CONTENT:
-        case HttpStatus.SC_MULTI_STATUS:
+        default:
             printAisStoreNL("An error occured establishing connection to the server. ");
             printAisStoreNL("Server returned Status Code " + reply.getStatusCode() + " with " + reply.getReasonPhrase());
             terminateFailure = true;
@@ -400,6 +393,8 @@ public class FileExportRest extends AbstractCommandLineTool {
         if (terminateFailure) {
             return;
         }
+
+        // System.out.println("Got reply " + reply.getReasonPhrase() + " status code " + reply.getStatusCode());
 
         // String httpServerReply = httpResponse.getStatusLine();
         // System.out.println(httpResponse.getStatusLine());
