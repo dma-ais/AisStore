@@ -212,21 +212,21 @@ public class FileExportRest extends AbstractCommandLineTool {
         if (area != null && !area.equals("")) {
             request = request + "&box=" + area;
         }
-        outputFormat = outputFormat.trim();
-        
-        try {
-            sink = AisPacketOutputSinks.getOutputSink(outputFormat);
-            request = request + "&outputFormat=" + outputFormat;
-        } catch (Exception e) {
-            printAisStoreNL("Invalid output format provided, " + outputFormat + ", please check your request.");
-            terminateAndPrintHelp();
-        }
 
         // If table, make sure column is added
         if ((columns == null || columns.equals("")) && (outputFormat.equals("table") || outputFormat.equals("jsonObject"))) {
             printAisStoreNL("When using outputFormat " + outputFormat + ", columns are required");
             terminateAndPrintHelp();
         }
+        
+        try {
+            sink = AisPacketOutputSinks.getOutputSink(outputFormat,columns,separator);
+
+            request = request + "&outputFormat=" + outputFormat;
+        } catch (Exception e) {
+            printAisStoreNL("Invalid output format provided, " + outputFormat + ", please check your request.");
+            terminateAndPrintHelp();
+        }        
 
         // if table do shit
         // columns \/ REQUIRED
