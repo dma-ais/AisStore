@@ -136,7 +136,7 @@ public class FileExportRest extends AbstractCommandLineTool {
         printAisStoreLine();
 
         // Hardcoded values
-//        interval = "2015-1-5T14:00:00Z/2015-1-5T14:10:00Z";
+        // interval = "2015-1-5T14:00:00Z/2015-1-5T14:10:00Z";
         // java -jar ais-store-cli-0.3-SNAPSHOT.jar export -area 15,-18,-10,14 -filter
         // "m.country=DNK & t.pos within bbox(15,-18,-10,14) & (t.lat<-0.3|t.lat>0.3) & (t.lon<-0.3|t.lon>0.3)" -fetchSize 30000
         // -interval
