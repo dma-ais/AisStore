@@ -142,7 +142,7 @@ class AisStoreCompleteQuery extends AbstractIterator<AisPacket> {
         while (currentRow <= lastRow) {
             Row row = null;
             int innerReceived = 0;
-            while (it.hasNext()) {
+            while (it.hasNext() && innerReceived < batchLimit) {
 
                 // optimistic automatic-paging+fetch
                 if (rs.getAvailableWithoutFetching() == 100
@@ -170,8 +170,8 @@ class AisStoreCompleteQuery extends AbstractIterator<AisPacket> {
                     // System.out.println("Currently at: "+currentRow+" Last ROW is: "+lastRow);
                 }
 
-                /*System.out.println("Currently at: "
-                        + new Date(lastestDateReceived));*/
+                System.out.println("Currently at: "
+                        + new Date(lastestDateReceived));
 
             }
 
