@@ -178,7 +178,7 @@ public class FileExportRest extends AbstractCommandLineTool {
             request = request + "&mmsi=";
 
             for (int i = 0; i < mmsis.size() - 1; i++) {
-                request = request + mmsis.get(i) + ",";
+                request = request + Integer.toString(mmsis.get(i)) + ",";
             }
 
             request = request + mmsis.get(mmsis.size() - 1);
@@ -362,12 +362,15 @@ public class FileExportRest extends AbstractCommandLineTool {
 
         HttpHost target = new HttpHost("ais2.e-navigation.net", 443, "https");
 
-        HttpGet getRequest = new HttpGet("/aisview/rest/store/query?interval=" + intervalStr);
+        request = "/aisview/rest/store/query" + request;
+        
+        HttpGet getRequest = new HttpGet(request);
         // HttpGet getRequest = new
         // HttpGet("/aisview/rest/store/query?interval=2015-1-1T10:00:00Z/2015-2-1T10:10:00Z&box=65.145,-5.373,34.450,76.893");
         // + "&mmsi=219230000"
         // + "&mmsi=219230000"
         printAisStoreNL("Executing request to " + target);
+        printAisStoreNL("Request is: "+request);
 
         HttpResponse httpResponse = httpClient.execute(target, getRequest);
         HttpEntity entity = httpResponse.getEntity();
