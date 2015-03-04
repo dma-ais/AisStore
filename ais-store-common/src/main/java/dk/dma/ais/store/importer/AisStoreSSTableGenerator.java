@@ -15,33 +15,25 @@
  */
 package dk.dma.ais.store.importer;
 
-import java.io.IOException;
-import java.net.URISyntaxException;
-import java.nio.ByteBuffer;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Arrays;
-import java.util.Properties;
-import java.util.concurrent.TimeUnit;
-import java.util.function.Consumer;
-
-import org.apache.cassandra.exceptions.ConfigurationException;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.hash.Hashing;
-import com.google.common.primitives.Bytes;
-import com.google.common.primitives.Ints;
-import com.google.common.primitives.Longs;
-
 import dk.dma.ais.message.AisMessage;
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.AisStoreSchema;
 import dk.dma.enav.model.geometry.Position;
 import dk.dma.enav.model.geometry.PositionTime;
+import org.apache.cassandra.exceptions.ConfigurationException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.IOException;
+import java.net.URISyntaxException;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.util.Arrays;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
 /**
  * Simple SSTableGenerator
@@ -69,15 +61,11 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
 
     
 
-    private AisStoreTableWriter packetsTimeWriter;
-
-    private AisStoreTableWriter packetsMmsiWriter;
-
-    private AisStoreTableWriter packetsAreaCell1Writer;
-
-    private AisStoreTableWriter packetsAreaCell10Writer;
-
-    private AisStoreTableWriter packetsAreaUnknownWriter;
+    private PacketsTimeSSTableWriter packetsTimeWriter;
+    private PacketsMmsiSSTableWriter packetsMmsiWriter;
+    private PacketsAreaCell1SSTableWriter packetsAreaCell1Writer;
+    private PacketsAreaCell10SSTableWriter packetsAreaCell10Writer;
+    private PacketsAreaUnknownSSTableWriter packetsAreaUnknownWriter;
 
     public AisStoreSSTableGenerator(String inDirectory, String keyspace, String compressor, int bufferSize) throws ConfigurationException, IOException, URISyntaxException {
         Arrays.asList(AisStoreSchema.TABLE_MMSI, AisStoreSchema.TABLE_TIME,
@@ -95,87 +83,44 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
                     }
                 });
 
-        packetsTimeWriter = AisStoreTableWriters.newPacketTimeWriter(
-                inDirectory, keyspace, compressor, bufferSize);
-        packetsMmsiWriter = AisStoreTableWriters.newPacketMmsiWriter(
-                inDirectory, keyspace, compressor, bufferSize);
-        packetsAreaCell1Writer = AisStoreTableWriters.newPacketAreaCell1Writer(
-                inDirectory, keyspace, compressor, bufferSize);
-        packetsAreaCell10Writer = AisStoreTableWriters
-                .newPacketAreaCell10Writer(inDirectory, keyspace, compressor, bufferSize);
-        packetsAreaUnknownWriter = AisStoreTableWriters
-                .newPacketAreaUnknownWriter(inDirectory, keyspace, compressor, bufferSize);
-        packetsTimeWriter = AisStoreTableWriters.newPacketTimeWriter(
-                inDirectory, keyspace, compressor, bufferSize);
+        packetsTimeWriter = new PacketsTimeSSTableWriter(inDirectory);
+        packetsMmsiWriter = new PacketsMmsiSSTableWriter(inDirectory);
+        packetsAreaCell1Writer = new PacketsAreaCell1SSTableWriter(inDirectory);
+        packetsAreaCell10Writer = new PacketsAreaCell10SSTableWriter(inDirectory);
+        packetsAreaUnknownWriter = new PacketsAreaUnknownSSTableWriter(inDirectory);;
     }
 
     private void process(AisPacket packet) throws IOException {
 
         long ts = packet.getBestTimestamp();
         if (ts > 0) { // only save packets with a valid timestamp
+            packetsTimeWriter.addPacket(packet);
 
-            byte[] hash = Hashing.murmur3_128()
-                    .hashUnencodedChars(packet.getStringMessage()).asBytes();
-            byte[] column = Bytes.concat(Longs.toByteArray(ts), hash); // the
-                                                                       // column
-            byte[] data = packet.toByteArray(); // the serialized packet
-
-            ByteBuffer timeblock = ByteBuffer.wrap(Ints
-                    .toByteArray((AisStoreSchema.getTimeBlock(ts))));
-            ByteBuffer timehash = ByteBuffer.wrap(column);
-            ByteBuffer aisdata = ByteBuffer.wrap(data);
-
-            packetsTimeWriter.addRow(new ByteBuffer[] { timeblock, timehash,
-                    aisdata }, ts);
-
-            // packets are only stored by time, if they are not a proper message
             AisMessage message = packet.tryGetAisMessage();
-            if (message == null) {
-                return;
+            if (message != null) {
+                packetsMmsiWriter.addPacket(packet);
+
+                Position p = message.getValidPosition();
+
+                if (p == null) {
+                    // Try to find an estimated position
+                    // Use the last received position message unless the position
+                    // has timed out (POSITION_TIMEOUT_MS)
+                    p = tracker.asMap().getOrDefault(message.getUserId(), null);
+                } else {
+                    // Update the tracker with latest position
+                    // but only update the tracker IF the new time is better
+                    tracker.asMap().merge(message.getUserId(), p.withTime(ts), (a, b) -> a.getTime() > b.getTime() ? a : b);
+                }
+
+                if (p != null && Position.isValid(p.getLatitude(), p.getLongitude())) {
+                    packetsAreaCell1Writer.addPacket(packet, p);
+                    packetsAreaCell10Writer.addPacket(packet, p);
+                } else {
+                    packetsAreaUnknownWriter.addPacket(packet);
+                }
             }
-
-            ByteBuffer mmsi = ByteBuffer.wrap(Ints.toByteArray(message
-                    .getUserId()));
-
-            packetsMmsiWriter.addRow(
-                    new ByteBuffer[] { mmsi, timehash, aisdata }, ts);
-
-            Position p = message.getValidPosition();
-
-            if (p == null) { // Try to find an estimated position
-                // Use the last received position message unless the position
-                // has timed out (POSITION_TIMEOUT_MS)
-                p = tracker.asMap().getOrDefault(message.getUserId(), null);
-            } else { // Update the tracker with latest position
-
-                // but only update the tracker IF the new time is better
-                tracker.asMap().merge(message.getUserId(), p.withTime(ts),
-                        (a, b) -> {
-                            return a.getTime() > b.getTime() ? a : b;
-                        });
-            }
-
-
-
-            if (p != null
-                    && Position.isValid(p.getLatitude(), p.getLongitude())) {
-                
-                ByteBuffer cell1 = ByteBuffer.wrap(Ints.toByteArray(p
-                        .getCellInt(1.0)));
-                ByteBuffer cell10 = ByteBuffer.wrap(Ints.toByteArray(p
-                        .getCellInt(10.0)));
-                
-                packetsAreaCell1Writer.addRow(new ByteBuffer[] { cell1,
-                        timehash, aisdata }, ts);
-                packetsAreaCell10Writer.addRow(new ByteBuffer[] { cell10,
-                        timehash, aisdata }, ts);
-            } else {
-                packetsAreaUnknownWriter.addRow(new ByteBuffer[] { mmsi,
-                        timehash, aisdata }, ts);
-            }
-
         }
-
     }
 
     /**
