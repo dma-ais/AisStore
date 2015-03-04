@@ -33,13 +33,15 @@ public abstract class AisStoreSSTableWriter {
 
     protected CQLSSTableWriter writer;
 
-    public AisStoreSSTableWriter(String outputDir, String schema, String insertStmt) {
-        writer = CQLSSTableWriter.builder()
-            .inDirectory(outputDir)
-            .forTable(schema)
-            .withBufferSizeInMB(256)
-            .using(insertStmt)
-            .withPartitioner(new Murmur3Partitioner()).build();
+    public AisStoreSSTableWriter(String outputDir, String schemaDefinition, String insertStatement) {
+        writer =
+            CQLSSTableWriter.builder()
+                .inDirectory(outputDir)
+                .forTable(schemaDefinition)
+                .withBufferSizeInMB(256)
+                .using(insertStatement)
+                .withPartitioner(new Murmur3Partitioner())
+            .build();
     }
 
     public void close() throws IOException {

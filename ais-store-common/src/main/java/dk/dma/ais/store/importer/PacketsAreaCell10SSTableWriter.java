@@ -38,35 +38,26 @@ import static dk.dma.ais.store.AisStoreSchema.getTimeBlock;
  */
 public class PacketsAreaCell10SSTableWriter extends AisStoreSSTableWriter {
 
-    /** Keyspace name */
-    public static final String KEYSPACE = "aisdata";
-
     /** Table name */
     public static final String TABLE = "packets_area_cell10";
 
-    /**
-     * Schema for bulk loading table.
-     * It is important not to forget adding keyspace name before table name,
-     * otherwise CQLSSTableWriter throws exception.
-     */
-    public static final String SCHEMA = String.format(
-        "CREATE TABLE %s.%s (" +
-            "cellid int," +
-            "timeblock int," +
-            "time timestamp," +
-            "digest blob," +
-            "aisdata ascii," +
-            "PRIMARY KEY ((cellid, timeblock), time, digest)" +
-        ") WITH CLUSTERING ORDER BY (time ASC, digest ASC)", KEYSPACE, TABLE);
-
-    /**
-     * INSERT statement to bulk load.
-     * It is like prepared statement. You fill in place holder for each data.
-     */
-    public static final String INSERT_STMT = String.format("INSERT INTO %s.%s (cellid, timeblock, time, digest, aisdata) VALUES (?, ?, ?, ?, ?)", KEYSPACE, TABLE);
-
-    public PacketsAreaCell10SSTableWriter(String outputDir) {
-        super(outputDir, SCHEMA, INSERT_STMT);
+    public PacketsAreaCell10SSTableWriter(String outputDir, String keyspace) {
+        super(
+            outputDir,
+            String.format(
+                "CREATE TABLE %s.%s (" +
+                    "cellid int," +
+                    "timeblock int," +
+                    "time timestamp," +
+                    "digest blob," +
+                    "aisdata ascii," +
+                    "PRIMARY KEY ((cellid, timeblock), time, digest)" +
+                ") WITH CLUSTERING ORDER BY (time ASC, digest ASC)", keyspace, TABLE
+            ),
+            String.format(
+                "INSERT INTO %s.%s (cellid, timeblock, time, digest, aisdata) VALUES (?, ?, ?, ?, ?)", keyspace, TABLE
+            )
+        );
     }
 
     public void addPacket(AisPacket packet, Position p) {
@@ -87,4 +78,5 @@ public class PacketsAreaCell10SSTableWriter extends AisStoreSSTableWriter {
             System.out.println("Cannot get timestamp from: " + packet.getStringMessage());
         }
     }
+
 }

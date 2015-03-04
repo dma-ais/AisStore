@@ -36,34 +36,25 @@ import static dk.dma.ais.store.AisStoreSchema.getDigest;
  */
 public class PacketsAreaUnknownSSTableWriter extends AisStoreSSTableWriter {
 
-    /** Keyspace name */
-    public static final String KEYSPACE = "aisdata";
-
     /** Table name */
     public static final String TABLE = "packets_area_unknown";
 
-    /**
-     * Schema for bulk loading table.
-     * It is important not to forget adding keyspace name before table name,
-     * otherwise CQLSSTableWriter throws exception.
-     */
-    public static final String SCHEMA = String.format(
-        "CREATE TABLE %s.%s (" +
-            "mmsi int," +
-            "time timestamp," +
-            "digest blob," +
-            "aisdata ascii," +
-            "PRIMARY KEY (mmsi, time, digest)" +
-        ") WITH CLUSTERING ORDER BY (time ASC, digest ASC)", KEYSPACE, TABLE);
-
-    /**
-     * INSERT statement to bulk load.
-     * It is like prepared statement. You fill in place holder for each data.
-     */
-    public static final String INSERT_STMT = String.format("INSERT INTO %s.%s (mmsi, time, digest, aisdata) VALUES (?, ?, ?, ?)", KEYSPACE, TABLE);
-
-    public PacketsAreaUnknownSSTableWriter(String outputDir) {
-        super(outputDir, SCHEMA, INSERT_STMT);
+    public PacketsAreaUnknownSSTableWriter(String outputDir, String keyspace) {
+        super(
+            outputDir,
+            String.format(
+                "CREATE TABLE %s.%s (" +
+                    "mmsi int," +
+                    "time timestamp," +
+                    "digest blob," +
+                    "aisdata ascii," +
+                    "PRIMARY KEY (mmsi, time, digest)" +
+                ") WITH CLUSTERING ORDER BY (time ASC, digest ASC)", keyspace, TABLE
+            ),
+            String.format(
+                "INSERT INTO %s.%s (mmsi, time, digest, aisdata) VALUES (?, ?, ?, ?)", keyspace, TABLE
+            )
+        );
     }
 
     public void addPacket(AisPacket packet) {

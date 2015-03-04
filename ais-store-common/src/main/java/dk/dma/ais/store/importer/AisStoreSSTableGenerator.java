@@ -59,8 +59,6 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
             .expireAfterWrite(POSITION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             .build();
 
-    
-
     private PacketsTimeSSTableWriter packetsTimeWriter;
     private PacketsMmsiSSTableWriter packetsMmsiWriter;
     private PacketsAreaCell1SSTableWriter packetsAreaCell1Writer;
@@ -83,11 +81,11 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
                     }
                 });
 
-        packetsTimeWriter = new PacketsTimeSSTableWriter(inDirectory);
-        packetsMmsiWriter = new PacketsMmsiSSTableWriter(inDirectory);
-        packetsAreaCell1Writer = new PacketsAreaCell1SSTableWriter(inDirectory);
-        packetsAreaCell10Writer = new PacketsAreaCell10SSTableWriter(inDirectory);
-        packetsAreaUnknownWriter = new PacketsAreaUnknownSSTableWriter(inDirectory);;
+        packetsTimeWriter = new PacketsTimeSSTableWriter(inDirectory, keyspace);
+        packetsMmsiWriter = new PacketsMmsiSSTableWriter(inDirectory, keyspace);
+        packetsAreaCell1Writer = new PacketsAreaCell1SSTableWriter(inDirectory, keyspace);
+        packetsAreaCell10Writer = new PacketsAreaCell10SSTableWriter(inDirectory, keyspace);
+        packetsAreaUnknownWriter = new PacketsAreaUnknownSSTableWriter(inDirectory, keyspace);
     }
 
     private void process(AisPacket packet) throws IOException {
