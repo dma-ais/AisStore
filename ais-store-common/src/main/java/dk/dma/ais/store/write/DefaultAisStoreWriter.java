@@ -14,25 +14,37 @@
  */
 package dk.dma.ais.store.write;
 
-import static dk.dma.ais.store.AisStoreSchema.storeByArea;
-import static dk.dma.ais.store.AisStoreSchema.storeByMmsi;
-import static dk.dma.ais.store.AisStoreSchema.storeByTime;
-
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-
 import com.datastax.driver.core.RegularStatement;
+import com.datastax.driver.core.querybuilder.Insert;
+import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
-import com.google.common.hash.Hashing;
-import com.google.common.primitives.Bytes;
-import com.google.common.primitives.Longs;
-
 import dk.dma.ais.message.AisMessage;
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.db.cassandra.CassandraConnection;
 import dk.dma.enav.model.geometry.Position;
 import dk.dma.enav.model.geometry.PositionTime;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.ByteBuffer;
+import java.util.List;
+import java.util.Objects;
+import java.util.concurrent.TimeUnit;
+
+import static dk.dma.ais.store.AisStoreSchema.COLUMN_AISDATA;
+import static dk.dma.ais.store.AisStoreSchema.COLUMN_AISDATA_DIGEST;
+import static dk.dma.ais.store.AisStoreSchema.COLUMN_CELLID;
+import static dk.dma.ais.store.AisStoreSchema.COLUMN_MMSI;
+import static dk.dma.ais.store.AisStoreSchema.COLUMN_TIMEBLOCK;
+import static dk.dma.ais.store.AisStoreSchema.COLUMN_TIMESTAMP;
+import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL1;
+import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL10;
+import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_UNKNOWN;
+import static dk.dma.ais.store.AisStoreSchema.TABLE_MMSI;
+import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME;
+import static dk.dma.ais.store.AisStoreSchema.getDigest;
+import static dk.dma.ais.store.AisStoreSchema.getTimeBlock;
 
 /**
  * The schema used in AisStore.
@@ -40,6 +52,8 @@ import dk.dma.enav.model.geometry.PositionTime;
  * @author Kasper Nielsen
  */
 public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter<AisPacket> {
+
+    static final Logger LOG = LoggerFactory.getLogger(DefaultAisStoreWriter.class);
 
     /**
      * The duration in milliseconds from when the latest positional message is received for a specific mmsi number is
@@ -52,8 +66,7 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
     private final Cache<Integer,PositionTime> tracker = CacheBuilder
             .newBuilder()
             .expireAfterWrite(POSITION_TIMEOUT_MS,TimeUnit.MILLISECONDS)
-            .build();        
-
+            .build();
 
     /**
      * @param connection
@@ -61,41 +74,111 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
      */
     public DefaultAisStoreWriter(CassandraConnection connection, int batchSize) {
         super(connection, batchSize);
-        
     }
 
     public void handleMessage(List<RegularStatement> batch, AisPacket packet) {
-        long ts = packet.getBestTimestamp();
-        if (ts > 0) { // only save packets with a valid timestamp
+        Objects.requireNonNull(batch);
+        Objects.requireNonNull(packet);
 
-            byte[] hash = Hashing.murmur3_128().hashUnencodedChars(packet.getStringMessage()).asBytes();
+        final long millisSinceEpoch = packet.getBestTimestamp();
+        if (millisSinceEpoch <= 0) {
+            LOG.warn("Invalid timestamp in packet: " + packet.getStringMessage());
+        }
 
-            byte[] column = Bytes.concat(Longs.toByteArray(ts), hash); // the column
-            byte[] data = packet.toByteArray(); // the serialized packet
+        AisMessage message = packet.tryGetAisMessage();
+        if (message == null) {
+            LOG.warn("Cannot decode packet (to obtain MMSI): " + packet.getStringMessage());
+        }
 
-            storeByTime(batch, ts, column, data); // Store packet by time
+        // We need to calc these values only once per packet.
+        final int timeblock = millisSinceEpoch <= 0 ? -1 : getTimeBlock(millisSinceEpoch);
+        final int mmsi = message == null ? -1 : message.getUserId();
+        final Position position = getPosition(packet);
+        final byte[] digest = getDigest(packet);
+        final String rawMessage = packet.getStringMessage();
 
-            // packets are only stored by time, if they are not a proper message
-            AisMessage message = packet.tryGetAisMessage();
-            if (message == null) {
-                return;
-            }
+        // Store packets in Cassandra
+        if (timeblock > 0)
+            storeByTime(batch, millisSinceEpoch, timeblock, digest, rawMessage); // Store packet by time
 
-            storeByMmsi(batch, ts, column, message.getUserId(), data); // Store packet by mmsi
+        if (mmsi > 0)
+            storeByMmsi(batch, millisSinceEpoch, mmsi, digest, rawMessage); // Store packet by mmsi
 
-            Position p = message.getValidPosition();
-                        
-            if (p == null) { // Try to find an estimated position
-                // Use the last received position message unless the position has timed out (POSITION_TIMEOUT_MS)
-                p = tracker.asMap().getOrDefault(message.getUserId(),null);                
-            } else { // Update the tracker with latest position
-                
-                //but only update the tracker IF the new time is better
-                tracker.asMap().merge(message.getUserId(), p.withTime(ts), (a,b) -> {
-                    return a.getTime() > b.getTime() ? a : b ;
-                });
-            }
-            storeByArea(batch, ts, column, message.getUserId(), p, data);
+        if (timeblock > 0 && mmsi > 0)
+            storeByArea(batch, millisSinceEpoch, timeblock, mmsi, position, digest, rawMessage); // Store packet by area
+    }
+
+    /** Stores the specified packet by position (area). */
+    private static void storeByArea(List<RegularStatement> batch, long millisSinceEpoch, long timeblock, int mmsi, Position p, byte[] digest, String rawMessage) {
+        if (p == null) {
+            // Okay we have no idea of the position of the ship. Store it in this table and process it later.
+            Insert i = QueryBuilder.insertInto(TABLE_AREA_UNKNOWN);
+            i.value(COLUMN_MMSI, mmsi);
+            i.value(COLUMN_TIMESTAMP, millisSinceEpoch);
+            i.value(COLUMN_AISDATA_DIGEST, ByteBuffer.wrap(digest));
+            i.value(COLUMN_AISDATA, rawMessage);
+            batch.add(i);
+        } else {
+            // Cells with size 1 degree
+            Insert i = QueryBuilder.insertInto(TABLE_AREA_CELL1);
+            i.value(COLUMN_CELLID, p.getCellInt(1));
+            i.value(COLUMN_TIMEBLOCK, timeblock);
+            i.value(COLUMN_TIMESTAMP, millisSinceEpoch);
+            i.value(COLUMN_AISDATA_DIGEST, ByteBuffer.wrap(digest));
+            i.value(COLUMN_AISDATA, rawMessage);
+            batch.add(i);
+
+            // Cells with size 10 degree
+            i = QueryBuilder.insertInto(TABLE_AREA_CELL10);
+            i.value(COLUMN_CELLID, p.getCellInt(10));
+            i.value(COLUMN_TIMEBLOCK, timeblock);
+            i.value(COLUMN_TIMESTAMP, millisSinceEpoch);
+            i.value(COLUMN_AISDATA_DIGEST, ByteBuffer.wrap(digest));
+            i.value(COLUMN_AISDATA, rawMessage);
+            batch.add(i);
         }
     }
+
+    /** Stores the specified packet by MMSI. */
+    private static void storeByMmsi(List<RegularStatement> batch, long millisSinceEpoch, int mmsi, byte[] digest, String rawMessage) {
+        Insert i = QueryBuilder.insertInto(TABLE_MMSI);
+        i.value(COLUMN_MMSI, mmsi);
+        i.value(COLUMN_TIMESTAMP, millisSinceEpoch);
+        i.value(COLUMN_AISDATA_DIGEST, ByteBuffer.wrap(digest));
+        i.value(COLUMN_AISDATA, rawMessage);
+        batch.add(i);
+    }
+
+    /** Stores the specified packet by time. */
+    private static void storeByTime(List<RegularStatement> batch, long millisSinceEpoch, long timeblock, byte[] digest, String rawMessage) {
+        Insert i = QueryBuilder.insertInto(TABLE_TIME);
+        i.value(COLUMN_TIMEBLOCK, timeblock);
+        i.value(COLUMN_TIMESTAMP, millisSinceEpoch);
+        i.value(COLUMN_AISDATA_DIGEST, ByteBuffer.wrap(digest));
+        i.value(COLUMN_AISDATA, rawMessage);
+        batch.add(i);
+    }
+
+    private Position getPosition(AisPacket packet) {
+        Position p = null;
+
+        final AisMessage message = packet.tryGetAisMessage();
+        if (message != null) {
+            final int mmsi = message.getUserId();
+            final long timestamp = packet.getBestTimestamp();
+
+            p = message.getValidPosition();
+
+            if (p == null) { // Try to find an estimated position
+                // Use the last received position message unless the position has timed out (POSITION_TIMEOUT_MS)
+                p = tracker.asMap().getOrDefault(message.getUserId(), null);
+            } else { // Update the tracker with latest position
+                //but only update the tracker IF the new time is better
+                tracker.asMap().merge(message.getUserId(), p.withTime(timestamp), (a, b) -> a.getTime() > b.getTime() ? a : b);
+            }
+        }
+
+        return p;
+    }
+
 }

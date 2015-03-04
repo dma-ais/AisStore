@@ -14,15 +14,9 @@
  */
 package dk.dma.ais.store;
 
-import java.nio.ByteBuffer;
-import java.util.List;
-
-import com.datastax.driver.core.RegularStatement;
-import com.datastax.driver.core.querybuilder.Insert;
-import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.google.common.hash.Hashing;
 import com.google.common.primitives.Ints;
-
-import dk.dma.enav.model.geometry.Position;
+import dk.dma.ais.packet.AisPacket;
 
 /**
  * This file contains the schema that is being used to store data in AisStore. It also contains various utility methods.
@@ -31,110 +25,63 @@ import dk.dma.enav.model.geometry.Position;
  */
 public class AisStoreSchema {
 
+    /** This table contains AIS packets ordered by timeblock and geographic cells of size 1 degree. */
+    public static final String TABLE_AREA_CELL1 = "packets_area_cell1";
+
+    /** This table contains AIS packets ordered by timeblock and geographic cells of size 10 degrees. */
+    public static final String TABLE_AREA_CELL10 = "packets_area_cell10";
+
+    /** This table holds AIS packets ordered by MMSI number with an unknown position. */
+    public static final String TABLE_AREA_UNKNOWN = "packets_area_unknown";
+
+    /**
+     * This table holds all packets (with a valid message) stored in row with the MMSI number as the key. The columns
+     * are ordered by timestamp and a message digest to avoid duplicates.
+     */
+    public static final String TABLE_MMSI = "packets_mmsi";
+
+    /**
+     * This table holds all packets stored in row with the number of 10 minute blocks since the
+     * epoch as the key. Within each 10 minute blocks, packets are store ordered by timestamp (and a message
+     * digest to avoid duplicates).
+     */
+    public static final String TABLE_TIME = "packets_time";
+
+    // ---
+
+    /** Common name of column holding time block (i.e. no. of 10 minute blocks since the epoch. */
+    public static final String COLUMN_TIMEBLOCK = "timeblock";
+
+    /** Common name of column holding timestamp with millisecond precision. */
+    public static final String COLUMN_TIMESTAMP = "time";
+
+    /** Common name of column holding cellid (geographical area) */
+    public static final String COLUMN_CELLID = "cellid";
+
+    /** Common name of column holding MMSI no. */
+    public static final String COLUMN_MMSI = "mmsi";
+
+    /** Common name of column holding aisdata message digest (to avoid storing duplicates) */
+    public static final String COLUMN_AISDATA_DIGEST = "digest";
+
     /** We store the actual AIS message in this column. */
     public static final String COLUMN_AISDATA = "aisdata";
 
     /**
-     * The concatenation of timestamp and has of the packet, that is used together with the column key as the combined
-     * key.
-     */
-    public static final String COLUMN_TIMEHASH = "timehash";
-
-    /** This table contains all messages received for each 1 degree cell. */
-    public static final String TABLE_AREA_CELL1 = "packets_area_cell1";
-
-    /** The key column name of {@link #TABLE_AREA_CELL1_KEY}. */
-    public static final String TABLE_AREA_CELL1_KEY = "cellid";
-
-    /** This table contains all messages received for each 10 degree cell. */
-    public static final String TABLE_AREA_CELL10 = "packets_area_cell10";
-
-    /** The key column name of {@link #TABLE_AREA_CELL10_KEY}. */
-    public static final String TABLE_AREA_CELL10_KEY = "cellid";
-
-    /** This table holds all packets (with a valid message) ordered by MMSI number with an unknown position. */
-    public static final String TABLE_AREA_UNKNOWN = "packets_area_unknown";
-
-    /** The key column name of {@link #TABLE_AREA_UNKNOWN}. */
-    public static final String TABLE_AREA_UNKNOWN_KEY = "mmsi";
-
-    /**
-     * This table holds all packets (with a valid message) stored in row with the MMSI number as the key. The columns
-     * are ordered by timestamp concatenated with a hash of the packet being stored.
-     */
-    public static final String TABLE_MMSI = "packets_mmsi";
-
-    /** The key column name of {@link #TABLE_MMSI_KEY}. */
-    public static final String TABLE_MMSI_KEY = "mmsi";
-
-    /**
-     * This table holds all packets (with a valid message) stored in row with the number of 10 minute blocks since the
-     * epoch as the key. Within each 10 minute blocks, packets are store ordered by timestamp concatenated with a hash
-     * of the message.
-     */
-    public static final String TABLE_TIME = "packets_time";
-
-    /** The key column name of {@link #TABLE_TIME_KEY}. */
-    public static final String TABLE_TIME_KEY = "timeblock";
-
-    /**
      * Converts a milliseconds since epoch to a 10-minute blocks since epoch.
-     * 
+     *
      * @param timestamp
      *            the timestamp to convert
      * @return the converted value
      */
-    public static int getTimeBlock(long timestamp) {
-        return Ints.checkedCast(timestamp / 10 / 60 / 1000);
+    public static final int getTimeBlock(long timestamp) {
+        return Ints.checkedCast(timestamp/10/60/1000);
     }
 
     /**
-     * @param tableName
-     *            the name of the table
-     * @param keyName
-     *            the name of the first part of the key
-     * @param key
-     *            the value of the first part of the key
-     * @param time_hash
-     *            the timestamp - AIS data hash value
-     * @param aisData
-     *            the AIS data to insert
-     * @param timestamp
-     *            the timestamp of the AIS packet
-     * @return the insert statement
+     * Calculates a message digest for the given messages (AisPackets).
      */
-    private static Insert store(String tableName, String keyName, int key, byte[] time_hash, byte[] aisData,
-            long timestamp) {
-        Insert i = QueryBuilder.insertInto(tableName);
-        i.value(keyName, key);
-        i.value(COLUMN_TIMEHASH, ByteBuffer.wrap(time_hash));
-        i.value(COLUMN_AISDATA, ByteBuffer.wrap(aisData));
-        i.using(QueryBuilder.timestamp(timestamp*1000));
-        return i;
-    }
-
-    /** Stores the specified packet by position (area). */
-    public static void storeByArea(List<RegularStatement> batch, long timestamp, byte[] column, int mmsi, Position p,
-            byte[] packet) {
-        if (p == null) {
-            // Okay we have no idea of the position of the ship. Store it in this table and process it later
-            batch.add(store(TABLE_AREA_UNKNOWN, TABLE_AREA_UNKNOWN_KEY, mmsi, column, packet, timestamp));
-        } else {
-            // Cells with size 1 degree
-            batch.add(store(TABLE_AREA_CELL1, TABLE_AREA_CELL1_KEY, p.getCellInt(1), column, packet, timestamp));
-
-            // Cells with size 10 degree
-            batch.add(store(TABLE_AREA_CELL10, TABLE_AREA_CELL10_KEY, p.getCellInt(10), column, packet, timestamp));
-        }
-    }
-
-    /** Stores the specified packet by MMSI. */
-    public static void storeByMmsi(List<RegularStatement> batch, long timestamp, byte[] column, int mmsi, byte[] packet) {
-        batch.add(store(TABLE_MMSI, TABLE_MMSI_KEY, mmsi, column, packet, timestamp));
-    }
-
-    /** Stores the specified packet by time. */
-    public static void storeByTime(List<RegularStatement> batch, long timestamp, byte[] column, byte[] packet) {
-        batch.add(store(TABLE_TIME, TABLE_TIME_KEY, getTimeBlock(timestamp), column, packet, timestamp));
+    public static final byte[] getDigest(AisPacket packet) {
+        return Hashing.murmur3_128().hashUnencodedChars(packet.getStringMessage()).asBytes();
     }
 }

@@ -14,29 +14,26 @@
  */
 package dk.dma.ais.store;
 
-import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL1;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL10;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL10_KEY;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL1_KEY;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_MMSI;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_MMSI_KEY;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME_KEY;
-import static java.util.Objects.requireNonNull;
-
-import java.util.ArrayList;
-import java.util.Set;
-
-import org.joda.time.Interval;
-
 import com.datastax.driver.core.Session;
 import com.google.common.collect.AbstractIterator;
-
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.db.cassandra.CassandraQueryBuilder;
 import dk.dma.enav.model.geometry.Area;
 import dk.dma.enav.model.geometry.grid.Cell;
 import dk.dma.enav.model.geometry.grid.Grid;
+import org.joda.time.Interval;
+
+import java.util.ArrayList;
+import java.util.Set;
+
+import static dk.dma.ais.store.AisStoreSchema.COLUMN_CELLID;
+import static dk.dma.ais.store.AisStoreSchema.COLUMN_MMSI;
+import static dk.dma.ais.store.AisStoreSchema.COLUMN_TIMEBLOCK;
+import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL1;
+import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL10;
+import static dk.dma.ais.store.AisStoreSchema.TABLE_MMSI;
+import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME;
+import static java.util.Objects.requireNonNull;
 
 /**
  * 
@@ -77,7 +74,7 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
             // Determines if use the tables of size 1 degree, or size 10 degrees
             boolean useCell1 = cells10.size() * factor > cells1.size();
             String tableName = useCell1 ? TABLE_AREA_CELL1 : TABLE_AREA_CELL10;
-            String keyName = useCell1 ? TABLE_AREA_CELL1_KEY : TABLE_AREA_CELL10_KEY;
+            String keyName = COLUMN_CELLID;
             Set<Cell> cells = useCell1 ? cells1 : cells10;
 
             // We create multiple queries and use a priority queue to return packets from each ship sorted by their
@@ -92,7 +89,7 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
             }
         } else if (mmsi != null) {
             for (int m : mmsi) {
-                queries.add(new AisStoreCompleteQuery(s, inner, batchLimit, TABLE_MMSI, TABLE_MMSI_KEY, m,
+                queries.add(new AisStoreCompleteQuery(s, inner, batchLimit, TABLE_MMSI, COLUMN_MMSI, m,
                         startTimeInclusive, stopTimeExclusive));
             }
         } else {
@@ -102,10 +99,10 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
             //7 days or more, use partial queries
             if ((stop - start)*10/60/24 > 7) {
                 System.out.println("Using Partial Queries");
-                queries.add(new AisStorePartialQuery(s, inner, batchLimit, TABLE_TIME, TABLE_TIME_KEY, start, stop,
+                queries.add(new AisStorePartialQuery(s, inner, batchLimit, TABLE_TIME, COLUMN_TIMEBLOCK, start, stop,
                     startTimeInclusive, stopTimeExclusive));
             } else {
-                queries.add(new AisStoreCompleteQuery(s, inner, batchLimit, TABLE_TIME, TABLE_TIME_KEY, start, stop,
+                queries.add(new AisStoreCompleteQuery(s, inner, batchLimit, TABLE_TIME, COLUMN_TIMEBLOCK, start, stop,
                         startTimeInclusive, stopTimeExclusive));
             }
             
