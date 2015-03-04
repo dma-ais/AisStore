@@ -71,7 +71,7 @@ public class PacketsMmsiSSTableWriter extends AisStoreSSTableWriter {
             AisMessage message = packet.tryGetAisMessage();
             if (message != null) {
                 final int mmsi = message.getUserId();
-                if (mmsi > 0) {
+                if (mmsi >= 0) {
                     try {
                         writer.addRow(mmsi, new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
                     } catch (InvalidRequestException e) {
