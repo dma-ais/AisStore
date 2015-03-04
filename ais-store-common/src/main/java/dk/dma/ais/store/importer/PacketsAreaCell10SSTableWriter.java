@@ -17,9 +17,13 @@ package dk.dma.ais.store.importer;
 
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.enav.model.geometry.Position;
+import org.apache.cassandra.config.KSMetaData;
+import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.exceptions.InvalidRequestException;
 
 import java.io.IOException;
+import java.nio.ByteBuffer;
+import java.util.Date;
 import java.util.Objects;
 
 import static dk.dma.ais.store.AisStoreSchema.getDigest;
@@ -58,6 +62,10 @@ public class PacketsAreaCell10SSTableWriter extends AisStoreSSTableWriter {
                 "INSERT INTO %s.%s (cellid, timeblock, time, digest, aisdata) VALUES (?, ?, ?, ?, ?)", keyspace, TABLE
             )
         );
+
+        // http://stackoverflow.com/questions/26137083/cassandra-does-cqlsstablewriter-support-writing-to-multiple-column-families-co
+        KSMetaData ksm = Schema.instance.getKSMetaData(keyspace);
+        Schema.instance.clearKeyspaceDefinition(ksm);
     }
 
     public void addPacket(AisPacket packet, Position p) {
@@ -68,7 +76,7 @@ public class PacketsAreaCell10SSTableWriter extends AisStoreSSTableWriter {
         if (ts > 0) {
             final int cellid = p.getCellInt(10.0);
             try {
-                writer.addRow(cellid, getTimeBlock(ts), ts, getDigest(packet), packet.toByteArray());
+                writer.addRow(cellid, getTimeBlock(ts), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
             } catch (InvalidRequestException e) {
                 System.out.println("Failed to store message in " + TABLE + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
             } catch (IOException e) {

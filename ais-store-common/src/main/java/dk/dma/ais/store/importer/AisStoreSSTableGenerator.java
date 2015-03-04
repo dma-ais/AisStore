@@ -33,6 +33,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 /**
@@ -49,6 +50,8 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
 
     public static final long POSITION_TIMEOUT_MS = TimeUnit.MILLISECONDS
             .convert(20, TimeUnit.MINUTES);
+
+    final AtomicLong packetsProcessed = new AtomicLong(1);
 
     /**
      * A position tracker used to keeping an eye on previously received
@@ -89,7 +92,6 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
     }
 
     private void process(AisPacket packet) throws IOException {
-
         long ts = packet.getBestTimestamp();
         if (ts > 0) { // only save packets with a valid timestamp
             packetsTimeWriter.addPacket(packet);
@@ -119,6 +121,8 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
                 }
             }
         }
+
+        packetsProcessed.incrementAndGet();
     }
 
     /**
@@ -157,4 +161,7 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
 
     }
 
+    public long numberOfPacketsProcessed() {
+        return packetsProcessed.longValue();
+    }
 }

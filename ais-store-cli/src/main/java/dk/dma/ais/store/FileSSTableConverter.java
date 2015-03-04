@@ -14,21 +14,19 @@
  */
 package dk.dma.ais.store;
 
-import java.nio.file.Paths;
-import java.util.Properties;
-import java.util.concurrent.atomic.AtomicInteger;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
-
 import dk.dma.ais.reader.AisReader;
 import dk.dma.ais.reader.AisReaders;
 import dk.dma.ais.store.importer.AisStoreSSTableGenerator;
 import dk.dma.ais.store.importer.ImportConfigGenerator;
 import dk.dma.commons.app.AbstractCommandLineTool;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.nio.file.Paths;
+import java.util.Properties;
+import java.util.concurrent.atomic.AtomicInteger;
 
 /**
  * @author Jens Tuxen
@@ -68,7 +66,10 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
     
     @Parameter(names = "-bufferSize", description = "buffer size in mb (roughly the size of each flush to sstable, beware of heap usage, 128m ~ 1g heap")
     int bufferSize = 128;
-    
+
+    static {
+        org.apache.cassandra.config.Config.setClientMode(true);
+    }
 
     /** {@inheritDoc} */
     @Override
@@ -77,16 +78,14 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
         //bootstrap a valid cassandra.yaml config file into the inDirectory
         ImportConfigGenerator.generate(inDirectory);
         Properties props = System.getProperties();
-        props.setProperty("cassandra.config", Paths.get("file://",inDirectory, "cassandra.yaml").toString());
-        
-        AisStoreSSTableGenerator gen = AisStoreSSTableGenerator
+        props.setProperty("cassandra.config", Paths.get("file://", inDirectory, "cassandra.yaml").toString());
+
+        AisStoreSSTableGenerator ssTableGenerator = AisStoreSSTableGenerator
                 .createAisStoreSSTableGenerator(inDirectory,keyspace,compressor, bufferSize);
-        
-        
+
         final AtomicInteger acceptedCount = new AtomicInteger();
         final long start = System.currentTimeMillis();
-        AisReader reader = AisReaders.createDirectoryReader(path, glob,
-                recursive);
+        AisReader reader = AisReaders.createDirectoryReader(path, glob, recursive);
 
         if (tag != null) {
             reader.setSourceId(tag);
@@ -100,22 +99,19 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
                 long count = verboseCounter.incrementAndGet();
                 if (count % 10000 == 0) {
                     long end = System.currentTimeMillis();
-                    LOG.info("Average Conversion rate " + (double) count
-                            / ((double) (end - start) / 1000.0) + " packets/s");
+                    LOG.info("Conversion rate " + ((int) (count / ((end - start) / 1000.0))) + " packets/s, " + ssTableGenerator.numberOfPacketsProcessed() + " total packets processed.");
                 }
             });
         }
         
         //add "accepted" counter
         reader.registerPacketHandler(p -> acceptedCount.incrementAndGet());
-        
-        reader.registerPacketHandler(gen);
+        reader.registerPacketHandler(ssTableGenerator);
 
         reader.start();
         reader.join();
-        gen.close();
-        LOG.info("Finished processing directory, " + acceptedCount
-                + " packets was converted from " + path);
+        ssTableGenerator.close();
+        LOG.info("Finished processing directory, " + acceptedCount + " packets was converted from " + path);
         
         shutdown();
         System.exit(0);

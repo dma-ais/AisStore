@@ -36,10 +36,10 @@ public abstract class AisStoreSSTableWriter {
     public AisStoreSSTableWriter(String outputDir, String schemaDefinition, String insertStatement) {
         writer =
             CQLSSTableWriter.builder()
-                .inDirectory(outputDir)
-                .forTable(schemaDefinition)
-                .withBufferSizeInMB(256)
-                .using(insertStatement)
+                    .inDirectory(outputDir)
+                    .forTable(schemaDefinition)
+                    .withBufferSizeInMB(256)
+                    .using(insertStatement)
                 .withPartitioner(new Murmur3Partitioner())
             .build();
     }
