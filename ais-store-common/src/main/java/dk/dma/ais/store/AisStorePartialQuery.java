@@ -15,16 +15,6 @@
  */
 package dk.dma.ais.store;
 
-import static java.util.Objects.requireNonNull;
-
-import java.nio.ByteBuffer;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.LinkedList;
-import java.util.List;
-
-import org.apache.cassandra.utils.ByteBufferUtil;
-
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
@@ -32,9 +22,15 @@ import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.datastax.driver.core.querybuilder.Select.Where;
 import com.google.common.collect.AbstractIterator;
-import com.google.common.primitives.Longs;
-
 import dk.dma.ais.packet.AisPacket;
+
+import java.util.Comparator;
+import java.util.Date;
+import java.util.LinkedList;
+import java.util.List;
+
+import static dk.dma.ais.store.AisStoreSchema.COLUMN_TIMESTAMP;
+import static java.util.Objects.requireNonNull;
 
 /**
  * This class implements the actual query.
@@ -69,10 +65,10 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
      * The first timestamp for which to get packets (inclusive). Is constantly updated to the timestamp of the last
      * received packet as data comes in.
      */
-    private ByteBuffer timeStart;
+    private long timeStart;
 
     /** The last timestamp for which to get packets (exclusive) */
-    private final ByteBuffer timeStop;
+    private final long timeStop;
 
     private int currentRow;
 
@@ -104,8 +100,9 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
         this.currentRow = rowStart;
         this.lastRow = rowStop;
         this.batchLimit = batchLimit;
-        this.timeStart = ByteBuffer.wrap(Longs.toByteArray(timeStartInclusive));
-        this.timeStop = ByteBuffer.wrap(Longs.toByteArray(timeStopExclusive));
+        this.timeStart = timeStartInclusive;
+        this.timeStop = timeStopExclusive;
+
         advance();
         this.inner = inner;
         inner.queries.add(this);
@@ -141,10 +138,9 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
             if (all.size() > 0) {
                 retrievedPackets += all.size();
                 Row row = all.get(all.size() - 1);
-                byte[] bytes = ByteBufferUtil.getArray(row.getBytes(0));
-                lastestDateReceived = Longs.fromByteArray(bytes);
+                lastestDateReceived = row.getLong(COLUMN_TIMESTAMP);
                 System.out.println(new Date(lastestDateReceived));
-                timeStart = ByteBuffer.wrap(bytes);
+                timeStart = lastestDateReceived;
             }
             advance(); // make sure to fetch next before we start the parsing
 
@@ -165,10 +161,10 @@ class AisStorePartialQuery extends AbstractIterator<AisPacket> {
         if (currentRow <= lastRow) {
             // We need timehash to find out what the timestamp of the last received packet is.
             // When the datastax driver supports unlimited fetching we will only need aisdata
-            Select s = QueryBuilder.select("timehash", "aisdata").from(tableName);
+            Select s = QueryBuilder.select(COLUMN_TIMESTAMP, "aisdata").from(tableName);
             Where w = s.where(QueryBuilder.eq(rowName, currentRow));
-            w.and(QueryBuilder.gt("timehash", timeStart)); // timehash must be greater than start
-            w.and(QueryBuilder.lt("timehash", timeStop)); // timehash must be less that stop
+            w.and(QueryBuilder.gt(COLUMN_TIMESTAMP, timeStart)); // timehash must be greater than start
+            w.and(QueryBuilder.lt(COLUMN_TIMESTAMP, timeStop)); // timehash must be less that stop
             s.limit(batchLimit); // Sets the limit
             
             System.out.println(s.getQueryString());

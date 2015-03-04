@@ -14,16 +14,6 @@
  */
 package dk.dma.ais.store;
 
-import static java.util.Objects.requireNonNull;
-
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
@@ -34,8 +24,18 @@ import com.datastax.driver.core.querybuilder.Select;
 import com.datastax.driver.core.querybuilder.Select.Where;
 import com.google.common.collect.AbstractIterator;
 import com.google.common.primitives.Longs;
-
 import dk.dma.ais.packet.AisPacket;
+
+import java.nio.ByteBuffer;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Date;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+
+import static dk.dma.ais.store.AisStoreSchema.COLUMN_TIMESTAMP;
+import static java.util.Objects.requireNonNull;
 
 /**
  * This will generate one complete query for a data range
@@ -70,10 +70,10 @@ class AisStoreCompleteQuery extends AbstractIterator<AisPacket> {
      * The first timestamp for which to get packets (inclusive). Is constantly
      * updated to the timestamp of the last received packet as data comes in.
      */
-    private ByteBuffer timeStart;
+    private long timeStart;
 
     /** The last timestamp for which to get packets (exclusive) */
-    private final ByteBuffer timeStop;
+    private final long timeStop;
 
     private int currentRow;
 
@@ -117,8 +117,8 @@ class AisStoreCompleteQuery extends AbstractIterator<AisPacket> {
         this.currentRow = rowStart;
         this.lastRow = rowStop;
         this.batchLimit = batchLimit;
-        this.timeStart = ByteBuffer.wrap(Longs.toByteArray(timeStartInclusive));
-        this.timeStop = ByteBuffer.wrap(Longs.toByteArray(timeStopExclusive));
+        this.timeStart = timeStartInclusive;
+        this.timeStop = timeStopExclusive;
         this.inner = inner;
 
         execute();
@@ -197,7 +197,7 @@ class AisStoreCompleteQuery extends AbstractIterator<AisPacket> {
         // packet is.
         // When the datastax driver supports unlimited fetching we will only
         // need aisdata
-        Select s = QueryBuilder.select("timehash", "aisdata").from(tableName);
+        Select s = QueryBuilder.select(COLUMN_TIMESTAMP, "aisdata").from(tableName);
         Where w = null;
         switch (tableName) {
         case AisStoreSchema.TABLE_TIME:
@@ -208,7 +208,7 @@ class AisStoreCompleteQuery extends AbstractIterator<AisPacket> {
                 block++;
             }
             Integer[] blocksInt = blocks.toArray(new Integer[blocks.size()]);
-            // timehash must be greater than start
+            // time must be greater than start
             w = s.where(QueryBuilder.in(rowName, (Object[]) blocksInt));
             break;
         default:
@@ -216,9 +216,8 @@ class AisStoreCompleteQuery extends AbstractIterator<AisPacket> {
             break;
         }
 
-        w.and(QueryBuilder.gt("timehash", timeStart));
-        w.and(QueryBuilder.lt("timehash", timeStop)); // timehash must be less
-                                                      // that stop
+        w.and(QueryBuilder.gt(COLUMN_TIMESTAMP, timeStart));
+        w.and(QueryBuilder.lt(COLUMN_TIMESTAMP, timeStop)); // time must be less than stop
         s.limit(Integer.MAX_VALUE); // Sets the limit
         s.setFetchSize(batchLimit);
         s.setConsistencyLevel(ConsistencyLevel.ONE);
