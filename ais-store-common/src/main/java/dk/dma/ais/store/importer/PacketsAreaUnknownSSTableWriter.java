@@ -23,9 +23,12 @@ import org.apache.cassandra.exceptions.InvalidRequestException;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.Date;
 
+import static dk.dma.ais.store.AisStoreSchema.Table.PACKETS_AREA_UNKNOWN;
 import static dk.dma.ais.store.AisStoreSchema.getDigest;
+import static dk.dma.ais.store.AisStoreSchema.getTimeBlock;
 
 /**
  * Creates an AisStore Table/Schema writer, see AisStoreTableWriters for implementation.
@@ -34,7 +37,7 @@ import static dk.dma.ais.store.AisStoreSchema.getDigest;
  *   - http://www.datastax.com/dev/blog/bulk-loading
  *   - https://github.com/yukim/cassandra-bulkload-example/blob/master/src/main/java/bulkload/BulkLoad.java
  *
- * @param types note: need to be aware of super composite keys as partition key, for instance.
+ * note: need to be aware of super composite keys as partition key, for instance.
  * @author Jens Tuxen
  *
  */
@@ -49,14 +52,15 @@ public class PacketsAreaUnknownSSTableWriter extends AisStoreSSTableWriter {
             String.format(
                 "CREATE TABLE %s.%s (" +
                     "mmsi int," +
+                    "timeblock int," +
                     "time timestamp," +
                     "digest blob," +
                     "aisdata ascii," +
-                    "PRIMARY KEY (mmsi, time, digest)" +
+                    "PRIMARY KEY ((mmsi, timeblock), time, digest)" +
                 ") WITH CLUSTERING ORDER BY (time ASC, digest ASC)", keyspace, TABLE
             ),
             String.format(
-                "INSERT INTO %s.%s (mmsi, time, digest, aisdata) VALUES (?, ?, ?, ?)", keyspace, TABLE
+                "INSERT INTO %s.%s (mmsi, timeblock, time, digest, aisdata) VALUES (?, ?, ?, ?, ?)", keyspace, TABLE
             )
         );
 
@@ -73,7 +77,7 @@ public class PacketsAreaUnknownSSTableWriter extends AisStoreSSTableWriter {
                 final int mmsi = message.getUserId();
                 if (mmsi >= 0) {
                     try {
-                        writer.addRow(mmsi, new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
+                        writer.addRow(mmsi, getTimeBlock(PACKETS_AREA_UNKNOWN, Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
                     } catch (InvalidRequestException e) {
                         System.out.println("Failed to store message in " + TABLE + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
                     } catch (IOException e) {

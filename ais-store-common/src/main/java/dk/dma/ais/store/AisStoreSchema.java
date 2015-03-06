@@ -18,6 +18,9 @@ import com.google.common.hash.Hashing;
 import com.google.common.primitives.Ints;
 import dk.dma.ais.packet.AisPacket;
 
+import java.time.Duration;
+import java.time.Instant;
+
 /**
  * This file contains the schema that is being used to store data in AisStore. It also contains various utility methods.
  * 
@@ -67,15 +70,49 @@ public class AisStoreSchema {
     /** We store the actual AIS message in this column. */
     public static final String COLUMN_AISDATA = "aisdata";
 
+    /** Identifiers of the different tables in use. */
+    public static enum Table {
+        PACKETS_TIME(TABLE_TIME),
+        PACKETS_MMSI(TABLE_MMSI),
+        PACKETS_AREA_CELL1(TABLE_AREA_CELL1),
+        PACKETS_AREA_CELL10(TABLE_AREA_CELL10),
+        PACKETS_AREA_UNKNOWN(TABLE_AREA_UNKNOWN);
+
+        private final String tableName;
+        private Table(String tableName) {
+            this.tableName = tableName;
+        }
+        public String toString() {
+            return this.tableName;
+        }
+    };
+
     /**
      * Converts a milliseconds since epoch to a 10-minute blocks since epoch.
      *
-     * @param timestamp
-     *            the timestamp to convert
+     * @param timestamp the timestamp to convert
      * @return the converted value
      */
-    public static final int getTimeBlock(long timestamp) {
-        return Ints.checkedCast(timestamp/10/60/1000);
+    public static final int getTimeBlock(Table table, Instant timestamp) {
+        int timeblock = -1;
+        switch (table) {
+            case PACKETS_TIME:
+            case PACKETS_AREA_CELL1:
+            case PACKETS_AREA_CELL10:
+                timeblock = getTimeBlock(timestamp, Duration.ofMinutes(10));
+                break;
+            case PACKETS_MMSI:
+            case PACKETS_AREA_UNKNOWN:
+                timeblock =  getTimeBlock(timestamp, Duration.ofDays(30));
+                break;
+            default:
+                throw new IllegalArgumentException(table.toString());
+        }
+        return timeblock;
+    }
+
+    private static final int getTimeBlock(Instant timestamp, Duration unit) {
+        return Ints.checkedCast(timestamp.toEpochMilli()/1000/unit.getSeconds());
     }
 
     /**

@@ -23,6 +23,7 @@ import dk.dma.enav.model.geometry.grid.Cell;
 import dk.dma.enav.model.geometry.grid.Grid;
 import org.joda.time.Interval;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Set;
 
@@ -93,9 +94,9 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
                         startTimeInclusive, stopTimeExclusive));
             }
         } else {
-            int start = AisStoreSchema.getTimeBlock(startTimeInclusive);
-            int stop = AisStoreSchema.getTimeBlock(stopTimeExclusive - 1);
-            
+            int start = AisStoreSchema.getTimeBlock(AisStoreSchema.Table.PACKETS_TIME, Instant.ofEpochMilli(startTimeInclusive));
+            int stop = AisStoreSchema.getTimeBlock(AisStoreSchema.Table.PACKETS_TIME, Instant.ofEpochMilli(stopTimeExclusive - 1));
+
             //7 days or more, use partial queries
             if ((stop - start)*10/60/24 > 7) {
                 System.out.println("Using Partial Queries");
@@ -122,9 +123,9 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
     }
 
     /**
-     * @param start
+     * @param startMillies
      *            the start date (inclusive)
-     * @param end
+     * @param stopMillies
      *            the end date (exclusive)
      * @return
      */

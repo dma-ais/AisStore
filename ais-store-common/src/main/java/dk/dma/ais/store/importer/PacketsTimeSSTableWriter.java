@@ -22,8 +22,10 @@ import org.apache.cassandra.exceptions.InvalidRequestException;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.Date;
 
+import static dk.dma.ais.store.AisStoreSchema.Table.PACKETS_TIME;
 import static dk.dma.ais.store.AisStoreSchema.getDigest;
 import static dk.dma.ais.store.AisStoreSchema.getTimeBlock;
 
@@ -34,7 +36,7 @@ import static dk.dma.ais.store.AisStoreSchema.getTimeBlock;
  *   - http://www.datastax.com/dev/blog/bulk-loading
  *   - https://github.com/yukim/cassandra-bulkload-example/blob/master/src/main/java/bulkload/BulkLoad.java
  *
- * @param types note: need to be aware of super composite keys as partition key, for instance.
+ * note: need to be aware of super composite keys as partition key, for instance.
  * @author Jens Tuxen
  *
  */
@@ -69,7 +71,7 @@ public class PacketsTimeSSTableWriter extends AisStoreSSTableWriter {
         final long ts = packet.getBestTimestamp();
         if (ts > 0) {
             try {
-                writer.addRow(getTimeBlock(ts), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
+                writer.addRow(getTimeBlock(PACKETS_TIME, Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
             } catch (InvalidRequestException e) {
                 System.out.println("Failed to store message in " + TABLE + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
             } catch (IOException e) {

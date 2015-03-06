@@ -27,6 +27,7 @@ import com.google.common.primitives.Longs;
 import dk.dma.ais.packet.AisPacket;
 
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Date;
@@ -165,8 +166,7 @@ class AisStoreCompleteQuery extends AbstractIterator<AisPacket> {
 
                 // currentRow == lastRow when packets_mmsi or packets_cell
                 if (!(currentRow == lastRow)) {
-                    currentRow = AisStoreSchema.getTimeBlock(new Date(
-                            lastestDateReceived).getTime());
+                    currentRow = AisStoreSchema.getTimeBlock(AisStoreSchema.Table.valueOf(this.tableName), Instant.ofEpochMilli(lastestDateReceived));
                     // System.out.println("Currently at: "+currentRow+" Last ROW is: "+lastRow);
                 }
 

@@ -23,9 +23,11 @@ import org.apache.cassandra.exceptions.InvalidRequestException;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.Date;
 import java.util.Objects;
 
+import static dk.dma.ais.store.AisStoreSchema.Table.PACKETS_AREA_CELL10;
 import static dk.dma.ais.store.AisStoreSchema.getDigest;
 import static dk.dma.ais.store.AisStoreSchema.getTimeBlock;
 
@@ -76,7 +78,7 @@ public class PacketsAreaCell10SSTableWriter extends AisStoreSSTableWriter {
         if (ts > 0) {
             final int cellid = p.getCellInt(10.0);
             try {
-                writer.addRow(cellid, getTimeBlock(ts), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
+                writer.addRow(cellid, getTimeBlock(PACKETS_AREA_CELL10, Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
             } catch (InvalidRequestException e) {
                 System.out.println("Failed to store message in " + TABLE + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
             } catch (IOException e) {

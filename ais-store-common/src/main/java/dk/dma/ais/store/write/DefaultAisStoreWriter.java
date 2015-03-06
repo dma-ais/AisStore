@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.nio.ByteBuffer;
+import java.time.Instant;
 import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
@@ -43,6 +44,11 @@ import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL10;
 import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_UNKNOWN;
 import static dk.dma.ais.store.AisStoreSchema.TABLE_MMSI;
 import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME;
+import static dk.dma.ais.store.AisStoreSchema.Table.PACKETS_AREA_CELL1;
+import static dk.dma.ais.store.AisStoreSchema.Table.PACKETS_AREA_CELL10;
+import static dk.dma.ais.store.AisStoreSchema.Table.PACKETS_AREA_UNKNOWN;
+import static dk.dma.ais.store.AisStoreSchema.Table.PACKETS_MMSI;
+import static dk.dma.ais.store.AisStoreSchema.Table.PACKETS_TIME;
 import static dk.dma.ais.store.AisStoreSchema.getDigest;
 import static dk.dma.ais.store.AisStoreSchema.getTimeBlock;
 
@@ -91,30 +97,31 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
         }
 
         // We need to calc these values only once per packet.
-        final int timeblock = millisSinceEpoch <= 0 ? -1 : getTimeBlock(millisSinceEpoch);
         final int mmsi = message == null ? -1 : message.getUserId();
+        final Instant timestamp = Instant.ofEpochMilli(millisSinceEpoch);
         final Position position = getPosition(packet);
         final byte[] digest = getDigest(packet);
         final String rawMessage = packet.getStringMessage();
 
         // Store packets in Cassandra
-        if (timeblock > 0)
-            storeByTime(batch, millisSinceEpoch, timeblock, digest, rawMessage); // Store packet by time
+        if (millisSinceEpoch > 0)
+            storeByTime(batch, timestamp, digest, rawMessage); // Store packet by time
 
         if (mmsi > 0)
-            storeByMmsi(batch, millisSinceEpoch, mmsi, digest, rawMessage); // Store packet by mmsi
+            storeByMmsi(batch, timestamp, mmsi, digest, rawMessage); // Store packet by mmsi
 
-        if (timeblock > 0 && mmsi > 0)
-            storeByArea(batch, millisSinceEpoch, timeblock, mmsi, position, digest, rawMessage); // Store packet by area
+        if (millisSinceEpoch > 0 && mmsi > 0)
+            storeByArea(batch, timestamp, mmsi, position, digest, rawMessage); // Store packet by area
     }
 
     /** Stores the specified packet by position (area). */
-    private static void storeByArea(List<RegularStatement> batch, long millisSinceEpoch, long timeblock, int mmsi, Position p, byte[] digest, String rawMessage) {
+    private static void storeByArea(List<RegularStatement> batch, Instant timestamp, int mmsi, Position p, byte[] digest, String rawMessage) {
         if (p == null) {
             // Okay we have no idea of the position of the ship. Store it in this table and process it later.
             Insert i = QueryBuilder.insertInto(TABLE_AREA_UNKNOWN);
             i.value(COLUMN_MMSI, mmsi);
-            i.value(COLUMN_TIMESTAMP, millisSinceEpoch);
+            i.value(COLUMN_TIMEBLOCK, getTimeBlock(PACKETS_AREA_UNKNOWN, timestamp));
+            i.value(COLUMN_TIMESTAMP, timestamp.toEpochMilli());
             i.value(COLUMN_AISDATA_DIGEST, ByteBuffer.wrap(digest));
             i.value(COLUMN_AISDATA, rawMessage);
             batch.add(i);
@@ -122,8 +129,8 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
             // Cells with size 1 degree
             Insert i = QueryBuilder.insertInto(TABLE_AREA_CELL1);
             i.value(COLUMN_CELLID, p.getCellInt(1));
-            i.value(COLUMN_TIMEBLOCK, timeblock);
-            i.value(COLUMN_TIMESTAMP, millisSinceEpoch);
+            i.value(COLUMN_TIMEBLOCK, getTimeBlock(PACKETS_AREA_CELL1, timestamp));
+            i.value(COLUMN_TIMESTAMP, timestamp.toEpochMilli());
             i.value(COLUMN_AISDATA_DIGEST, ByteBuffer.wrap(digest));
             i.value(COLUMN_AISDATA, rawMessage);
             batch.add(i);
@@ -131,8 +138,8 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
             // Cells with size 10 degree
             i = QueryBuilder.insertInto(TABLE_AREA_CELL10);
             i.value(COLUMN_CELLID, p.getCellInt(10));
-            i.value(COLUMN_TIMEBLOCK, timeblock);
-            i.value(COLUMN_TIMESTAMP, millisSinceEpoch);
+            i.value(COLUMN_TIMEBLOCK, getTimeBlock(PACKETS_AREA_CELL10, timestamp));
+            i.value(COLUMN_TIMESTAMP, timestamp.toEpochMilli());
             i.value(COLUMN_AISDATA_DIGEST, ByteBuffer.wrap(digest));
             i.value(COLUMN_AISDATA, rawMessage);
             batch.add(i);
@@ -140,20 +147,21 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
     }
 
     /** Stores the specified packet by MMSI. */
-    private static void storeByMmsi(List<RegularStatement> batch, long millisSinceEpoch, int mmsi, byte[] digest, String rawMessage) {
+    private static void storeByMmsi(List<RegularStatement> batch, Instant timestamp, int mmsi, byte[] digest, String rawMessage) {
         Insert i = QueryBuilder.insertInto(TABLE_MMSI);
         i.value(COLUMN_MMSI, mmsi);
-        i.value(COLUMN_TIMESTAMP, millisSinceEpoch);
+        i.value(COLUMN_TIMEBLOCK, getTimeBlock(PACKETS_MMSI, timestamp));
+        i.value(COLUMN_TIMESTAMP, timestamp.toEpochMilli());
         i.value(COLUMN_AISDATA_DIGEST, ByteBuffer.wrap(digest));
         i.value(COLUMN_AISDATA, rawMessage);
         batch.add(i);
     }
 
     /** Stores the specified packet by time. */
-    private static void storeByTime(List<RegularStatement> batch, long millisSinceEpoch, long timeblock, byte[] digest, String rawMessage) {
+    private static void storeByTime(List<RegularStatement> batch, Instant timestamp, byte[] digest, String rawMessage) {
         Insert i = QueryBuilder.insertInto(TABLE_TIME);
-        i.value(COLUMN_TIMEBLOCK, timeblock);
-        i.value(COLUMN_TIMESTAMP, millisSinceEpoch);
+        i.value(COLUMN_TIMEBLOCK, getTimeBlock(PACKETS_TIME, timestamp));
+        i.value(COLUMN_TIMESTAMP, timestamp.toEpochMilli());
         i.value(COLUMN_AISDATA_DIGEST, ByteBuffer.wrap(digest));
         i.value(COLUMN_AISDATA, rawMessage);
         batch.add(i);
