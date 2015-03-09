@@ -14,15 +14,15 @@
  */
 package dk.dma.ais.store.old.exporter;
 
-import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME;
-import static java.util.Objects.requireNonNull;
+import org.apache.cassandra.tools.NodeCmd;
 
 import java.security.Permission;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 
-import org.apache.cassandra.tools.NodeCmd;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_TIME;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Writing a snapshot takes a couple of tricks. Because someone decided it would be a good idea using System.exit(0) in
@@ -62,7 +62,7 @@ public class CassandraNodeTool {
     }
 
     public void takeSnapshot(String keyspace, String snapshotName) throws Exception {
-        execute("snapshot", requireNonNull(keyspace), "-cf", TABLE_TIME, "-t", requireNonNull(snapshotName));
+        execute("snapshot", requireNonNull(keyspace), "-cf", TABLE_PACKETS_TIME.toString(), "-t", requireNonNull(snapshotName));
     }
 
     @SuppressWarnings("serial")
