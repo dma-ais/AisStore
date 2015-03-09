@@ -14,35 +14,45 @@
  */
 package dk.dma.ais.store;
 
-import static java.util.Objects.requireNonNull;
-
-import java.nio.ByteBuffer;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.Date;
-import java.util.Iterator;
-import java.util.LinkedList;
-import java.util.List;
-
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
+import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.querybuilder.Select;
-import com.datastax.driver.core.querybuilder.Select.Where;
 import com.google.common.collect.AbstractIterator;
-import com.google.common.primitives.Longs;
-
 import dk.dma.ais.packet.AisPacket;
+import dk.dma.ais.store.AisStoreSchema.Column;
+import dk.dma.ais.store.AisStoreSchema.Table;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.LinkedList;
+import java.util.List;
+
+import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.gt;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.in;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.lt;
+import static dk.dma.ais.store.AisStoreSchema.Column.COLUMN_AISDATA;
+import static dk.dma.ais.store.AisStoreSchema.Column.COLUMN_TIMEBLOCK;
+import static dk.dma.ais.store.AisStoreSchema.Column.COLUMN_TIMESTAMP;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_TIME;
+import static java.util.Objects.requireNonNull;
 
 /**
  * This will generate one complete query for a data range
  * 
  * @author Jens Tuxen
  */
-class AisStoreCompleteQuery extends AbstractIterator<AisPacket> {
+class AisStoreQuery extends AbstractIterator<AisPacket> {
+
+    static final Logger LOG = LoggerFactory.getLogger(AisStoreQuery.class);
 
     /**
      * AisPacket implements Comparable. But I'm to afraid someone might break
@@ -61,19 +71,19 @@ class AisStoreCompleteQuery extends AbstractIterator<AisPacket> {
     private final Session session;
 
     /** The name of the table we are querying. */
-    private final String tableName;
+    private final Table table;
 
     /** The name of the key row in the table. */
-    private final String rowName;
+    private final Column rowName;
 
     /**
      * The first timestamp for which to get packets (inclusive). Is constantly
      * updated to the timestamp of the last received packet as data comes in.
      */
-    private ByteBuffer timeStart;
+    private Instant timeStart;
 
     /** The last timestamp for which to get packets (exclusive) */
-    private final ByteBuffer timeStop;
+    private final Instant timeStop;
 
     private int currentRow;
 
@@ -94,31 +104,31 @@ class AisStoreCompleteQuery extends AbstractIterator<AisPacket> {
     /** The number of packets that was retrieved. */
     private volatile long retrievedPackets;
 
-    private volatile long lastestDateReceived;
+    private volatile Instant lastestDateReceived;
 
     private final AisStoreQueryInnerContext inner;
 
     private Iterator<Row> it;
     private ResultSet rs;
 
-    AisStoreCompleteQuery(Session session, AisStoreQueryInnerContext inner,
-            int batchLimit, String tableName, String rowName, int rowStart,
-            long timeStartInclusive, long timeStopExclusive) {
-        this(session, inner, batchLimit, tableName, rowName, rowStart,
+    AisStoreQuery(Session session, AisStoreQueryInnerContext inner,
+                  int batchLimit, Table table, Column rowName, int rowStart,
+                  Instant timeStartInclusive, Instant timeStopExclusive) {
+        this(session, inner, batchLimit, table, rowName, rowStart,
                 rowStart, timeStartInclusive, timeStopExclusive);
     }
 
-    AisStoreCompleteQuery(Session session, AisStoreQueryInnerContext inner,
-            int batchLimit, String tableName, String rowName, int rowStart,
-            int rowStop, long timeStartInclusive, long timeStopExclusive) {
+    AisStoreQuery(Session session, AisStoreQueryInnerContext inner,
+                  int batchLimit, Table table, Column rowName, int rowStart,
+                  int rowStop, Instant timeStartInclusive, Instant timeStopExclusive) {
         this.session = requireNonNull(session);
-        this.tableName = requireNonNull(tableName);
+        this.table = requireNonNull(table);
         this.rowName = requireNonNull(rowName);
         this.currentRow = rowStart;
         this.lastRow = rowStop;
         this.batchLimit = batchLimit;
-        this.timeStart = ByteBuffer.wrap(Longs.toByteArray(timeStartInclusive));
-        this.timeStop = ByteBuffer.wrap(Longs.toByteArray(timeStopExclusive));
+        this.timeStart = timeStartInclusive;
+        this.timeStop = timeStopExclusive;
         this.inner = inner;
 
         execute();
@@ -130,7 +140,7 @@ class AisStoreCompleteQuery extends AbstractIterator<AisPacket> {
         return retrievedPackets;
     }
 
-    long getLatestRetrievedTimestamp() {
+    Instant getLatestRetrievedTimestamp() {
         return lastestDateReceived;
     }
 
@@ -151,28 +161,21 @@ class AisStoreCompleteQuery extends AbstractIterator<AisPacket> {
                 }
 
                 row = it.next();
-                packets.add(AisPacket.fromByteBuffer(row.getBytes(1)));
+                packets.add(AisPacket.from(row.getString(1)));
                 retrievedPackets++;
                 innerReceived++;
             }
 
             if (innerReceived > 0) {
-                ByteBuffer buf = row.getBytes(0);
-                byte[] bytes = new byte[buf.remaining()];
-                buf.get(bytes);
-
-                lastestDateReceived = Longs.fromByteArray(bytes);
+                lastestDateReceived = Instant.ofEpochMilli(row.getDate(0).getTime());
 
                 // currentRow == lastRow when packets_mmsi or packets_cell
                 if (!(currentRow == lastRow)) {
-                    currentRow = AisStoreSchema.getTimeBlock(new Date(
-                            lastestDateReceived).getTime());
+                    currentRow = AisStoreSchema.getTimeBlock(table, lastestDateReceived);
                     // System.out.println("Currently at: "+currentRow+" Last ROW is: "+lastRow);
                 }
 
-                System.out.println("Currently at: "
-                        + new Date(lastestDateReceived));
-
+                LOG.info("Currently at: " + lastestDateReceived);
             }
 
             if (!packets.isEmpty()) {
@@ -191,39 +194,47 @@ class AisStoreCompleteQuery extends AbstractIterator<AisPacket> {
         return endOfData();
     }
 
+    private static Integer[] timeBlocks(Table table, Instant timeStart, Instant timeStop) {
+        int timeBlockMin = AisStoreSchema.getTimeBlock(table, timeStart);
+        int timeBlockMax = AisStoreSchema.getTimeBlock(table, timeStop);
+
+        List<Integer> timeBlocks = new ArrayList<>(timeBlockMax - timeBlockMin + 1);
+        for (int timeBlock = timeBlockMin; timeBlock <= timeBlockMax; timeBlock++)
+            timeBlocks.add(timeBlock);
+
+        return timeBlocks.toArray(new Integer[timeBlocks.size()]);
+    }
+
     /** execute takes over from advance, which is not necessary anymore */
     void execute() {
-        // We need timehash to find out what the timestamp of the last received
-        // packet is.
-        // When the datastax driver supports unlimited fetching we will only
-        // need aisdata
-        Select s = QueryBuilder.select("timehash", "aisdata").from(tableName);
-        Where w = null;
-        switch (tableName) {
-        case AisStoreSchema.TABLE_TIME:
-            List<Integer> blocks = new ArrayList<>();
-            int block = currentRow;
-            while (block <= lastRow) {
-                blocks.add(block);
-                block++;
-            }
-            Integer[] blocksInt = blocks.toArray(new Integer[blocks.size()]);
-            // timehash must be greater than start
-            w = s.where(QueryBuilder.in(rowName, (Object[]) blocksInt));
+        Integer[] timeBlocks = timeBlocks(table, timeStart, timeStop);
+
+        Statement select;
+        switch (table) {
+        case TABLE_PACKETS_TIME:
+            select = QueryBuilder
+                .select(COLUMN_TIMESTAMP.toString(), COLUMN_AISDATA.toString())
+                .from(TABLE_PACKETS_TIME.toString())
+                .where(in(COLUMN_TIMEBLOCK.toString(), timeBlocks))
+                .and(gt(COLUMN_TIMESTAMP.toString(), timeStart.toEpochMilli()))
+                .and(lt(COLUMN_TIMESTAMP.toString(), timeStop.toEpochMilli()));
             break;
         default:
-            w = s.where(QueryBuilder.eq(rowName, currentRow));
+            select = QueryBuilder
+                .select(COLUMN_TIMESTAMP.toString(), COLUMN_AISDATA.toString())
+                .from(table.toString())
+                .where(eq(rowName.toString(), currentRow))
+                .and(in(COLUMN_TIMEBLOCK.toString(), timeBlocks))
+                .and(gt(COLUMN_TIMESTAMP.toString(), timeStart.toEpochMilli()))
+                .and(lt(COLUMN_TIMESTAMP.toString(), timeStop.toEpochMilli()));
             break;
         }
 
-        w.and(QueryBuilder.gt("timehash", timeStart));
-        w.and(QueryBuilder.lt("timehash", timeStop)); // timehash must be less
-                                                      // that stop
-        s.limit(Integer.MAX_VALUE); // Sets the limit
-        s.setFetchSize(batchLimit);
-        s.setConsistencyLevel(ConsistencyLevel.ONE);
-        System.out.println(s.getQueryString());
-        future = session.executeAsync(s);
+        select.setFetchSize(batchLimit);
+        select.setConsistencyLevel(ConsistencyLevel.ONE);
+        // select.limit(Integer.MAX_VALUE); // Sets the limit
+
+        future = session.executeAsync(select);
         rs = future.getUninterruptibly();
         it = rs.iterator();
     }

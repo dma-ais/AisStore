@@ -14,19 +14,11 @@
  */
 package dk.dma.ais.store.old.exporter3;
 
-import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME;
-import static java.util.Objects.requireNonNull;
-
-import java.nio.file.DirectoryStream;
-import java.nio.file.Files;
-import java.nio.file.Path;
-import java.nio.file.Paths;
-import java.util.Date;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.atomic.AtomicLong;
-
-import javax.naming.ConfigurationException;
-
+import com.google.common.util.concurrent.RateLimiter;
+import dk.dma.ais.packet.AisPacket;
+import dk.dma.ais.store.old.exporter.CassandraNodeTool;
+import dk.dma.commons.util.FormatUtil;
+import dk.dma.enav.util.function.EConsumer;
 import org.apache.cassandra.config.DatabaseDescriptor;
 import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.db.columniterator.OnDiskAtomIterator;
@@ -37,12 +29,17 @@ import org.joda.time.Interval;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.google.common.util.concurrent.RateLimiter;
+import javax.naming.ConfigurationException;
+import java.nio.file.DirectoryStream;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.util.Date;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicLong;
 
-import dk.dma.ais.packet.AisPacket;
-import dk.dma.ais.store.old.exporter.CassandraNodeTool;
-import dk.dma.commons.util.FormatUtil;
-import dk.dma.enav.util.function.EConsumer;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_TIME;
+import static java.util.Objects.requireNonNull;
 
 /**
  * 
@@ -107,13 +104,13 @@ public class RawSSTableAccessor {
 
     protected void processDataFileLocations(String snapshotName, EConsumer<AisPacket> producer) throws Exception {
         for (String s : DatabaseDescriptor.getAllDataFileLocations()) {
-            Path snapshots = Paths.get(s).resolve(keyspace).resolve(TABLE_TIME).resolve("snapshots")
+            Path snapshots = Paths.get(s).resolve(keyspace).resolve(TABLE_PACKETS_TIME.toString()).resolve("snapshots")
                     .resolve(snapshotName);
             // iterable through all data files (xxxx-Data)
             // if the dataformat changes hf needs to be upgraded to the current versino
             // http://svn.apache.org/repos/asf/cassandra/trunk/src/java/org/apache/cassandra/io/sstable/Descriptor.java
             System.out.println(s);
-            try (DirectoryStream<Path> ds = Files.newDirectoryStream(snapshots, keyspace + "-" + TABLE_TIME
+            try (DirectoryStream<Path> ds = Files.newDirectoryStream(snapshots, keyspace + "-" + TABLE_PACKETS_TIME.toString()
                     + "-ic-*-Data.db")) {
                 for (Path p : ds) { // for each data file
                     // System.out.println(p);

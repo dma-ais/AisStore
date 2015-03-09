@@ -14,9 +14,20 @@
  */
 package dk.dma.ais.store.old.exporter;
 
-import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME;
-import static java.util.Objects.requireNonNull;
+import com.google.common.util.concurrent.RateLimiter;
+import dk.dma.ais.packet.AisPacket;
+import dk.dma.commons.util.FormatUtil;
+import dk.dma.enav.util.function.EConsumer;
+import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.config.Schema;
+import org.apache.cassandra.db.IColumn;
+import org.apache.cassandra.db.OnDiskAtom;
+import org.apache.cassandra.db.columniterator.OnDiskAtomIterator;
+import org.apache.cassandra.io.sstable.Descriptor;
+import org.apache.cassandra.io.sstable.SSTableReader;
+import org.apache.cassandra.io.sstable.SSTableScanner;
 
+import javax.naming.ConfigurationException;
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -27,22 +38,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import javax.naming.ConfigurationException;
-
-import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.config.Schema;
-import org.apache.cassandra.db.IColumn;
-import org.apache.cassandra.db.OnDiskAtom;
-import org.apache.cassandra.db.columniterator.OnDiskAtomIterator;
-import org.apache.cassandra.io.sstable.Descriptor;
-import org.apache.cassandra.io.sstable.SSTableReader;
-import org.apache.cassandra.io.sstable.SSTableScanner;
-
-import com.google.common.util.concurrent.RateLimiter;
-
-import dk.dma.ais.packet.AisPacket;
-import dk.dma.commons.util.FormatUtil;
-import dk.dma.enav.util.function.EConsumer;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_TIME;
+import static java.util.Objects.requireNonNull;
 
 /**
  * Processes Cassandras SSTables.
@@ -52,7 +49,7 @@ import dk.dma.enav.util.function.EConsumer;
 public class CassandraColumnFamilyProcessor {
 
     /** The key of the message column. */
-    private static final byte[] MESSAGE_COLUMN = TABLE_TIME.getBytes();
+    private static final byte[] MESSAGE_COLUMN = TABLE_PACKETS_TIME.toString().getBytes();
 
     /** The number of bytes that have been read from disk. */
     final AtomicLong bytesRead = new AtomicLong();
@@ -126,12 +123,12 @@ public class CassandraColumnFamilyProcessor {
 
     protected void processDataFileLocations(String snapshotName, EConsumer<AisPacket> producer) throws Exception {
         for (String s : DatabaseDescriptor.getAllDataFileLocations()) {
-            Path snapshots = Paths.get(s).resolve(keyspace).resolve(TABLE_TIME).resolve("snapshots")
+            Path snapshots = Paths.get(s).resolve(keyspace).resolve(TABLE_PACKETS_TIME.toString()).resolve("snapshots")
                     .resolve(snapshotName);
             // iterable through all data files (xxxx-Data)
             // if the dataformat changes hf needs to be upgraded to the current versino
             // http://svn.apache.org/repos/asf/cassandra/trunk/src/java/org/apache/cassandra/io/sstable/Descriptor.java
-            try (DirectoryStream<Path> ds = Files.newDirectoryStream(snapshots, keyspace + "-" + TABLE_TIME
+            try (DirectoryStream<Path> ds = Files.newDirectoryStream(snapshots, keyspace + "-" + TABLE_PACKETS_TIME.toString()
                     + "-hf-*-Data.db")) {
                 for (Path p : ds) { // for each data file
                     processDataFile(p, producer);

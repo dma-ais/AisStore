@@ -14,7 +14,11 @@
  */
 package dk.dma.ais.store;
 
-import static java.util.Objects.requireNonNull;
+import com.google.common.collect.AbstractIterator;
+import com.google.common.util.concurrent.ListenableFuture;
+import dk.dma.ais.packet.AisPacket;
+import dk.dma.commons.util.Iterators;
+import dk.dma.db.cassandra.CassandraQuery;
 
 import java.util.ArrayList;
 import java.util.Date;
@@ -26,12 +30,7 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 import java.util.concurrent.atomic.AtomicLong;
 
-import com.google.common.collect.AbstractIterator;
-import com.google.common.util.concurrent.ListenableFuture;
-
-import dk.dma.ais.packet.AisPacket;
-import dk.dma.commons.util.Iterators;
-import dk.dma.db.cassandra.CassandraQuery;
+import static java.util.Objects.requireNonNull;
 
 /**
  * 
@@ -102,7 +101,7 @@ public class AisStoreQueryResult extends CassandraQuery implements Iterable<AisP
                 if (queries.size() == 1) {
                     iterator = queries.get(0);
                 } else {
-                    iterator = Iterators.combine(queries, AisStoreCompleteQuery.COMPARATOR);
+                    iterator = Iterators.combine(queries, AisStoreQuery.COMPARATOR);
                 }
                 return this.iterator = new WrappingIterator(iterator);
             }

@@ -14,8 +14,10 @@
  */
 package dk.dma.ais.store.old.exporter;
 
-import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME;
-import static java.util.Objects.requireNonNull;
+import dk.dma.commons.util.FormatUtil;
+import org.apache.cassandra.config.DatabaseDescriptor;
+import org.apache.cassandra.config.Schema;
+import org.apache.cassandra.exceptions.ConfigurationException;
 
 import java.nio.file.DirectoryStream;
 import java.nio.file.Files;
@@ -26,11 +28,8 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.concurrent.atomic.AtomicLong;
 
-import org.apache.cassandra.config.DatabaseDescriptor;
-import org.apache.cassandra.config.Schema;
-import org.apache.cassandra.exceptions.ConfigurationException;
-
-import dk.dma.commons.util.FormatUtil;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_TIME;
+import static java.util.Objects.requireNonNull;
 
 /**
  * 
@@ -113,12 +112,12 @@ public class AbstractColumnFamilySnapshotProcessor {
     @SuppressWarnings("unused")
     protected void processDataFileLocations(String snapshotName) throws Exception {
         for (String s : DatabaseDescriptor.getAllDataFileLocations()) {
-            Path snapshots = Paths.get(s).resolve(keyspace).resolve(TABLE_TIME).resolve("snapshots")
+            Path snapshots = Paths.get(s).resolve(keyspace).resolve(TABLE_PACKETS_TIME.toString()).resolve("snapshots")
                     .resolve(snapshotName);
             // iterable through all data files (xxxx-Data)
             // if the dataformat changes hf needs to be upgraded to the current versino
             // http://svn.apache.org/repos/asf/cassandra/trunk/src/java/org/apache/cassandra/io/sstable/Descriptor.java
-            try (DirectoryStream<Path> ds = Files.newDirectoryStream(snapshots, keyspace + "-" + TABLE_TIME
+            try (DirectoryStream<Path> ds = Files.newDirectoryStream(snapshots, keyspace + "-" + TABLE_PACKETS_TIME.toString()
                     + "-hf-*-Data.db")) {
                 for (Path p : ds) { // for each data file
                     // processDataFile(p, null);
