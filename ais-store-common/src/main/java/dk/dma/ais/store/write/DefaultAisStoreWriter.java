@@ -33,22 +33,17 @@ import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 
-import static dk.dma.ais.store.AisStoreSchema.COLUMN_AISDATA;
-import static dk.dma.ais.store.AisStoreSchema.COLUMN_AISDATA_DIGEST;
-import static dk.dma.ais.store.AisStoreSchema.COLUMN_CELLID;
-import static dk.dma.ais.store.AisStoreSchema.COLUMN_MMSI;
-import static dk.dma.ais.store.AisStoreSchema.COLUMN_TIMEBLOCK;
-import static dk.dma.ais.store.AisStoreSchema.COLUMN_TIMESTAMP;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL1;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL10;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_UNKNOWN;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_MMSI;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME;
-import static dk.dma.ais.store.AisStoreSchema.Table.PACKETS_AREA_CELL1;
-import static dk.dma.ais.store.AisStoreSchema.Table.PACKETS_AREA_CELL10;
-import static dk.dma.ais.store.AisStoreSchema.Table.PACKETS_AREA_UNKNOWN;
-import static dk.dma.ais.store.AisStoreSchema.Table.PACKETS_MMSI;
-import static dk.dma.ais.store.AisStoreSchema.Table.PACKETS_TIME;
+import static dk.dma.ais.store.AisStoreSchema.Column.COLUMN_AISDATA;
+import static dk.dma.ais.store.AisStoreSchema.Column.COLUMN_AISDATA_DIGEST;
+import static dk.dma.ais.store.AisStoreSchema.Column.COLUMN_CELLID;
+import static dk.dma.ais.store.AisStoreSchema.Column.COLUMN_MMSI;
+import static dk.dma.ais.store.AisStoreSchema.Column.COLUMN_TIMEBLOCK;
+import static dk.dma.ais.store.AisStoreSchema.Column.COLUMN_TIMESTAMP;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_CELL1;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_CELL10;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_UNKNOWN;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_MMSI;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_TIME;
 import static dk.dma.ais.store.AisStoreSchema.getDigest;
 import static dk.dma.ais.store.AisStoreSchema.getTimeBlock;
 
@@ -118,52 +113,52 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
     private static void storeByArea(List<RegularStatement> batch, Instant timestamp, int mmsi, Position p, byte[] digest, String rawMessage) {
         if (p == null) {
             // Okay we have no idea of the position of the ship. Store it in this table and process it later.
-            Insert i = QueryBuilder.insertInto(TABLE_AREA_UNKNOWN);
-            i.value(COLUMN_MMSI, mmsi);
-            i.value(COLUMN_TIMEBLOCK, getTimeBlock(PACKETS_AREA_UNKNOWN, timestamp));
-            i.value(COLUMN_TIMESTAMP, timestamp.toEpochMilli());
-            i.value(COLUMN_AISDATA_DIGEST, ByteBuffer.wrap(digest));
-            i.value(COLUMN_AISDATA, rawMessage);
+            Insert i = QueryBuilder.insertInto(TABLE_PACKETS_AREA_UNKNOWN.toString());
+            i.value(COLUMN_MMSI.toString(), mmsi);
+            i.value(COLUMN_TIMEBLOCK.toString(), getTimeBlock(TABLE_PACKETS_AREA_UNKNOWN, timestamp));
+            i.value(COLUMN_TIMESTAMP.toString(), timestamp.toEpochMilli());
+            i.value(COLUMN_AISDATA_DIGEST.toString(), ByteBuffer.wrap(digest));
+            i.value(COLUMN_AISDATA.toString(), rawMessage);
             batch.add(i);
         } else {
             // Cells with size 1 degree
-            Insert i = QueryBuilder.insertInto(TABLE_AREA_CELL1);
-            i.value(COLUMN_CELLID, p.getCellInt(1));
-            i.value(COLUMN_TIMEBLOCK, getTimeBlock(PACKETS_AREA_CELL1, timestamp));
-            i.value(COLUMN_TIMESTAMP, timestamp.toEpochMilli());
-            i.value(COLUMN_AISDATA_DIGEST, ByteBuffer.wrap(digest));
-            i.value(COLUMN_AISDATA, rawMessage);
+            Insert i = QueryBuilder.insertInto(TABLE_PACKETS_AREA_CELL1.toString());
+            i.value(COLUMN_CELLID.toString(), p.getCellInt(1));
+            i.value(COLUMN_TIMEBLOCK.toString(), getTimeBlock(TABLE_PACKETS_AREA_CELL1, timestamp));
+            i.value(COLUMN_TIMESTAMP.toString(), timestamp.toEpochMilli());
+            i.value(COLUMN_AISDATA_DIGEST.toString(), ByteBuffer.wrap(digest));
+            i.value(COLUMN_AISDATA.toString(), rawMessage);
             batch.add(i);
 
             // Cells with size 10 degree
-            i = QueryBuilder.insertInto(TABLE_AREA_CELL10);
-            i.value(COLUMN_CELLID, p.getCellInt(10));
-            i.value(COLUMN_TIMEBLOCK, getTimeBlock(PACKETS_AREA_CELL10, timestamp));
-            i.value(COLUMN_TIMESTAMP, timestamp.toEpochMilli());
-            i.value(COLUMN_AISDATA_DIGEST, ByteBuffer.wrap(digest));
-            i.value(COLUMN_AISDATA, rawMessage);
+            i = QueryBuilder.insertInto(TABLE_PACKETS_AREA_CELL10.toString());
+            i.value(COLUMN_CELLID.toString(), p.getCellInt(10));
+            i.value(COLUMN_TIMEBLOCK.toString(), getTimeBlock(TABLE_PACKETS_AREA_CELL10, timestamp));
+            i.value(COLUMN_TIMESTAMP.toString(), timestamp.toEpochMilli());
+            i.value(COLUMN_AISDATA_DIGEST.toString(), ByteBuffer.wrap(digest));
+            i.value(COLUMN_AISDATA.toString(), rawMessage);
             batch.add(i);
         }
     }
 
     /** Stores the specified packet by MMSI. */
     private static void storeByMmsi(List<RegularStatement> batch, Instant timestamp, int mmsi, byte[] digest, String rawMessage) {
-        Insert i = QueryBuilder.insertInto(TABLE_MMSI);
-        i.value(COLUMN_MMSI, mmsi);
-        i.value(COLUMN_TIMEBLOCK, getTimeBlock(PACKETS_MMSI, timestamp));
-        i.value(COLUMN_TIMESTAMP, timestamp.toEpochMilli());
-        i.value(COLUMN_AISDATA_DIGEST, ByteBuffer.wrap(digest));
-        i.value(COLUMN_AISDATA, rawMessage);
+        Insert i = QueryBuilder.insertInto(TABLE_PACKETS_MMSI.toString());
+        i.value(COLUMN_MMSI.toString(), mmsi);
+        i.value(COLUMN_TIMEBLOCK.toString(), getTimeBlock(TABLE_PACKETS_MMSI, timestamp));
+        i.value(COLUMN_TIMESTAMP.toString(), timestamp.toEpochMilli());
+        i.value(COLUMN_AISDATA_DIGEST.toString(), ByteBuffer.wrap(digest));
+        i.value(COLUMN_AISDATA.toString(), rawMessage);
         batch.add(i);
     }
 
     /** Stores the specified packet by time. */
     private static void storeByTime(List<RegularStatement> batch, Instant timestamp, byte[] digest, String rawMessage) {
-        Insert i = QueryBuilder.insertInto(TABLE_TIME);
-        i.value(COLUMN_TIMEBLOCK, getTimeBlock(PACKETS_TIME, timestamp));
-        i.value(COLUMN_TIMESTAMP, timestamp.toEpochMilli());
-        i.value(COLUMN_AISDATA_DIGEST, ByteBuffer.wrap(digest));
-        i.value(COLUMN_AISDATA, rawMessage);
+        Insert i = QueryBuilder.insertInto(TABLE_PACKETS_TIME.toString());
+        i.value(COLUMN_TIMEBLOCK.toString(), getTimeBlock(TABLE_PACKETS_TIME, timestamp));
+        i.value(COLUMN_TIMESTAMP.toString(), timestamp.toEpochMilli());
+        i.value(COLUMN_AISDATA_DIGEST.toString(), ByteBuffer.wrap(digest));
+        i.value(COLUMN_AISDATA.toString(), rawMessage);
         batch.add(i);
     }
 

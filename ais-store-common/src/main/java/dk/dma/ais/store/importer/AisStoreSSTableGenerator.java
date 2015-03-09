@@ -19,7 +19,6 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import dk.dma.ais.message.AisMessage;
 import dk.dma.ais.packet.AisPacket;
-import dk.dma.ais.store.AisStoreSchema;
 import dk.dma.enav.model.geometry.Position;
 import dk.dma.enav.model.geometry.PositionTime;
 import org.apache.cassandra.exceptions.ConfigurationException;
@@ -35,6 +34,12 @@ import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
+
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_CELL1;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_CELL10;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_UNKNOWN;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_MMSI;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_TIME;
 
 /**
  * Simple SSTableGenerator
@@ -69,10 +74,10 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
     private PacketsAreaUnknownSSTableWriter packetsAreaUnknownWriter;
 
     public AisStoreSSTableGenerator(String inDirectory, String keyspace, String compressor, int bufferSize) throws ConfigurationException, IOException, URISyntaxException {
-        Arrays.asList(AisStoreSchema.TABLE_MMSI, AisStoreSchema.TABLE_TIME,
-                AisStoreSchema.TABLE_AREA_CELL1,
-                AisStoreSchema.TABLE_AREA_CELL10,
-                AisStoreSchema.TABLE_AREA_UNKNOWN).stream().sequential()
+        Arrays.asList(TABLE_PACKETS_MMSI.toString(), TABLE_PACKETS_TIME.toString(),
+                TABLE_PACKETS_AREA_CELL1.toString(),
+                TABLE_PACKETS_AREA_CELL10.toString(),
+                TABLE_PACKETS_AREA_UNKNOWN.toString()).stream().sequential()
                 .forEach(directory -> {
                     try {
                         Files.createDirectories(Paths.get(inDirectory,keyspace, directory));

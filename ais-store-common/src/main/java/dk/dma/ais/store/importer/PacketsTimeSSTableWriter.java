@@ -25,7 +25,7 @@ import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Date;
 
-import static dk.dma.ais.store.AisStoreSchema.Table.PACKETS_TIME;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_TIME;
 import static dk.dma.ais.store.AisStoreSchema.getDigest;
 import static dk.dma.ais.store.AisStoreSchema.getTimeBlock;
 
@@ -71,7 +71,7 @@ public class PacketsTimeSSTableWriter extends AisStoreSSTableWriter {
         final long ts = packet.getBestTimestamp();
         if (ts > 0) {
             try {
-                writer.addRow(getTimeBlock(PACKETS_TIME, Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
+                writer.addRow(getTimeBlock(TABLE_PACKETS_TIME, Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
             } catch (InvalidRequestException e) {
                 System.out.println("Failed to store message in " + TABLE + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
             } catch (IOException e) {

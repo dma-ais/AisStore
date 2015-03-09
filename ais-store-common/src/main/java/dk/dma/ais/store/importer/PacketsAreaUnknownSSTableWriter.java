@@ -26,7 +26,7 @@ import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Date;
 
-import static dk.dma.ais.store.AisStoreSchema.Table.PACKETS_AREA_UNKNOWN;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_UNKNOWN;
 import static dk.dma.ais.store.AisStoreSchema.getDigest;
 import static dk.dma.ais.store.AisStoreSchema.getTimeBlock;
 
@@ -77,7 +77,7 @@ public class PacketsAreaUnknownSSTableWriter extends AisStoreSSTableWriter {
                 final int mmsi = message.getUserId();
                 if (mmsi >= 0) {
                     try {
-                        writer.addRow(mmsi, getTimeBlock(PACKETS_AREA_UNKNOWN, Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
+                        writer.addRow(mmsi, getTimeBlock(TABLE_PACKETS_AREA_UNKNOWN, Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
                     } catch (InvalidRequestException e) {
                         System.out.println("Failed to store message in " + TABLE + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
                     } catch (IOException e) {

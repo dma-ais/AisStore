@@ -17,6 +17,7 @@ package dk.dma.ais.store;
 import com.datastax.driver.core.Session;
 import com.google.common.collect.AbstractIterator;
 import dk.dma.ais.packet.AisPacket;
+import dk.dma.ais.store.AisStoreSchema.Table;
 import dk.dma.db.cassandra.CassandraQueryBuilder;
 import dk.dma.enav.model.geometry.Area;
 import dk.dma.enav.model.geometry.grid.Cell;
@@ -27,13 +28,13 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Set;
 
-import static dk.dma.ais.store.AisStoreSchema.COLUMN_CELLID;
-import static dk.dma.ais.store.AisStoreSchema.COLUMN_MMSI;
-import static dk.dma.ais.store.AisStoreSchema.COLUMN_TIMEBLOCK;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL1;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_AREA_CELL10;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_MMSI;
-import static dk.dma.ais.store.AisStoreSchema.TABLE_TIME;
+import static dk.dma.ais.store.AisStoreSchema.Column.COLUMN_CELLID;
+import static dk.dma.ais.store.AisStoreSchema.Column.COLUMN_MMSI;
+import static dk.dma.ais.store.AisStoreSchema.Column.COLUMN_TIMEBLOCK;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_CELL1;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_CELL10;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_MMSI;
+import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_TIME;
 import static java.util.Objects.requireNonNull;
 
 /**
@@ -52,10 +53,10 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
     final int[] mmsi;
 
     /** The start epoch time (inclusive) */
-    long startTimeInclusive;
+    Instant startTimeInclusive;
 
     /** The start epoch time (exclusive) */
-    long stopTimeExclusive;
+    Instant stopTimeExclusive;
 
     private AisStoreQueryBuilder(Area area, int[] mmsi) {
         this.area = area;
@@ -74,15 +75,13 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
 
             // Determines if use the tables of size 1 degree, or size 10 degrees
             boolean useCell1 = cells10.size() * factor > cells1.size();
-            String tableName = useCell1 ? TABLE_AREA_CELL1 : TABLE_AREA_CELL10;
-            String keyName = COLUMN_CELLID;
+            Table table = useCell1 ? TABLE_PACKETS_AREA_CELL1 : TABLE_PACKETS_AREA_CELL10;
             Set<Cell> cells = useCell1 ? cells1 : cells10;
 
             // We create multiple queries and use a priority queue to return packets from each ship sorted by their
             // timestamp
             for (Cell c : cells) {
-                queries.add(new AisStoreCompleteQuery(s, inner, batchLimit, tableName, keyName, (int)c.getCellId(),
-                        startTimeInclusive, stopTimeExclusive));
+                queries.add(new AisStoreQuery(s, inner, batchLimit, table, COLUMN_CELLID, (int)c.getCellId(), startTimeInclusive, stopTimeExclusive));
                 try {
                     Thread.sleep(500);
                 } catch (InterruptedException e) {
@@ -90,24 +89,12 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
             }
         } else if (mmsi != null) {
             for (int m : mmsi) {
-                queries.add(new AisStoreCompleteQuery(s, inner, batchLimit, TABLE_MMSI, COLUMN_MMSI, m,
-                        startTimeInclusive, stopTimeExclusive));
+                queries.add(new AisStoreQuery(s, inner, batchLimit, TABLE_PACKETS_MMSI, COLUMN_MMSI, m, startTimeInclusive, stopTimeExclusive));
             }
         } else {
-            int start = AisStoreSchema.getTimeBlock(AisStoreSchema.Table.PACKETS_TIME, Instant.ofEpochMilli(startTimeInclusive));
-            int stop = AisStoreSchema.getTimeBlock(AisStoreSchema.Table.PACKETS_TIME, Instant.ofEpochMilli(stopTimeExclusive - 1));
-
-            //7 days or more, use partial queries
-            if ((stop - start)*10/60/24 > 7) {
-                System.out.println("Using Partial Queries");
-                queries.add(new AisStorePartialQuery(s, inner, batchLimit, TABLE_TIME, COLUMN_TIMEBLOCK, start, stop,
-                    startTimeInclusive, stopTimeExclusive));
-            } else {
-                queries.add(new AisStoreCompleteQuery(s, inner, batchLimit, TABLE_TIME, COLUMN_TIMEBLOCK, start, stop,
-                        startTimeInclusive, stopTimeExclusive));
-            }
-            
-            
+            int start = AisStoreSchema.getTimeBlock(TABLE_PACKETS_TIME, startTimeInclusive);
+            int stop = AisStoreSchema.getTimeBlock(TABLE_PACKETS_TIME, stopTimeExclusive.minusMillis(1));
+            queries.add(new AisStoreQuery(s, inner, batchLimit, TABLE_PACKETS_TIME, COLUMN_TIMEBLOCK, start, stop, startTimeInclusive, stopTimeExclusive));
         }
         return new AisStoreQueryResult(inner, queries);
 
@@ -129,9 +116,22 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
      *            the end date (exclusive)
      * @return
      */
-    public AisStoreQueryBuilder setInterval(long startMillies, long stopMillies) {
+    public AisStoreQueryBuilder setInterval(Instant startMillies, Instant stopMillies) {
         this.startTimeInclusive = startMillies;
         this.stopTimeExclusive = stopMillies;
+        return this;
+    }
+
+    /**
+     * @param startMillies
+     *            the start date (inclusive)
+     * @param stopMillies
+     *            the end date (exclusive)
+     * @return
+     * @deprecated
+     */
+    public AisStoreQueryBuilder setInterval(long startMillies, long stopMillies) {
+        setInterval(Instant.ofEpochMilli(startMillies), Instant.ofEpochMilli(stopMillies));
         return this;
     }
 
