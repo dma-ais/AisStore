@@ -21,18 +21,16 @@ import com.datastax.driver.core.Row;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
-import com.datastax.driver.core.querybuilder.Select;
 import com.google.common.collect.AbstractIterator;
-import com.google.common.primitives.Longs;
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.store.AisStoreSchema.Column;
 import dk.dma.ais.store.AisStoreSchema.Table;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
-import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Comparator;
-import java.util.Date;
 import java.util.Iterator;
 import java.util.LinkedList;
 import java.util.List;
@@ -53,6 +51,8 @@ import static java.util.Objects.requireNonNull;
  * @author Jens Tuxen
  */
 class AisStoreQuery extends AbstractIterator<AisPacket> {
+
+    static final Logger LOG = LoggerFactory.getLogger(AisStoreQuery.class);
 
     /**
      * AisPacket implements Comparable. But I'm to afraid someone might break
@@ -104,7 +104,7 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
     /** The number of packets that was retrieved. */
     private volatile long retrievedPackets;
 
-    private volatile long lastestDateReceived;
+    private volatile Instant lastestDateReceived;
 
     private final AisStoreQueryInnerContext inner;
 
@@ -140,7 +140,7 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
         return retrievedPackets;
     }
 
-    long getLatestRetrievedTimestamp() {
+    Instant getLatestRetrievedTimestamp() {
         return lastestDateReceived;
     }
 
@@ -161,27 +161,21 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
                 }
 
                 row = it.next();
-                packets.add(AisPacket.fromByteBuffer(row.getBytes(1)));
+                packets.add(AisPacket.from(row.getString(1)));
                 retrievedPackets++;
                 innerReceived++;
             }
 
             if (innerReceived > 0) {
-                ByteBuffer buf = row.getBytes(0);
-                byte[] bytes = new byte[buf.remaining()];
-                buf.get(bytes);
-
-                lastestDateReceived = Longs.fromByteArray(bytes);
+                lastestDateReceived = Instant.ofEpochMilli(row.getDate(0).getTime());
 
                 // currentRow == lastRow when packets_mmsi or packets_cell
                 if (!(currentRow == lastRow)) {
-                    currentRow = AisStoreSchema.getTimeBlock(table, Instant.ofEpochMilli(lastestDateReceived));
+                    currentRow = AisStoreSchema.getTimeBlock(table, lastestDateReceived);
                     // System.out.println("Currently at: "+currentRow+" Last ROW is: "+lastRow);
                 }
 
-                System.out.println("Currently at: "
-                        + new Date(lastestDateReceived));
-
+                LOG.info("Currently at: " + lastestDateReceived);
             }
 
             if (!packets.isEmpty()) {
@@ -200,7 +194,7 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
         return endOfData();
     }
 
-    private static List<Integer> timeBlocks(Table table, Instant timeStart, Instant timeStop) {
+    private static Integer[] timeBlocks(Table table, Instant timeStart, Instant timeStop) {
         int timeBlockMin = AisStoreSchema.getTimeBlock(table, timeStart);
         int timeBlockMax = AisStoreSchema.getTimeBlock(table, timeStop);
 
@@ -208,41 +202,38 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
         for (int timeBlock = timeBlockMin; timeBlock <= timeBlockMax; timeBlock++)
             timeBlocks.add(timeBlock);
 
-        return timeBlocks;
+        return timeBlocks.toArray(new Integer[timeBlocks.size()]);
     }
 
     /** execute takes over from advance, which is not necessary anymore */
     void execute() {
-        List<Integer> timeBlocks = timeBlocks(table, timeStart, timeStop);
+        Integer[] timeBlocks = timeBlocks(table, timeStart, timeStop);
 
-        Statement statement;
+        Statement select;
         switch (table) {
         case TABLE_PACKETS_TIME:
-            statement = QueryBuilder
+            select = QueryBuilder
                 .select(COLUMN_TIMESTAMP.toString(), COLUMN_AISDATA.toString())
                 .from(TABLE_PACKETS_TIME.toString())
                 .where(in(COLUMN_TIMEBLOCK.toString(), timeBlocks))
-                .and(gt(COLUMN_TIMESTAMP.toString(), timeStart))
-                .and(lt(COLUMN_TIMESTAMP.toString(), timeStop));
+                .and(gt(COLUMN_TIMESTAMP.toString(), timeStart.toEpochMilli()))
+                .and(lt(COLUMN_TIMESTAMP.toString(), timeStop.toEpochMilli()));
             break;
         default:
-            statement = QueryBuilder
+            select = QueryBuilder
                 .select(COLUMN_TIMESTAMP.toString(), COLUMN_AISDATA.toString())
                 .from(table.toString())
                 .where(eq(rowName.toString(), currentRow))
                 .and(in(COLUMN_TIMEBLOCK.toString(), timeBlocks))
-                .and(gt(COLUMN_TIMESTAMP.toString(), timeStart))
-                .and(lt(COLUMN_TIMESTAMP.toString(), timeStop));
+                .and(gt(COLUMN_TIMESTAMP.toString(), timeStart.toEpochMilli()))
+                .and(lt(COLUMN_TIMESTAMP.toString(), timeStop.toEpochMilli()));
             break;
         }
 
-        statement.setFetchSize(batchLimit);
-        statement.setConsistencyLevel(ConsistencyLevel.ONE);
+        select.setFetchSize(batchLimit);
+        select.setConsistencyLevel(ConsistencyLevel.ONE);
+        // select.limit(Integer.MAX_VALUE); // Sets the limit
 
-        Select select = (Select) statement;
-        select.limit(Integer.MAX_VALUE); // Sets the limit
-
-        System.out.println(select.getQueryString());
         future = session.executeAsync(select);
         rs = future.getUninterruptibly();
         it = rs.iterator();
