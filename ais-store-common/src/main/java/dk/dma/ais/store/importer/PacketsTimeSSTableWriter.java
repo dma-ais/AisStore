@@ -16,9 +16,12 @@
 package dk.dma.ais.store.importer;
 
 import dk.dma.ais.packet.AisPacket;
+import dk.dma.ais.store.AisStoreSchema.Table;
 import org.apache.cassandra.config.KSMetaData;
 import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.exceptions.InvalidRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -42,12 +45,12 @@ import static dk.dma.ais.store.AisStoreSchema.getTimeBlock;
  */
 public class PacketsTimeSSTableWriter extends AisStoreSSTableWriter {
 
-    /** Table name */
-    public static final String TABLE = "packets_time";
+    private static final Logger LOG = LoggerFactory.getLogger(PacketsTimeSSTableWriter.class);
 
     public PacketsTimeSSTableWriter(String outputDir, String keyspace) {
         super(
             outputDir,
+            keyspace,
             String.format(
                 "CREATE TABLE %s.%s (" +
                     "timeblock int," +
@@ -55,10 +58,10 @@ public class PacketsTimeSSTableWriter extends AisStoreSSTableWriter {
                     "digest blob," +
                     "aisdata ascii," +
                     "PRIMARY KEY (timeblock, time, digest)" +
-                ") WITH CLUSTERING ORDER BY (time ASC, digest ASC)", keyspace, TABLE
+                ") WITH CLUSTERING ORDER BY (time ASC, digest ASC)", keyspace, TABLE_PACKETS_TIME.toString()
             ),
             String.format(
-                "INSERT INTO %s.%s (timeblock, time, digest, aisdata) VALUES (?, ?, ?, ?)", keyspace, TABLE
+                "INSERT INTO %s.%s (timeblock, time, digest, aisdata) VALUES (?, ?, ?, ?)", keyspace, TABLE_PACKETS_TIME.toString()
             )
         );
 
@@ -71,14 +74,19 @@ public class PacketsTimeSSTableWriter extends AisStoreSSTableWriter {
         final long ts = packet.getBestTimestamp();
         if (ts > 0) {
             try {
-                writer.addRow(getTimeBlock(TABLE_PACKETS_TIME, Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
+                writer.addRow(getTimeBlock(table(), Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
             } catch (InvalidRequestException e) {
-                System.out.println("Failed to store message in " + TABLE + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                LOG.error("Failed to store message in " + table().toString() + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
             } catch (IOException e) {
-                System.out.println("Failed to store message in " + TABLE + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                LOG.error("Failed to store message in " + table().toString() + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
             }
         } else {
-            System.out.println("Cannot get timestamp from: " + packet.getStringMessage());
+            LOG.error("Cannot get timestamp from: " + packet.getStringMessage());
         }
+    }
+
+    @Override
+    public final Table table() {
+        return TABLE_PACKETS_TIME;
     }
 }

@@ -15,10 +15,16 @@
  */
 package dk.dma.ais.store.importer;
 
+import dk.dma.ais.store.AisStoreSchema.Table;
 import org.apache.cassandra.dht.Murmur3Partitioner;
 import org.apache.cassandra.io.sstable.CQLSSTableWriter;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
+import java.nio.file.FileAlreadyExistsException;
+import java.nio.file.Files;
+import java.nio.file.Paths;
 
 /**
  * Creates an AisStore Table/Schema writer, see AisStoreTableWriters for implementation.
@@ -31,9 +37,13 @@ import java.io.IOException;
  */
 public abstract class AisStoreSSTableWriter {
 
+    private static final Logger LOG = LoggerFactory.getLogger(AisStoreSSTableWriter.class);
+
     protected CQLSSTableWriter writer;
 
-    public AisStoreSSTableWriter(String outputDir, String schemaDefinition, String insertStatement) {
+    public AisStoreSSTableWriter(String outputDir, String keyspace, String schemaDefinition, String insertStatement) {
+        createDirectory(outputDir, keyspace);
+
         writer =
             CQLSSTableWriter.builder()
                     .inDirectory(outputDir)
@@ -46,6 +56,18 @@ public abstract class AisStoreSSTableWriter {
 
     public void close() throws IOException {
         writer.close();
+    }
+
+    public abstract Table table();
+
+    private void createDirectory(String directory, String keyspace) {
+        try {
+            Files.createDirectories(Paths.get(directory, keyspace, table().toString()));
+        } catch (FileAlreadyExistsException e) {
+            LOG.warn(e.getMessage());
+        } catch (Exception e) {
+            LOG.error(e.getMessage(), e);
+        }
     }
 
 }

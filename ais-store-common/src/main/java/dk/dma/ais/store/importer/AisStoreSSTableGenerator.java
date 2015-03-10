@@ -27,19 +27,9 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.net.URISyntaxException;
-import java.nio.file.FileAlreadyExistsException;
-import java.nio.file.Files;
-import java.nio.file.Paths;
-import java.util.Arrays;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
-
-import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_CELL1;
-import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_CELL10;
-import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_UNKNOWN;
-import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_MMSI;
-import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_TIME;
 
 /**
  * Simple SSTableGenerator
@@ -50,11 +40,9 @@ import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_TIME;
 public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
 
     /** The logger. */
-    static final Logger LOG = LoggerFactory
-            .getLogger(AisStoreSSTableGenerator.class);
+    static final Logger LOG = LoggerFactory.getLogger(AisStoreSSTableGenerator.class);
 
-    public static final long POSITION_TIMEOUT_MS = TimeUnit.MILLISECONDS
-            .convert(20, TimeUnit.MINUTES);
+    public static final long POSITION_TIMEOUT_MS = TimeUnit.MILLISECONDS.convert(20, TimeUnit.MINUTES);
 
     final AtomicLong packetsProcessed = new AtomicLong(1);
 
@@ -67,33 +55,23 @@ public class AisStoreSSTableGenerator implements Consumer<AisPacket> {
             .expireAfterWrite(POSITION_TIMEOUT_MS, TimeUnit.MILLISECONDS)
             .build();
 
-    private PacketsTimeSSTableWriter packetsTimeWriter;
-    private PacketsMmsiSSTableWriter packetsMmsiWriter;
-    private PacketsAreaCell1SSTableWriter packetsAreaCell1Writer;
-    private PacketsAreaCell10SSTableWriter packetsAreaCell10Writer;
-    private PacketsAreaUnknownSSTableWriter packetsAreaUnknownWriter;
+    private final PacketsTimeSSTableWriter packetsTimeWriter;
+    private final PacketsMmsiSSTableWriter packetsMmsiWriter;
+    private final PacketsAreaCell1SSTableWriter packetsAreaCell1Writer;
+    private final PacketsAreaCell10SSTableWriter packetsAreaCell10Writer;
+    private final PacketsAreaUnknownSSTableWriter packetsAreaUnknownWriter;
 
-    public AisStoreSSTableGenerator(String inDirectory, String keyspace, String compressor, int bufferSize) throws ConfigurationException, IOException, URISyntaxException {
-        Arrays.asList(TABLE_PACKETS_MMSI.toString(), TABLE_PACKETS_TIME.toString(),
-                TABLE_PACKETS_AREA_CELL1.toString(),
-                TABLE_PACKETS_AREA_CELL10.toString(),
-                TABLE_PACKETS_AREA_UNKNOWN.toString()).stream().sequential()
-                .forEach(directory -> {
-                    try {
-                        Files.createDirectories(Paths.get(inDirectory,keyspace, directory));
-                    } catch (FileAlreadyExistsException e) {
-                        //do nothing
-                    } catch (Exception e) {
-                        // TODO Auto-generated catch block
-                        e.printStackTrace();
-                    }
-                });
-
+    public AisStoreSSTableGenerator(String inDirectory, String keyspace) throws ConfigurationException, IOException, URISyntaxException {
         packetsTimeWriter = new PacketsTimeSSTableWriter(inDirectory, keyspace);
         packetsMmsiWriter = new PacketsMmsiSSTableWriter(inDirectory, keyspace);
         packetsAreaCell1Writer = new PacketsAreaCell1SSTableWriter(inDirectory, keyspace);
         packetsAreaCell10Writer = new PacketsAreaCell10SSTableWriter(inDirectory, keyspace);
         packetsAreaUnknownWriter = new PacketsAreaUnknownSSTableWriter(inDirectory, keyspace);
+    }
+
+    /** @deprecated */
+    public AisStoreSSTableGenerator(String inDirectory, String keyspace, String compressor, int bufferSize) throws ConfigurationException, IOException, URISyntaxException {
+        this(inDirectory, keyspace);
     }
 
     private void process(AisPacket packet) throws IOException {

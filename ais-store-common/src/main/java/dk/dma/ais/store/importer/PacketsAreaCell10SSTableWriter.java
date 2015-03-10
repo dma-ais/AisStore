@@ -16,10 +16,13 @@
 package dk.dma.ais.store.importer;
 
 import dk.dma.ais.packet.AisPacket;
+import dk.dma.ais.store.AisStoreSchema.Table;
 import dk.dma.enav.model.geometry.Position;
 import org.apache.cassandra.config.KSMetaData;
 import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.exceptions.InvalidRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -44,24 +47,24 @@ import static dk.dma.ais.store.AisStoreSchema.getTimeBlock;
  */
 public class PacketsAreaCell10SSTableWriter extends AisStoreSSTableWriter {
 
-    /** Table name */
-    public static final String TABLE = "packets_area_cell10";
+    private static final Logger LOG = LoggerFactory.getLogger(PacketsAreaCell10SSTableWriter.class);
 
     public PacketsAreaCell10SSTableWriter(String outputDir, String keyspace) {
         super(
             outputDir,
+            keyspace,
             String.format(
-                "CREATE TABLE %s.%s (" +
-                    "cellid int," +
-                    "timeblock int," +
-                    "time timestamp," +
-                    "digest blob," +
-                    "aisdata ascii," +
-                    "PRIMARY KEY ((cellid, timeblock), time, digest)" +
-                ") WITH CLUSTERING ORDER BY (time ASC, digest ASC)", keyspace, TABLE
+            "CREATE TABLE %s.%s (" +
+                "cellid int," +
+                "timeblock int," +
+                "time timestamp," +
+                "digest blob," +
+                "aisdata ascii," +
+                "PRIMARY KEY ((cellid, timeblock), time, digest)" +
+            ") WITH CLUSTERING ORDER BY (time ASC, digest ASC)", keyspace, TABLE_PACKETS_AREA_CELL10.toString()
             ),
             String.format(
-                "INSERT INTO %s.%s (cellid, timeblock, time, digest, aisdata) VALUES (?, ?, ?, ?, ?)", keyspace, TABLE
+                "INSERT INTO %s.%s (cellid, timeblock, time, digest, aisdata) VALUES (?, ?, ?, ?, ?)", keyspace, TABLE_PACKETS_AREA_CELL10.toString()
             )
         );
 
@@ -78,15 +81,19 @@ public class PacketsAreaCell10SSTableWriter extends AisStoreSSTableWriter {
         if (ts > 0) {
             final int cellid = p.getCellInt(10.0);
             try {
-                writer.addRow(cellid, getTimeBlock(TABLE_PACKETS_AREA_CELL10, Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
+                writer.addRow(cellid, getTimeBlock(table(), Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
             } catch (InvalidRequestException e) {
-                System.out.println("Failed to store message in " + TABLE + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                LOG.error("Failed to store message in " + table().toString() + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
             } catch (IOException e) {
-                System.out.println("Failed to store message in " + TABLE + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                LOG.error("Failed to store message in " + table().toString() + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
             }
         } else {
-            System.out.println("Cannot get timestamp from: " + packet.getStringMessage());
+            LOG.error("Cannot get timestamp from: " + packet.getStringMessage());
         }
     }
 
+    @Override
+    public Table table() {
+        return TABLE_PACKETS_AREA_CELL10;
+    }
 }
