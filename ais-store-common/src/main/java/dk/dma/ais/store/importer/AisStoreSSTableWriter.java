@@ -45,6 +45,7 @@ public abstract class AisStoreSSTableWriter {
     public AisStoreSSTableWriter(String outputDir, String keyspace, String schemaDefinition, String insertStatement) {
         Path writePath = writePath(outputDir, keyspace);
         createDirectories(writePath);
+        LOG.info("Writing output to: " + writePath);
         writer =
             CQLSSTableWriter.builder()
                     .inDirectory(writePath.toString())
