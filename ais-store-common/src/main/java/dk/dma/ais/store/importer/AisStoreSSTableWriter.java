@@ -24,6 +24,7 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.nio.file.FileAlreadyExistsException;
 import java.nio.file.Files;
+import java.nio.file.Path;
 import java.nio.file.Paths;
 
 /**
@@ -42,11 +43,11 @@ public abstract class AisStoreSSTableWriter {
     protected CQLSSTableWriter writer;
 
     public AisStoreSSTableWriter(String outputDir, String keyspace, String schemaDefinition, String insertStatement) {
-        createDirectory(outputDir, keyspace);
-
+        Path writePath = writePath(outputDir, keyspace);
+        createDirectories(writePath);
         writer =
             CQLSSTableWriter.builder()
-                    .inDirectory(outputDir)
+                    .inDirectory(writePath.toString())
                     .forTable(schemaDefinition)
                     .withBufferSizeInMB(256)
                     .using(insertStatement)
@@ -60,9 +61,13 @@ public abstract class AisStoreSSTableWriter {
 
     public abstract Table table();
 
-    private void createDirectory(String directory, String keyspace) {
+    private Path writePath(String directory, String keyspace) {
+        return Paths.get(directory, keyspace, table().toString());
+    }
+
+    private static void createDirectories(Path path) {
         try {
-            Files.createDirectories(Paths.get(directory, keyspace, table().toString()));
+            Files.createDirectories(path);
         } catch (FileAlreadyExistsException e) {
             LOG.warn(e.getMessage());
         } catch (Exception e) {
