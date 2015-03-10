@@ -15,7 +15,7 @@ WITH
     compression = {'sstable_compression':'LZ4Compressor', 'chunk_length_kb':1024}
     AND comment = 'AIS data ordered by receive time.'
     AND speculative_retry = '99percentile'
-    AND compaction = {'class': 'SizeTieredCompactionStrategy', 'tombstone_compaction_interval':'2592000'}
+    AND compaction = {'class': 'DateTieredCompactionStrategy', 'timestamp_resolution':'MICROSECONDS', 'base_time_seconds':'3600', 'min_threshold':'4', 'max_sstable_age_days':'30'}
     AND caching = 'keys_only';
 
 CREATE TABLE packets_mmsi (
@@ -30,7 +30,7 @@ WITH
     compression = {'sstable_compression':'LZ4Compressor', 'chunk_length_kb':1024}
     AND comment = 'AIS data ordered by mmsi number.'
     AND speculative_retry = '99percentile'
-    AND compaction = {'class': 'SizeTieredCompactionStrategy', 'tombstone_compaction_interval':'2592000'}
+    AND compaction = {'class': 'DateTieredCompactionStrategy', 'timestamp_resolution':'MICROSECONDS', 'base_time_seconds':'3600', 'min_threshold':'4', 'max_sstable_age_days':'30'}
     AND caching = 'keys_only';
 
 CREATE TABLE packets_area_cell1 (
@@ -45,7 +45,7 @@ WITH
     compression = {'sstable_compression':'LZ4Compressor', 'chunk_length_kb':1024}
     AND comment = 'AIS data ordered by cells of size 1 degree.'
     AND speculative_retry = '99percentile'
-    AND compaction = {'class': 'SizeTieredCompactionStrategy', 'tombstone_compaction_interval':'2592000'}
+    AND compaction = {'class': 'DateTieredCompactionStrategy', 'timestamp_resolution':'MICROSECONDS', 'base_time_seconds':'3600', 'min_threshold':'4', 'max_sstable_age_days':'30'}
     AND caching = 'keys_only';
 
 CREATE TABLE packets_area_cell10 (
@@ -60,7 +60,7 @@ WITH
     compression = {'sstable_compression':'LZ4Compressor', 'chunk_length_kb':1024}
     AND comment = 'AIS data ordered by cells of size 10 degree.'
     AND speculative_retry = '99percentile'
-    AND compaction = {'class': 'SizeTieredCompactionStrategy', 'tombstone_compaction_interval':'2592000'}
+    AND compaction = {'class': 'DateTieredCompactionStrategy', 'timestamp_resolution':'MICROSECONDS', 'base_time_seconds':'3600', 'min_threshold':'4', 'max_sstable_age_days':'30'}
     AND caching = 'keys_only';
 
 CREATE TABLE packets_area_unknown (
@@ -75,5 +75,5 @@ WITH
     compression = {'sstable_compression':'LZ4Compressor', 'chunk_length_kb':64}
     AND comment = 'AIS data where the area has not yet been determined.'
     AND speculative_retry = '99percentile'
-    AND compaction = {'class': 'SizeTieredCompactionStrategy', 'tombstone_compaction_interval':'2592000'}
+    AND compaction = {'class': 'DateTieredCompactionStrategy', 'timestamp_resolution':'MICROSECONDS', 'base_time_seconds':'3600', 'min_threshold':'4', 'max_sstable_age_days':'30'}
     AND caching = 'keys_only';
