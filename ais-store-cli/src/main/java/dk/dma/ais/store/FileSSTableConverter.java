@@ -25,7 +25,6 @@ import dk.dma.ais.store.importer.PacketsAreaCell1SSTableWriter;
 import dk.dma.ais.store.importer.PacketsAreaUnknownSSTableWriter;
 import dk.dma.ais.store.importer.PacketsMmsiSSTableWriter;
 import dk.dma.ais.store.importer.PacketsTimeSSTableWriter;
-import dk.dma.ais.store.importer.SSTableWriter;
 import dk.dma.commons.app.AbstractCommandLineTool;
 import org.apache.cassandra.config.KSMetaData;
 import org.apache.cassandra.config.Schema;
@@ -34,9 +33,11 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Arrays;
 import java.util.Properties;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
 
 /**
@@ -114,9 +115,11 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
         System.exit(0);
     }
 
+
     private void streamAllAisPacketsTo(Consumer<AisPacket> consumer) throws IOException, InterruptedException {
-        final AtomicInteger acceptedCount = new AtomicInteger();
-        final long start = System.currentTimeMillis();
+        final AtomicLong acceptedCount = new AtomicLong();
+        final AtomicLong[] numberOfPacketsProcessedSinceLastOutput = {new AtomicLong()};
+        final Instant[] timeOfLastOutput = {Instant.now()};
 
         AisReader reader = AisReaders.createDirectoryReader(path, glob, recursive);
 
@@ -125,12 +128,16 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
         }
 
         // print stats if verbose
-        if (verbose && consumer instanceof SSTableWriter) {
+        if (verbose) {
             reader.registerPacketHandler(packet -> {
-                long count = ((SSTableWriter) consumer).numberOfPacketsProcessed();
-                if (count % 10000 == 0) {
-                    long end = System.currentTimeMillis();
-                    LOG.info("Conversion rate " + ((int) (count / ((end - start) / 1000.0))) + " packets/s, " + ((SSTableWriter) consumer).numberOfPacketsProcessed() + " total packets processed.");
+                if (numberOfPacketsProcessedSinceLastOutput[0].incrementAndGet() % 1000000 == 0) {
+                    Instant now = Instant.now();
+                    Duration timeSinceLastOutput = Duration.between(timeOfLastOutput[0], now);
+
+                    LOG.info("Conversion rate " + ((int) (numberOfPacketsProcessedSinceLastOutput[0].floatValue() / ((float) timeSinceLastOutput.toMillis())*1e3) + " packets/s, " + (acceptedCount.longValue()+1L) + " total packets processed."));
+
+                    numberOfPacketsProcessedSinceLastOutput[0] = new AtomicLong();
+                    timeOfLastOutput[0] = now;
                 }
             });
         }
