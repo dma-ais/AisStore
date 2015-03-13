@@ -22,7 +22,7 @@ import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.google.inject.Injector;
-import dk.dma.commons.app.AbstractDaemon;
+import dk.dma.commons.app.AbstractCommandLineTool;
 import dk.dma.commons.management.ManagedResource;
 import dk.dma.db.cassandra.CassandraConnection;
 import org.slf4j.Logger;
@@ -45,7 +45,7 @@ import static java.lang.Integer.min;
  * @author Kasper Nielsen
  */
 @ManagedResource
-public class CassandraStats extends AbstractDaemon {
+public class CassandraStats extends AbstractCommandLineTool {
 
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(CassandraStats.class);
@@ -61,7 +61,7 @@ public class CassandraStats extends AbstractDaemon {
 
     /** {@inheritDoc} */
     @Override
-    protected void runDaemon(Injector injector) throws Exception {
+    protected void run(Injector injector) throws Exception {
         // Setup keyspace for cassandra
         CassandraConnection con = start(CassandraConnection.create(databaseName, cassandraSeeds));
         printPacketsTimeStats(con);
