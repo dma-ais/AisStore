@@ -17,14 +17,13 @@ package dk.dma.ais.store;
 import com.beust.jcommander.Parameter;
 import com.datastax.driver.core.ConsistencyLevel;
 import com.datastax.driver.core.ResultSet;
+import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.google.inject.Injector;
-import dk.dma.ais.packet.AisPacket;
 import dk.dma.commons.app.AbstractDaemon;
 import dk.dma.commons.management.ManagedResource;
-import dk.dma.commons.service.AbstractBatchedStage;
 import dk.dma.db.cassandra.CassandraConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -33,9 +32,13 @@ import java.time.Instant;
 import java.util.Arrays;
 import java.util.List;
 
+import static com.datastax.driver.core.querybuilder.QueryBuilder.gte;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.in;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.lte;
 import static dk.dma.ais.store.AisStoreSchema.Column.COLUMN_TIMEBLOCK;
+import static dk.dma.ais.store.AisStoreSchema.Column.COLUMN_TIMESTAMP;
 import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_TIME;
+import static java.lang.Integer.min;
 
 /**
  * 
@@ -56,63 +59,51 @@ public class CassandraStats extends AbstractDaemon {
     @Parameter(names = "-year", description = "Calendar year for which to count AisPackets", required = true)
     int year;
 
-    /** The stage that is responsible for writing the package */
-    volatile AbstractBatchedStage<AisPacket> mainStage;
-
     /** {@inheritDoc} */
     @Override
     protected void runDaemon(Injector injector) throws Exception {
         // Setup keyspace for cassandra
         CassandraConnection con = start(CassandraConnection.create(databaseName, cassandraSeeds));
-
         printPacketsTimeStats(con);
-         /*
-        // Start a stage that will write each packet to cassandra
-        final AbstractBatchedStage<AisPacket> cassandra = mainStage = start(new DefaultAisStoreWriter(con, batchSize) {
-            @Override
-            public void onFailure(List<AisPacket> messages, Throwable cause) {
-                LOG.error("Could not write batch to cassandra", cause);
-                for (AisPacket p : messages) {
-                    if (!backupService.getInputQueue().offer(p)) {
-                        System.err.println("Could not persist packet!");
-                    }
-                }
-            }
-        });*/
     }
 
     private void printPacketsTimeStats(CassandraConnection conn) {
         final Session session = conn.getSession();
 
-        //for (int year=2005; year< java.time.LocalDate.now().getYear(); year++) {
-            final int tb0 = AisStoreSchema.getTimeBlock(TABLE_PACKETS_TIME, Instant.parse(String.format("%4d-01-01T00:00:00.00Z", year)));
-            final int tb1 = AisStoreSchema.getTimeBlock(TABLE_PACKETS_TIME, Instant.parse(String.format("%4d-12-31T23:59:59.99Z", year)));
-            System.out.println(String.format("Year %d spans %d timeblocks", year, tb1-tb0));
+        final Instant ts0 = Instant.parse(String.format("%4d-01-01T00:00:00.00Z", year));
+        final Instant ts1 = Instant.parse(String.format("%4d-12-31T23:59:59.99Z", year));
+        final int tb0 = AisStoreSchema.getTimeBlock(TABLE_PACKETS_TIME, ts0);
+        final int tb1 = AisStoreSchema.getTimeBlock(TABLE_PACKETS_TIME, ts1);
+        System.out.println(String.format("Year %d spans %d timeblocks", year, tb1-tb0));
 
-            final int n = tb1-tb0;
-            Integer timeblocks[] = new Integer[n];
-            for (int i=0; i<n; i++) {
-                timeblocks[i] = tb0+i;
-            }
+        final int n = tb1-tb0;
+        Integer timeblocks[] = new Integer[n];
+        for (int i=0; i<n; i++) {
+            timeblocks[i] = tb0+i;
+        }
 
-            long numPackets = 0;
-            final int step = 10;
-            for (int i=0; i<=n; i += step) {
-                Statement statement = QueryBuilder
-                    .select()
-                    .countAll()
-                    .from(TABLE_PACKETS_TIME.toString())
-                    .where(in(COLUMN_TIMEBLOCK.toString(), Arrays.copyOfRange(timeblocks, i, i+step)))
+        long numPackets = 0;
+        final int step = 10;
+        for (int i=0; i<=n; i += step) {
+            Statement statement = QueryBuilder
+                .select()
+                .countAll()
+                .from(TABLE_PACKETS_TIME.toString())
+                .where(in(COLUMN_TIMEBLOCK.toString(), Arrays.copyOfRange(timeblocks, i, min(i + step, n))))
+                .and(gte(COLUMN_TIMESTAMP.toString(), ts0.toEpochMilli()))
+                .and(lte(COLUMN_TIMESTAMP.toString(), ts1.toEpochMilli()))
                 .setConsistencyLevel(ConsistencyLevel.ONE);
-                ResultSet resultSet = session.execute(statement);
 
-                numPackets += resultSet.one().getLong(0);
-                printProgress(((float)(i))/n);
-            }
-            printProgress(100);
+            ResultSetFuture future = session.executeAsync(statement);
+            ResultSet resultSet = future.getUninterruptibly();
 
-            System.out.println(String.format("Counted a total of %l AisPackets in %s.", numPackets, TABLE_PACKETS_TIME.toString()));
-        //}
+            numPackets += resultSet.one().getLong(0);
+
+            printProgress(((float) (i))/n);
+        }
+        printProgress(100);
+
+        System.out.println(String.format("Counted a total of %d AisPackets in %s.", numPackets, TABLE_PACKETS_TIME.toString()));
     }
 
     private static void printProgress(float pct) {
