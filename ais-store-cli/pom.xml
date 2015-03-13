@@ -12,10 +12,8 @@
 	<parent>
 		<groupId>dk.dma.ais.store</groupId>
 		<artifactId>ais-store-parent</artifactId>
-		<version>0.3-SNAPSHOT</version>
+		<version>0.4-SNAPSHOT</version>
 	</parent>
-
-
 
 	<packaging>jar</packaging>
 	<modelVersion>4.0.0</modelVersion>
@@ -60,7 +58,7 @@
 		<dependency>
 			<groupId>dk.dma.commons</groupId>
 			<artifactId>dma-commons-app</artifactId>
-			<version>${project.version}</version>
+			<version>0.3-SNAPSHOT</version>
 		</dependency>
 
 		<dependency>
