@@ -17,14 +17,17 @@ package dk.dma.ais.store.importer;
 
 import dk.dma.ais.message.AisMessage;
 import dk.dma.ais.packet.AisPacket;
-import org.apache.cassandra.config.KSMetaData;
-import org.apache.cassandra.config.Schema;
+import dk.dma.ais.store.AisStoreSchema.Table;
+import dk.dma.enav.model.geometry.Position;
 import org.apache.cassandra.exceptions.InvalidRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
 import java.time.Instant;
 import java.util.Date;
+import java.util.Objects;
 
 import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_UNKNOWN;
 import static dk.dma.ais.store.AisStoreSchema.getDigest;
@@ -39,37 +42,50 @@ import static dk.dma.ais.store.AisStoreSchema.getTimeBlock;
  *
  * note: need to be aware of super composite keys as partition key, for instance.
  * @author Jens Tuxen
- *
+ * @author Thomas Borg Salling
  */
-public class PacketsAreaUnknownSSTableWriter extends AisStoreSSTableWriter {
+public class PacketsAreaUnknownSSTableWriter extends PositionTrackingSSTableWriter {
 
-    /** Table name */
-    public static final String TABLE = "packets_area_unknown";
+    private static final Logger LOG = LoggerFactory.getLogger(PacketsAreaUnknownSSTableWriter.class);
 
     public PacketsAreaUnknownSSTableWriter(String outputDir, String keyspace) {
         super(
-            outputDir,
-            String.format(
-                "CREATE TABLE %s.%s (" +
-                    "mmsi int," +
-                    "timeblock int," +
-                    "time timestamp," +
-                    "digest blob," +
-                    "aisdata ascii," +
-                    "PRIMARY KEY ((mmsi, timeblock), time, digest)" +
-                ") WITH CLUSTERING ORDER BY (time ASC, digest ASC)", keyspace, TABLE
-            ),
-            String.format(
-                "INSERT INTO %s.%s (mmsi, timeblock, time, digest, aisdata) VALUES (?, ?, ?, ?, ?)", keyspace, TABLE
-            )
+                outputDir,
+                keyspace,
+                String.format(
+                        "CREATE TABLE %s.%s (" +
+                                "mmsi int," +
+                                "timeblock int," +
+                                "time timestamp," +
+                                "digest blob," +
+                                "aisdata ascii," +
+                                "PRIMARY KEY ((mmsi, timeblock), time, digest)" +
+                                ") WITH CLUSTERING ORDER BY (time ASC, digest ASC)", keyspace, TABLE_PACKETS_AREA_UNKNOWN.toString()
+                ),
+                String.format(
+                        "INSERT INTO %s.%s (mmsi, timeblock, time, digest, aisdata) VALUES (?, ?, ?, ?, ?)", keyspace, TABLE_PACKETS_AREA_UNKNOWN.toString()
+                )
         );
-
-        // http://stackoverflow.com/questions/26137083/cassandra-does-cqlsstablewriter-support-writing-to-multiple-column-families-co
-        KSMetaData ksm = Schema.instance.getKSMetaData(keyspace);
-        Schema.instance.clearKeyspaceDefinition(ksm);
     }
 
-    public void addPacket(AisPacket packet) {
+    @Override
+    public void accept(AisPacket packet) {
+        Objects.requireNonNull(packet);
+        incNumberOfPacketsProcessed();
+
+        Position position = targetPosition(packet);
+
+        if (! isValid(position)) {
+            writePacket(packet);
+        }
+    }
+
+    @Override
+    public Table table() {
+        return TABLE_PACKETS_AREA_UNKNOWN;
+    }
+
+    private void writePacket(AisPacket packet) {
         final long ts = packet.getBestTimestamp();
         if (ts > 0) {
             AisMessage message = packet.tryGetAisMessage();
@@ -77,20 +93,21 @@ public class PacketsAreaUnknownSSTableWriter extends AisStoreSSTableWriter {
                 final int mmsi = message.getUserId();
                 if (mmsi >= 0) {
                     try {
-                        writer.addRow(mmsi, getTimeBlock(TABLE_PACKETS_AREA_UNKNOWN, Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
+                        writer().addRow(mmsi, getTimeBlock(table(), Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
                     } catch (InvalidRequestException e) {
-                        System.out.println("Failed to store message in " + TABLE + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                        LOG.error("Failed to store message in " + table().toString() + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
                     } catch (IOException e) {
-                        System.out.println("Failed to store message in " + TABLE + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
+                        LOG.error("Failed to store message in " + table().toString() + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
                     }
                 } else {
-                    System.out.println("Cannot get MMSI from: " + packet.getStringMessage());
+                    LOG.error("Cannot get MMSI from: " + packet.getStringMessage());
                 }
             } else {
-                System.out.println("Cannot decode: " + packet.getStringMessage());
+                LOG.error("Cannot decode: " + packet.getStringMessage());
             }
         } else {
-            System.out.println("Cannot get timestamp from: " + packet.getStringMessage());
+            LOG.error("Cannot get timestamp from: " + packet.getStringMessage());
         }
     }
+
 }

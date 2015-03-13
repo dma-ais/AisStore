@@ -16,10 +16,11 @@
 package dk.dma.ais.store.importer;
 
 import dk.dma.ais.packet.AisPacket;
+import dk.dma.ais.store.AisStoreSchema.Table;
 import dk.dma.enav.model.geometry.Position;
-import org.apache.cassandra.config.KSMetaData;
-import org.apache.cassandra.config.Schema;
 import org.apache.cassandra.exceptions.InvalidRequestException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -38,18 +39,17 @@ import static dk.dma.ais.store.AisStoreSchema.getTimeBlock;
  *   - http://www.datastax.com/dev/blog/bulk-loading
  *   - https://github.com/yukim/cassandra-bulkload-example/blob/master/src/main/java/bulkload/BulkLoad.java
  *
- * @param types note: need to be aware of super composite keys as partition key, for instance.
  * @author Jens Tuxen
- *
+ * @author Thomas Borg Salling
  */
-public class PacketsAreaCell1SSTableWriter extends AisStoreSSTableWriter {
+public class PacketsAreaCell1SSTableWriter extends PositionTrackingSSTableWriter {
 
-    /** Table name */
-    public static final String TABLE = "packets_area_cell1";
+    private static final Logger LOG = LoggerFactory.getLogger(PacketsAreaCell1SSTableWriter.class);
 
     public PacketsAreaCell1SSTableWriter(String outputDir, String keyspace) {
         super(
             outputDir,
+            keyspace,
             String.format(
                 "CREATE TABLE %s.%s (" +
                     "cellid int," +
@@ -59,34 +59,49 @@ public class PacketsAreaCell1SSTableWriter extends AisStoreSSTableWriter {
                     "aisdata ascii," +
                     "PRIMARY KEY ((cellid, timeblock), time, digest)" +
                 ") WITH CLUSTERING ORDER BY (time ASC, digest ASC)"
-                , keyspace, TABLE
+                , keyspace, TABLE_PACKETS_AREA_CELL1.toString()
             ),
             String.format(
-                "INSERT INTO %s.%s (cellid, timeblock, time, digest, aisdata) VALUES (?, ?, ?, ?, ?)", keyspace, TABLE
+                "INSERT INTO %s.%s (cellid, timeblock, time, digest, aisdata) VALUES (?, ?, ?, ?, ?)", keyspace, TABLE_PACKETS_AREA_CELL1.toString()
             )
         );
-
-        // http://stackoverflow.com/questions/26137083/cassandra-does-cqlsstablewriter-support-writing-to-multiple-column-families-co
-        KSMetaData ksm = Schema.instance.getKSMetaData(keyspace);
-        Schema.instance.clearKeyspaceDefinition(ksm);
     }
 
-    public void addPacket(AisPacket packet, Position p) {
-        Objects.requireNonNull(packet);
-        Objects.requireNonNull(p);
+    @Override
+    public Table table() {
+        return TABLE_PACKETS_AREA_CELL1;
+    }
 
-        final long ts = packet.getBestTimestamp();
-        if (ts > 0) {
-            final int cellid = p.getCellInt(1.0);
-            try {
-                writer.addRow(cellid, getTimeBlock(TABLE_PACKETS_AREA_CELL1, Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
-            } catch (InvalidRequestException e) {
-                System.out.println("Failed to store message in " + TABLE + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
-            } catch (IOException e) {
-                System.out.println("Failed to store message in " + TABLE + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
-            }
-        } else {
-            System.out.println("Cannot get timestamp from: " + packet.getStringMessage());
+    @Override
+    public void accept(AisPacket packet) {
+        Objects.requireNonNull(packet);
+        incNumberOfPacketsProcessed();
+
+        Position position = targetPosition(packet);
+
+        if (isValid(position)) {
+            writePacket(packet, position);
         }
     }
+
+    private int getGridCell(Position position) {
+        return position.getCellInt(1.0);
+    }
+
+    private void writePacket(AisPacket packet, Position position) {
+        final long ts = packet.getBestTimestamp();
+        if (ts > 0) {
+            final int cellid = getGridCell(position);
+            try {
+                writer().addRow(cellid, getTimeBlock(table(), Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
+            } catch (InvalidRequestException e) {
+                LOG.error("Failed to store message in " + table().toString() + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            } catch (IOException e) {
+                LOG.error("Failed to store message in " + table().toString() + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
+            }
+        } else {
+            LOG.error("Cannot get timestamp from: " + packet.getStringMessage());
+        }
+    }
+
 }

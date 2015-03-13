@@ -16,17 +16,29 @@ package dk.dma.ais.store;
 
 import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
+import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.reader.AisReader;
 import dk.dma.ais.reader.AisReaders;
-import dk.dma.ais.store.importer.AisStoreSSTableGenerator;
 import dk.dma.ais.store.importer.ImportConfigGenerator;
+import dk.dma.ais.store.importer.PacketsAreaCell10SSTableWriter;
+import dk.dma.ais.store.importer.PacketsAreaCell1SSTableWriter;
+import dk.dma.ais.store.importer.PacketsAreaUnknownSSTableWriter;
+import dk.dma.ais.store.importer.PacketsMmsiSSTableWriter;
+import dk.dma.ais.store.importer.PacketsTimeSSTableWriter;
 import dk.dma.commons.app.AbstractCommandLineTool;
+import org.apache.cassandra.config.KSMetaData;
+import org.apache.cassandra.config.Schema;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.io.IOException;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
+import java.util.Arrays;
 import java.util.Properties;
-import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Consumer;
 
 /**
  * @author Jens Tuxen
@@ -80,11 +92,35 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
         Properties props = System.getProperties();
         props.setProperty("cassandra.config", Paths.get("file://", inDirectory, "cassandra.yaml").toString());
 
-        AisStoreSSTableGenerator ssTableGenerator = AisStoreSSTableGenerator
-                .createAisStoreSSTableGenerator(inDirectory,keyspace,compressor, bufferSize);
+        Arrays.asList(
+            new PacketsTimeSSTableWriter(inDirectory, keyspace),
+            new PacketsMmsiSSTableWriter(inDirectory, keyspace),
+            new PacketsAreaCell1SSTableWriter(inDirectory, keyspace),
+            new PacketsAreaCell10SSTableWriter(inDirectory, keyspace),
+            new PacketsAreaUnknownSSTableWriter(inDirectory, keyspace)
+        ).forEach(sstableWriter -> {
+            try {
+                LOG.info("Streaming AIS packets to " + sstableWriter.table());
+                streamAllAisPacketsTo(sstableWriter);
+                sstableWriter.close();
+                clearKeyspaceDefinition();
+            } catch (IOException e) {
+                LOG.error(e.getMessage(), e);
+            } catch (InterruptedException e) {
+                LOG.error(e.getMessage(), e);
+            }
+        });
 
-        final AtomicInteger acceptedCount = new AtomicInteger();
-        final long start = System.currentTimeMillis();
+        shutdown();
+        System.exit(0);
+    }
+
+
+    private void streamAllAisPacketsTo(Consumer<AisPacket> consumer) throws IOException, InterruptedException {
+        final AtomicLong acceptedCount = new AtomicLong();
+        final AtomicLong[] numberOfPacketsProcessedSinceLastOutput = {new AtomicLong()};
+        final Instant[] timeOfLastOutput = {Instant.now()};
+
         AisReader reader = AisReaders.createDirectoryReader(path, glob, recursive);
 
         if (tag != null) {
@@ -93,29 +129,32 @@ public class FileSSTableConverter extends AbstractCommandLineTool {
 
         // print stats if verbose
         if (verbose) {
-            final AtomicInteger verboseCounter = new AtomicInteger();
             reader.registerPacketHandler(packet -> {
+                if (numberOfPacketsProcessedSinceLastOutput[0].incrementAndGet() % 1000000 == 0) {
+                    Instant now = Instant.now();
+                    Duration timeSinceLastOutput = Duration.between(timeOfLastOutput[0], now);
 
-                long count = verboseCounter.incrementAndGet();
-                if (count % 10000 == 0) {
-                    long end = System.currentTimeMillis();
-                    LOG.info("Conversion rate " + ((int) (count / ((end - start) / 1000.0))) + " packets/s, " + ssTableGenerator.numberOfPacketsProcessed() + " total packets processed.");
+                    LOG.info("Conversion rate " + ((int) (numberOfPacketsProcessedSinceLastOutput[0].floatValue() / ((float) timeSinceLastOutput.toMillis())*1e3) + " packets/s, " + (acceptedCount.longValue()+1L) + " total packets processed."));
+
+                    numberOfPacketsProcessedSinceLastOutput[0] = new AtomicLong();
+                    timeOfLastOutput[0] = now;
                 }
             });
         }
-        
+
         //add "accepted" counter
         reader.registerPacketHandler(p -> acceptedCount.incrementAndGet());
-        reader.registerPacketHandler(ssTableGenerator);
+        reader.registerPacketHandler(consumer);
 
         reader.start();
         reader.join();
-        ssTableGenerator.close();
         LOG.info("Finished processing directory, " + acceptedCount + " packets was converted from " + path);
-        
-        shutdown();
-        System.exit(0);
-        
+    }
+
+    private void clearKeyspaceDefinition() {
+        // http://stackoverflow.com/questions/26137083/cassandra-does-cqlsstablewriter-support-writing-to-multiple-column-families-co
+        KSMetaData ksm = Schema.instance.getKSMetaData(keyspace);
+        Schema.instance.clearKeyspaceDefinition(ksm);
     }
 
     public static void main(String[] args) throws Exception {
