@@ -56,8 +56,11 @@ public class CassandraStats extends AbstractCommandLineTool {
     @Parameter(names = "-database", description = "A list of cassandra hosts that can store the data")
     List<String> cassandraSeeds = Arrays.asList("localhost");
 
-    @Parameter(names = "-year", description = "Calendar year for which to count AisPackets", required = true)
-    int year;
+    @Parameter(names = "-from", description = "The instant to count from (format \"2015-01-01T00:00:00.00Z\")", required = true)
+    String from;
+
+    @Parameter(names = "-to", description = "The instant to count to (format \"2015-01-31T23:59:99.99Z\")", required = true)
+    String to;
 
     /** {@inheritDoc} */
     @Override
@@ -70,11 +73,13 @@ public class CassandraStats extends AbstractCommandLineTool {
     private void printPacketsTimeStats(CassandraConnection conn) {
         final Session session = conn.getSession();
 
-        final Instant ts0 = Instant.parse(String.format("%4d-01-01T00:00:00.00Z", year));
-        final Instant ts1 = Instant.parse(String.format("%4d-12-31T23:59:59.99Z", year));
+        final Instant ts0 = Instant.parse(from);
+        final Instant ts1 = Instant.parse(to);
+
         final int tb0 = AisStoreSchema.getTimeBlock(TABLE_PACKETS_TIME, ts0);
         final int tb1 = AisStoreSchema.getTimeBlock(TABLE_PACKETS_TIME, ts1);
-        System.out.println(String.format("Year %d spans %d timeblocks", year, tb1-tb0));
+
+        LOG.debug(String.format("Duration from %s to %s spans %d timeblocks", from, to, tb1-tb0));
 
         final int n = tb1-tb0;
         Integer timeblocks[] = new Integer[n];
