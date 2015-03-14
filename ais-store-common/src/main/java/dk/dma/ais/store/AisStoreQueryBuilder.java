@@ -92,8 +92,8 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
                 queries.add(new AisStoreQuery(s, inner, batchLimit, TABLE_PACKETS_MMSI, COLUMN_MMSI, m, startTimeInclusive, stopTimeExclusive));
             }
         } else {
-            int start = AisStoreSchema.getTimeBlock(TABLE_PACKETS_TIME, startTimeInclusive);
-            int stop = AisStoreSchema.getTimeBlock(TABLE_PACKETS_TIME, stopTimeExclusive.minusMillis(1));
+            int start = AisStoreSchema.timeBlock(TABLE_PACKETS_TIME, startTimeInclusive);
+            int stop = AisStoreSchema.timeBlock(TABLE_PACKETS_TIME, stopTimeExclusive.minusMillis(1));
             queries.add(new AisStoreQuery(s, inner, batchLimit, TABLE_PACKETS_TIME, COLUMN_TIMEBLOCK, start, stop, startTimeInclusive, stopTimeExclusive));
         }
         return new AisStoreQueryResult(inner, queries);

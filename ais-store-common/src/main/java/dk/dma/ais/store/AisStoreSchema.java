@@ -20,6 +20,8 @@ import dk.dma.ais.packet.AisPacket;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * This file contains the schema that is being used to store data in AisStore. It also contains various utility methods.
@@ -96,7 +98,7 @@ public class AisStoreSchema {
      * @param timestamp the timestamp to convert
      * @return the converted value
      */
-    public static final int getTimeBlock(Table table, Instant timestamp) {
+    public static final int timeBlock(Table table, Instant timestamp) {
         int timeblock = -1;
         switch (table) {
             case TABLE_PACKETS_TIME:
@@ -113,6 +115,19 @@ public class AisStoreSchema {
         }
         return timeblock;
     }
+
+    public static Integer[] timeBlocks(Table table, Instant timeStart, Instant timeStop) {
+        int timeBlockMin = timeBlock(table, timeStart);
+        int timeBlockMax = timeBlock(table, timeStop);
+
+        List<Integer> timeBlocks = new ArrayList<>(timeBlockMax - timeBlockMin + 1);
+        for (int timeBlock = timeBlockMin; timeBlock <= timeBlockMax; timeBlock++)
+            timeBlocks.add(timeBlock);
+
+        return timeBlocks.toArray(new Integer[timeBlocks.size()]);
+    }
+
+
 
     private static final int getTimeBlock(Instant timestamp, Duration unit) {
         return Ints.checkedCast(timestamp.getEpochSecond()/unit.getSeconds());

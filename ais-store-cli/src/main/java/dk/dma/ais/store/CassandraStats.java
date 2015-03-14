@@ -76,10 +76,10 @@ public class CassandraStats extends AbstractCommandLineTool {
         final Instant ts0 = Instant.parse(from);
         final Instant ts1 = Instant.parse(to);
 
-        final int tb0 = AisStoreSchema.getTimeBlock(TABLE_PACKETS_TIME, ts0);
-        final int tb1 = AisStoreSchema.getTimeBlock(TABLE_PACKETS_TIME, ts1);
+        final int tb0 = AisStoreSchema.timeBlock(TABLE_PACKETS_TIME, ts0);
+        final int tb1 = AisStoreSchema.timeBlock(TABLE_PACKETS_TIME, ts1);
 
-        LOG.debug(String.format("Duration from %s to %s spans %d timeblocks", from, to, tb1-tb0));
+        LOG.debug(String.format("Duration from %s to %s spans %d timeblocks", from, to, tb1 - tb0));
 
         final int n = tb1-tb0;
         Integer timeblocks[] = new Integer[n];
@@ -90,11 +90,13 @@ public class CassandraStats extends AbstractCommandLineTool {
         long numPackets = 0;
         final int step = 10;
         for (int i=0; i<=n; i += step) {
+            Integer[] queryTimeBlocks = Arrays.copyOfRange(timeblocks, i, min(i + step, n));
+
             Statement statement = QueryBuilder
                 .select()
                 .countAll()
                 .from(TABLE_PACKETS_TIME.toString())
-                .where(in(COLUMN_TIMEBLOCK.toString(), Arrays.copyOfRange(timeblocks, i, min(i + step, n))))
+                .where(in(COLUMN_TIMEBLOCK.toString(), queryTimeBlocks))
                 .and(gte(COLUMN_TIMESTAMP.toString(), ts0.toEpochMilli()))
                 .and(lte(COLUMN_TIMESTAMP.toString(), ts1.toEpochMilli()))
                 .setConsistencyLevel(ConsistencyLevel.ONE);
@@ -103,6 +105,8 @@ public class CassandraStats extends AbstractCommandLineTool {
             ResultSet resultSet = future.getUninterruptibly();
 
             numPackets += resultSet.one().getLong(0);
+
+            System.out.println("Timeblocks " + queryTimeBlocks[0] + ".." + queryTimeBlocks[queryTimeBlocks.length-1] + ": " + numPackets);
 
             printProgress(((float) (i))/n);
         }

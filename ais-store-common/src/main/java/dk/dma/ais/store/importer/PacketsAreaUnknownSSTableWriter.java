@@ -31,7 +31,7 @@ import java.util.Objects;
 
 import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_UNKNOWN;
 import static dk.dma.ais.store.AisStoreSchema.getDigest;
-import static dk.dma.ais.store.AisStoreSchema.getTimeBlock;
+import static dk.dma.ais.store.AisStoreSchema.timeBlock;
 
 /**
  * Creates an AisStore Table/Schema writer, see AisStoreTableWriters for implementation.
@@ -93,7 +93,7 @@ public class PacketsAreaUnknownSSTableWriter extends PositionTrackingSSTableWrit
                 final int mmsi = message.getUserId();
                 if (mmsi >= 0) {
                     try {
-                        writer().addRow(mmsi, getTimeBlock(table(), Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
+                        writer().addRow(mmsi, timeBlock(table(), Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
                     } catch (InvalidRequestException e) {
                         LOG.error("Failed to store message in " + table().toString() + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
                     } catch (IOException e) {

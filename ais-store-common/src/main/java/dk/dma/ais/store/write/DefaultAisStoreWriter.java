@@ -45,7 +45,7 @@ import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_UNKNOWN;
 import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_MMSI;
 import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_TIME;
 import static dk.dma.ais.store.AisStoreSchema.getDigest;
-import static dk.dma.ais.store.AisStoreSchema.getTimeBlock;
+import static dk.dma.ais.store.AisStoreSchema.timeBlock;
 
 /**
  * The schema used in AisStore.
@@ -115,7 +115,7 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
             // Okay we have no idea of the position of the ship. Store it in this table and process it later.
             Insert i = QueryBuilder.insertInto(TABLE_PACKETS_AREA_UNKNOWN.toString());
             i.value(COLUMN_MMSI.toString(), mmsi);
-            i.value(COLUMN_TIMEBLOCK.toString(), getTimeBlock(TABLE_PACKETS_AREA_UNKNOWN, timestamp));
+            i.value(COLUMN_TIMEBLOCK.toString(), timeBlock(TABLE_PACKETS_AREA_UNKNOWN, timestamp));
             i.value(COLUMN_TIMESTAMP.toString(), timestamp.toEpochMilli());
             i.value(COLUMN_AISDATA_DIGEST.toString(), ByteBuffer.wrap(digest));
             i.value(COLUMN_AISDATA.toString(), rawMessage);
@@ -124,7 +124,7 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
             // Cells with size 1 degree
             Insert i = QueryBuilder.insertInto(TABLE_PACKETS_AREA_CELL1.toString());
             i.value(COLUMN_CELLID.toString(), p.getCellInt(1));
-            i.value(COLUMN_TIMEBLOCK.toString(), getTimeBlock(TABLE_PACKETS_AREA_CELL1, timestamp));
+            i.value(COLUMN_TIMEBLOCK.toString(), timeBlock(TABLE_PACKETS_AREA_CELL1, timestamp));
             i.value(COLUMN_TIMESTAMP.toString(), timestamp.toEpochMilli());
             i.value(COLUMN_AISDATA_DIGEST.toString(), ByteBuffer.wrap(digest));
             i.value(COLUMN_AISDATA.toString(), rawMessage);
@@ -133,7 +133,7 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
             // Cells with size 10 degree
             i = QueryBuilder.insertInto(TABLE_PACKETS_AREA_CELL10.toString());
             i.value(COLUMN_CELLID.toString(), p.getCellInt(10));
-            i.value(COLUMN_TIMEBLOCK.toString(), getTimeBlock(TABLE_PACKETS_AREA_CELL10, timestamp));
+            i.value(COLUMN_TIMEBLOCK.toString(), timeBlock(TABLE_PACKETS_AREA_CELL10, timestamp));
             i.value(COLUMN_TIMESTAMP.toString(), timestamp.toEpochMilli());
             i.value(COLUMN_AISDATA_DIGEST.toString(), ByteBuffer.wrap(digest));
             i.value(COLUMN_AISDATA.toString(), rawMessage);
@@ -145,7 +145,7 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
     private static void storeByMmsi(List<RegularStatement> batch, Instant timestamp, int mmsi, byte[] digest, String rawMessage) {
         Insert i = QueryBuilder.insertInto(TABLE_PACKETS_MMSI.toString());
         i.value(COLUMN_MMSI.toString(), mmsi);
-        i.value(COLUMN_TIMEBLOCK.toString(), getTimeBlock(TABLE_PACKETS_MMSI, timestamp));
+        i.value(COLUMN_TIMEBLOCK.toString(), timeBlock(TABLE_PACKETS_MMSI, timestamp));
         i.value(COLUMN_TIMESTAMP.toString(), timestamp.toEpochMilli());
         i.value(COLUMN_AISDATA_DIGEST.toString(), ByteBuffer.wrap(digest));
         i.value(COLUMN_AISDATA.toString(), rawMessage);
@@ -155,7 +155,7 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
     /** Stores the specified packet by time. */
     private static void storeByTime(List<RegularStatement> batch, Instant timestamp, byte[] digest, String rawMessage) {
         Insert i = QueryBuilder.insertInto(TABLE_PACKETS_TIME.toString());
-        i.value(COLUMN_TIMEBLOCK.toString(), getTimeBlock(TABLE_PACKETS_TIME, timestamp));
+        i.value(COLUMN_TIMEBLOCK.toString(), timeBlock(TABLE_PACKETS_TIME, timestamp));
         i.value(COLUMN_TIMESTAMP.toString(), timestamp.toEpochMilli());
         i.value(COLUMN_AISDATA_DIGEST.toString(), ByteBuffer.wrap(digest));
         i.value(COLUMN_AISDATA.toString(), rawMessage);

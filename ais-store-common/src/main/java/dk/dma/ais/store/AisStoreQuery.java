@@ -29,11 +29,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedList;
-import java.util.List;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.eq;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.gt;
@@ -171,7 +169,7 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
 
                 // currentRow == lastRow when packets_mmsi or packets_cell
                 if (!(currentRow == lastRow)) {
-                    currentRow = AisStoreSchema.getTimeBlock(table, lastestDateReceived);
+                    currentRow = AisStoreSchema.timeBlock(table, lastestDateReceived);
                     // System.out.println("Currently at: "+currentRow+" Last ROW is: "+lastRow);
                 }
 
@@ -194,20 +192,9 @@ class AisStoreQuery extends AbstractIterator<AisPacket> {
         return endOfData();
     }
 
-    private static Integer[] timeBlocks(Table table, Instant timeStart, Instant timeStop) {
-        int timeBlockMin = AisStoreSchema.getTimeBlock(table, timeStart);
-        int timeBlockMax = AisStoreSchema.getTimeBlock(table, timeStop);
-
-        List<Integer> timeBlocks = new ArrayList<>(timeBlockMax - timeBlockMin + 1);
-        for (int timeBlock = timeBlockMin; timeBlock <= timeBlockMax; timeBlock++)
-            timeBlocks.add(timeBlock);
-
-        return timeBlocks.toArray(new Integer[timeBlocks.size()]);
-    }
-
     /** execute takes over from advance, which is not necessary anymore */
     void execute() {
-        Integer[] timeBlocks = timeBlocks(table, timeStart, timeStop);
+        Integer[] timeBlocks = AisStoreSchema.timeBlocks(table, timeStart, timeStop);
 
         Statement select;
         switch (table) {
