@@ -21,6 +21,7 @@ import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
 import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
+import com.datastax.driver.core.querybuilder.Select;
 import com.google.inject.Injector;
 import dk.dma.commons.app.AbstractCommandLineTool;
 import dk.dma.commons.management.ManagedResource;
@@ -42,7 +43,7 @@ import static java.lang.Integer.min;
 
 /**
  * 
- * @author Kasper Nielsen
+ * @author Thomas Borg Salling
  */
 @ManagedResource
 public class CassandraStats extends AbstractCommandLineTool {
@@ -61,6 +62,9 @@ public class CassandraStats extends AbstractCommandLineTool {
 
     @Parameter(names = "-to", description = "The instant to count to (format \"2015-02-01T00:00:00.000Z\") (exclusive)", required = true)
     String to;
+
+    @Parameter(names = "-tb", description = "No. of timeblocks per select query")
+    int tbPerSelect = 10;
 
     /** {@inheritDoc} */
     @Override
@@ -81,25 +85,32 @@ public class CassandraStats extends AbstractCommandLineTool {
 
         LOG.debug(String.format("Duration from %s to %s spans %d timeblocks", from, to, tb1 - tb0));
 
-        final int n = tb1-tb0;
+        final int n = tb1-tb0+1; // no. of timeblocks to include in query
         Integer timeblocks[] = new Integer[n];
         for (int i=0; i<n; i++) {
             timeblocks[i] = tb0+i;
         }
 
         long numPackets = 0;
-        final int step = 10;
-        for (int i=0; i<=n; i += step) {
+        final int step = tbPerSelect;
+        for (int i=0; i<n; i += step) {
             Integer[] queryTimeBlocks = Arrays.copyOfRange(timeblocks, i, min(i + step, n));
 
             Statement statement = QueryBuilder
                 .select()
                 .countAll()
                 .from(TABLE_PACKETS_TIME.toString())
-                .where(in(COLUMN_TIMEBLOCK.toString(), queryTimeBlocks))
-                .and(gte(COLUMN_TIMESTAMP.toString(), ts0.toEpochMilli()))
-                .and(lt(COLUMN_TIMESTAMP.toString(), ts1.toEpochMilli()))
-                .setConsistencyLevel(ConsistencyLevel.ONE);
+                .where(in(COLUMN_TIMEBLOCK.toString(), queryTimeBlocks));
+
+            if (i == 0)
+                ((Select.Where) statement).and(gte(COLUMN_TIMESTAMP.toString(), ts0.toEpochMilli()));
+
+            if (i >= n-step)
+                ((Select.Where) statement).and(lt(COLUMN_TIMESTAMP.toString(), ts1.toEpochMilli()));
+
+            statement.setConsistencyLevel(ConsistencyLevel.ALL);
+
+            LOG.debug(((Select.Where) statement).getQueryString());
 
             ResultSetFuture future = session.executeAsync(statement);
             ResultSet resultSet = future.getUninterruptibly();
@@ -108,7 +119,7 @@ public class CassandraStats extends AbstractCommandLineTool {
 
             numPackets += count;
 
-            // System.out.println("Timeblocks " + queryTimeBlocks[0] + ".." + queryTimeBlocks[queryTimeBlocks.length-1] + ": " + count);
+            System.out.println("Timeblocks " + queryTimeBlocks[0] + ".." + queryTimeBlocks[queryTimeBlocks.length-1] + ": " + count);
 
             printProgress(((float) (i))/n);
         }
