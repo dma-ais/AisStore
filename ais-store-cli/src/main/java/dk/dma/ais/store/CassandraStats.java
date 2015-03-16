@@ -34,7 +34,7 @@ import java.util.List;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.gte;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.in;
-import static com.datastax.driver.core.querybuilder.QueryBuilder.lte;
+import static com.datastax.driver.core.querybuilder.QueryBuilder.lt;
 import static dk.dma.ais.store.AisStoreSchema.Column.COLUMN_TIMEBLOCK;
 import static dk.dma.ais.store.AisStoreSchema.Column.COLUMN_TIMESTAMP;
 import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_TIME;
@@ -56,10 +56,10 @@ public class CassandraStats extends AbstractCommandLineTool {
     @Parameter(names = "-database", description = "A list of cassandra hosts that can store the data")
     List<String> cassandraSeeds = Arrays.asList("localhost");
 
-    @Parameter(names = "-from", description = "The instant to count from (format \"2015-01-01T00:00:00.00Z\")", required = true)
+    @Parameter(names = "-from", description = "The instant to count from (format \"2015-01-01T00:00:00.000Z\") (inclusive)", required = true)
     String from;
 
-    @Parameter(names = "-to", description = "The instant to count to (format \"2015-01-31T23:59:99.99Z\")", required = true)
+    @Parameter(names = "-to", description = "The instant to count to (format \"2015-02-01T00:00:00.000Z\") (exclusive)", required = true)
     String to;
 
     /** {@inheritDoc} */
@@ -98,15 +98,17 @@ public class CassandraStats extends AbstractCommandLineTool {
                 .from(TABLE_PACKETS_TIME.toString())
                 .where(in(COLUMN_TIMEBLOCK.toString(), queryTimeBlocks))
                 .and(gte(COLUMN_TIMESTAMP.toString(), ts0.toEpochMilli()))
-                .and(lte(COLUMN_TIMESTAMP.toString(), ts1.toEpochMilli()))
+                .and(lt(COLUMN_TIMESTAMP.toString(), ts1.toEpochMilli()))
                 .setConsistencyLevel(ConsistencyLevel.ONE);
 
             ResultSetFuture future = session.executeAsync(statement);
             ResultSet resultSet = future.getUninterruptibly();
 
-            numPackets += resultSet.one().getLong(0);
+            final long count = resultSet.one().getLong(0);
 
-            System.out.println("Timeblocks " + queryTimeBlocks[0] + ".." + queryTimeBlocks[queryTimeBlocks.length-1] + ": " + numPackets);
+            numPackets += count;
+
+            // System.out.println("Timeblocks " + queryTimeBlocks[0] + ".." + queryTimeBlocks[queryTimeBlocks.length-1] + ": " + count);
 
             printProgress(((float) (i))/n);
         }
