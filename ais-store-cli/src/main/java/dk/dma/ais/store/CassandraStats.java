@@ -123,13 +123,15 @@ public class CassandraStats extends AbstractCommandLineTool {
 
             printProgress(((float) (i))/n);
         }
-        printProgress(100);
+        printProgress(1);
 
         System.out.println(String.format("Counted a total of %d AisPackets in %s.", numPackets, TABLE_PACKETS_TIME.toString()));
     }
 
     private static void printProgress(float pct) {
-        System.out.print(String.format("%5.1f %% done counting AisPackets in %s\r", pct*100f, TABLE_PACKETS_TIME.toString()));
+        String status = String.format("%5.1f %% done counting AisPackets in %s\r", pct*100f, TABLE_PACKETS_TIME.toString());
+        LOG.debug(status);
+        System.out.print(status);
     }
 
     public static void main(String[] args) throws Exception {
