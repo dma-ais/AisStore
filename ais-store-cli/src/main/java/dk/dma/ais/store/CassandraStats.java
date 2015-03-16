@@ -108,7 +108,7 @@ public class CassandraStats extends AbstractCommandLineTool {
             if (i >= n-step)
                 ((Select.Where) statement).and(lt(COLUMN_TIMESTAMP.toString(), ts1.toEpochMilli()));
 
-            statement.setConsistencyLevel(ConsistencyLevel.ALL);
+            statement.setConsistencyLevel(ConsistencyLevel.ONE);
 
             LOG.debug(((Select.Where) statement).getQueryString());
 
