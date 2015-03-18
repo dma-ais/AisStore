@@ -40,6 +40,8 @@ import java.util.Collection;
 import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
@@ -103,11 +105,12 @@ public class FileDiff extends AbstractCommandLineTool {
 
         final Table table = Table.valueOf("TABLE_" + tableName.toUpperCase());
         final ConsistencyLevel cl = ConsistencyLevel.valueOf(consistencyLevel.trim().toUpperCase()); //toConsistencyLevel(consistencyLevel);
-        final ExecutorService executorService =
+        final ExecutorService queryExecutor =
             new ThreadPoolExecutor(
                 concurrencyLevel, concurrencyLevel, 5L, TimeUnit.SECONDS,
                 new ArrayBlockingQueue<>(1024, true), new ThreadPoolExecutor.CallerRunsPolicy()
             );
+        final ScheduledExecutorService scheduledExecutor = Executors.newScheduledThreadPool(1);
 
         final AtomicLong packetsProcessed = new AtomicLong();
         final AtomicLong packetsInCassandra = new AtomicLong();
@@ -118,11 +121,24 @@ public class FileDiff extends AbstractCommandLineTool {
             reader.setSourceId(tag);
         }
 
+        scheduledExecutor.scheduleAtFixedRate(() ->
+            {
+                LOG.debug(formatNumberOfInflightQueries(session));
+                if (queryExecutor instanceof ThreadPoolExecutor) {
+                    ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) queryExecutor;
+                    LOG.debug("Query threads: " + threadPoolExecutor.getActiveCount() + " running; " + threadPoolExecutor.getCompletedTaskCount() + " completed; " + threadPoolExecutor.getQueue().size() + " queued.");
+                }
+                LOG.debug("packetsInCassandra: " + packetsInCassandra.longValue() + "; packetsNotInCassandra: " + packetsNotInCassandra.longValue() + "; packetsProcessed: " + packetsProcessed.longValue() + ".");
+
+            },
+            1, 1, TimeUnit.MINUTES
+        );
+
         reader.registerPacketHandler(new Consumer<AisPacket>() {
 
             @Override
             public void accept(AisPacket p) {
-                executorService.submit( () -> {
+                queryExecutor.submit(() -> {
                     final long timestamp = p.getBestTimestamp();
                     final int timeBlock = timeBlock(table, Instant.ofEpochMilli(timestamp));
                     //final byte[] digest = digest(p);
@@ -144,25 +160,16 @@ public class FileDiff extends AbstractCommandLineTool {
                     } else {
                         packetsInCassandra.incrementAndGet();
                     }
-
-                    long pProcessed = packetsProcessed.incrementAndGet();
-                    if (pProcessed%10000L == 0) {
-                        LOG.debug(formatNumberOfInflightQueries(session));
-                        if (executorService instanceof ThreadPoolExecutor) {
-                            ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) executorService;
-                            LOG.debug("Query threads: " + threadPoolExecutor.getActiveCount() + " running; " + threadPoolExecutor.getCompletedTaskCount() + " completed; " + threadPoolExecutor.getQueue().size() + " queued.");
-                        }
-                    }
-                    if (pProcessed%100000L == 0) {
-                        LOG.debug(pProcessed + " packets processed.");
-                    }
+                    packetsProcessed.incrementAndGet();
                 });
             }
         });
 
         reader.start();
         reader.join();
-        executorService.awaitTermination(365, TimeUnit.DAYS);
+
+        queryExecutor.awaitTermination(365, TimeUnit.DAYS);
+        scheduledExecutor.shutdownNow();
 
         LOG.info("Done. " + packetsInCassandra.longValue() + "/" + packetsNotInCassandra.longValue() + "/" + packetsProcessed.longValue());
     }
