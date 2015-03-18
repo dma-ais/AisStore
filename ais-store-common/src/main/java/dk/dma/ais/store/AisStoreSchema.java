@@ -136,7 +136,7 @@ public class AisStoreSchema {
     /**
      * Calculates a message digest for the given messages (AisPackets).
      */
-    public static final byte[] getDigest(AisPacket packet) {
+    public static final byte[] digest(AisPacket packet) {
         return Hashing.murmur3_128().hashUnencodedChars(packet.getStringMessage()).asBytes();
     }
 }

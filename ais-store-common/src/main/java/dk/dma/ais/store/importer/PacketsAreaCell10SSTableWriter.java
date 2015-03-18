@@ -29,7 +29,7 @@ import java.util.Date;
 import java.util.Objects;
 
 import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_CELL10;
-import static dk.dma.ais.store.AisStoreSchema.getDigest;
+import static dk.dma.ais.store.AisStoreSchema.digest;
 import static dk.dma.ais.store.AisStoreSchema.timeBlock;
 
 /**
@@ -92,7 +92,7 @@ public class PacketsAreaCell10SSTableWriter extends PositionTrackingSSTableWrite
         if (ts > 0) {
             final int cellid = getGridCell(position);
             try {
-                writer().addRow(cellid, timeBlock(table(), Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(getDigest(packet)), packet.getStringMessage());
+                writer().addRow(cellid, timeBlock(table(), Instant.ofEpochMilli(ts)), new Date(ts), ByteBuffer.wrap(digest(packet)), packet.getStringMessage());
             } catch (InvalidRequestException e) {
                 LOG.error("Failed to store message in " + table().toString() + " due to " + e.getClass().getSimpleName() + ": " + e.getMessage());
             } catch (IOException e) {

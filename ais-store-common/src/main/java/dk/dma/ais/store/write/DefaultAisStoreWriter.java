@@ -44,7 +44,7 @@ import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_CELL10;
 import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_AREA_UNKNOWN;
 import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_MMSI;
 import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_TIME;
-import static dk.dma.ais.store.AisStoreSchema.getDigest;
+import static dk.dma.ais.store.AisStoreSchema.digest;
 import static dk.dma.ais.store.AisStoreSchema.timeBlock;
 
 /**
@@ -95,7 +95,7 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
         final int mmsi = message == null ? -1 : message.getUserId();
         final Instant timestamp = Instant.ofEpochMilli(millisSinceEpoch);
         final Position position = getPosition(packet);
-        final byte[] digest = getDigest(packet);
+        final byte[] digest = digest(packet);
         final String rawMessage = packet.getStringMessage();
 
         // Store packets in Cassandra
@@ -174,10 +174,10 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
 
             if (p == null) { // Try to find an estimated position
                 // Use the last received position message unless the position has timed out (POSITION_TIMEOUT_MS)
-                p = tracker.asMap().getOrDefault(message.getUserId(), null);
+                p = tracker.asMap().getOrDefault(mmsi, null);
             } else { // Update the tracker with latest position
                 //but only update the tracker IF the new time is better
-                tracker.asMap().merge(message.getUserId(), p.withTime(timestamp), (a, b) -> a.getTime() > b.getTime() ? a : b);
+                tracker.asMap().merge(mmsi, p.withTime(timestamp), (a, b) -> a.getTime() > b.getTime() ? a : b);
             }
         }
 
