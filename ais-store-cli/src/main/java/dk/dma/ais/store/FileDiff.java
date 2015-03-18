@@ -16,6 +16,7 @@ package dk.dma.ais.store;
 
 import com.beust.jcommander.Parameter;
 import com.datastax.driver.core.ConsistencyLevel;
+import com.datastax.driver.core.Host;
 import com.datastax.driver.core.ResultSet;
 import com.datastax.driver.core.ResultSetFuture;
 import com.datastax.driver.core.Session;
@@ -35,9 +36,11 @@ import org.slf4j.LoggerFactory;
 import java.io.IOException;
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collection;
 import java.util.List;
+import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
+import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.Consumer;
@@ -100,7 +103,11 @@ public class FileDiff extends AbstractCommandLineTool {
 
         final Table table = Table.valueOf("TABLE_" + tableName.toUpperCase());
         final ConsistencyLevel cl = ConsistencyLevel.valueOf(consistencyLevel.trim().toUpperCase()); //toConsistencyLevel(consistencyLevel);
-        final ExecutorService executorService = Executors.newFixedThreadPool(concurrencyLevel);
+        final ExecutorService executorService =
+            new ThreadPoolExecutor(
+                concurrencyLevel, concurrencyLevel, 5L, TimeUnit.SECONDS,
+                new ArrayBlockingQueue<>(1024, true), new ThreadPoolExecutor.CallerRunsPolicy()
+            );
 
         final AtomicLong packetsProcessed = new AtomicLong();
         final AtomicLong packetsInCassandra = new AtomicLong();
@@ -112,6 +119,7 @@ public class FileDiff extends AbstractCommandLineTool {
         }
 
         reader.registerPacketHandler(new Consumer<AisPacket>() {
+
             @Override
             public void accept(AisPacket p) {
                 executorService.submit( () -> {
@@ -138,6 +146,13 @@ public class FileDiff extends AbstractCommandLineTool {
                     }
 
                     long pProcessed = packetsProcessed.incrementAndGet();
+                    if (pProcessed%1000L == 0) {
+                        LOG.debug(formatNumberOfInflightQueries(session));
+                        if (executorService instanceof ThreadPoolExecutor) {
+                            ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) executorService;
+                            LOG.debug("Query threads: " + threadPoolExecutor.getActiveCount() + " running; " + threadPoolExecutor.getCompletedTaskCount() + " completed; " + threadPoolExecutor.getQueue().size() + " queued.");
+                        }
+                    }
                     if (pProcessed%100000L == 0) {
                         LOG.debug(pProcessed + " packets processed.");
                     }
@@ -150,6 +165,13 @@ public class FileDiff extends AbstractCommandLineTool {
         executorService.awaitTermination(365, TimeUnit.DAYS);
 
         LOG.info("Done. " + packetsInCassandra.longValue() + "/" + packetsNotInCassandra.longValue() + "/" + packetsProcessed.longValue());
+    }
+
+    private String formatNumberOfInflightQueries(Session session) {
+        StringBuilder sb = new StringBuilder("Inflight queries: ");
+        Collection<Host> connectedHosts = session.getState().getConnectedHosts();
+        connectedHosts.forEach(host -> sb.append(host.getAddress().getHostAddress() + ": " + session.getState().getInFlightQueries(host) + " "));
+        return sb.toString();
     }
 
     private static ConsistencyLevel toConsistencyLevel(String consistencyLevel) {
