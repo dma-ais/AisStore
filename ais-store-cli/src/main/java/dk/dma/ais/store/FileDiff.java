@@ -146,7 +146,7 @@ public class FileDiff extends AbstractCommandLineTool {
                     }
 
                     long pProcessed = packetsProcessed.incrementAndGet();
-                    if (pProcessed%1000L == 0) {
+                    if (pProcessed%10000L == 0) {
                         LOG.debug(formatNumberOfInflightQueries(session));
                         if (executorService instanceof ThreadPoolExecutor) {
                             ThreadPoolExecutor threadPoolExecutor = (ThreadPoolExecutor) executorService;
