@@ -38,7 +38,6 @@ import static dk.dma.ais.store.AisStoreSchema.Table.TABLE_PACKETS_TIME;
 import static java.util.Objects.requireNonNull;
 
 /**
- * 
  * @author Kasper Nielsen
  */
 public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQueryResult> {
@@ -58,6 +57,9 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
     /** The start epoch time (exclusive) */
     Instant stopTimeExclusive;
 
+    /** True if queries should use packets_area_cell10 when relevant; false if always use packets_area_cell1 */
+    private boolean cell10Enabled = false;
+
     private AisStoreQueryBuilder(Area area, int[] mmsi) {
         this.area = area;
         this.mmsi = mmsi;
@@ -68,24 +70,26 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
         AisStoreQueryInnerContext inner = new AisStoreQueryInnerContext();
         ArrayList<AbstractIterator<AisPacket>> queries = new ArrayList<>();
         if (area != null) {
-            Set<Cell> cells1 = Grid.GRID_1_DEGREE.getCells(area);
-            Set<Cell> cells10 = Grid.GRID_10_DEGREES.getCells(area);
+            Set<Cell> cells = Grid.GRID_1_DEGREE.getCells(area);
+            Table table = TABLE_PACKETS_AREA_CELL1;
 
-            int factor = 10;// magic constant
+            if (cell10Enabled) {
+                Set<Cell> cells10 = Grid.GRID_10_DEGREES.getCells(area);
 
-            // Determines if use the tables of size 1 degree, or size 10 degrees
-            boolean useCell1 = cells10.size() * factor > cells1.size();
-            Table table = useCell1 ? TABLE_PACKETS_AREA_CELL1 : TABLE_PACKETS_AREA_CELL10;
-            Set<Cell> cells = useCell1 ? cells1 : cells10;
+                // Determines if use the tables of size 1 degree, or size 10 degrees
+                final int factor = 10;// magic constant
+                final boolean useCell1 = cells10.size() * factor > cells.size();
+
+                if (!useCell1) {
+                    cells = cells10;
+                    table = TABLE_PACKETS_AREA_CELL10;
+                }
+            }
 
             // We create multiple queries and use a priority queue to return packets from each ship sorted by their
             // timestamp
             for (Cell c : cells) {
                 queries.add(new AisStoreQuery(s, inner, batchLimit, table, COLUMN_CELLID, (int)c.getCellId(), startTimeInclusive, stopTimeExclusive));
-                try {
-                    Thread.sleep(500);
-                } catch (InterruptedException e) {
-                }
             }
         } else if (mmsi != null) {
             for (int m : mmsi) {
@@ -105,8 +109,16 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
         return this;
     }
 
+    public AisStoreQueryBuilder setCell10Enabled(boolean cell10Enabled) {
+        this.cell10Enabled = cell10Enabled;
+        return this;
+    }
+
     public AisStoreQueryBuilder setInterval(Interval interval) {
-        return setInterval(interval.getStartMillis(), interval.getEndMillis());
+        return setInterval(
+            Instant.ofEpochMilli(interval.getStartMillis()),
+            Instant.ofEpochMilli(interval.getEndMillis())
+        );
     }
 
     /**
