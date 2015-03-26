@@ -1,0 +1,211 @@
+
+html {
+    width: 100%;
+    height: 100%;
+}
+
+body {
+    margin: 0;
+    padding: 0;
+    background-color: #012c43;
+}
+
+/** Disable modal dialog animation **/
+
+.modal.fade {
+    opacity: 1;
+}
+.modal.fade .modal-dialog, .modal.in .modal-dialog {
+    -webkit-transform: translate(0, 0);
+    -ms-transform: translate(0, 0);
+    transform: translate(0, 0);
+}
+
+growl-notifications{
+    z-index: 2000;
+    position: fixed;
+    top: 50px;
+    left: 220px;
+}
+
+growl-notification{
+    border: 1px solid black;
+    padding: 15px 30px;
+    margin-bottom: 15px;
+}
+
+.center {
+    float: none;
+    margin-left: auto;
+    margin-right: auto;
+}
+
+.inline .form-group {
+    display: inline-block;
+    margin-bottom: 0;
+    vertical-align: middle;
+}
+.inline .form-control {
+    display: inline-block;
+    width: auto;
+    vertical-align: middle;
+}
+.inline .input-group > .form-control {
+    width: 100%;
+}
+
+.navbar {
+    height: 50px;
+    padding-right: 20px;
+    margin-bottom: 0;
+    box-shadow: 0 0 4px 4px rgba(0, 0, 0, .2);
+}
+
+/* set a max-width for horizontal fluid layout */
+.content {
+    margin-right: auto;
+    margin-left: auto;
+    max-width: 1200px;
+    min-height: 500px;
+    overflow: visible;
+    padding: 10px;
+    background-color: white;
+}
+
+.filter-tabs li a {
+    padding: 5px 20px;
+}
+
+.filter-tab {
+    border-left: 1px solid #DDDDDD;
+    border-right: 1px solid #DDDDDD;
+    border-bottom: 1px solid #DDDDDD;
+    padding: 5px 20px 10px 10px;
+}
+
+.advanced-filter {
+    font-size: 11px;
+    font-family: "Courier New", serif;
+    padding: 2px;
+    margin-left: 5px;
+    width: 100%;
+    height: 70px;
+    border: 1px solid lightgray;
+}
+
+.grammar-link {
+    margin-left: 10px;
+    font-size: 10px;
+}
+
+textarea.ng-invalid {
+    border:1px solid #f00;
+}
+
+textarea:focus,textarea:active {
+    outline: none !important;
+}
+
+
+/** Try to cancel bootstrap's messing around with the visual search widget */
+.visual-search {
+    width: 100%;
+}
+
+.visual-search input {
+    -webkit-box-sizing: content-box!important;
+    -moz-box-sizing: content-box!important;
+    box-sizing: content-box!important;
+}
+
+/** Adjustments for the select2 control */
+.select2 > .select2-choice.ui-select-match {
+    height: 29px;
+}
+
+.selectize-control > .selectize-dropdown {
+    top: 36px;
+}
+
+.ui-select-toggle {
+    padding: 5px 10px;
+    font-size: 12px;
+    line-height: 1.5;
+    border-radius: 3px;
+    position: relative;
+}
+
+.ui-select-choices {
+    width: 200px!important;
+    height: auto;
+    max-height: 200px;
+    overflow-x: hidden;
+}
+
+.query-section {
+    margin-top: 10px;
+}
+
+.query-section label {
+    padding-top: 6px;
+}
+
+.area-map {
+    width: 100%;
+    height: 100%;
+    position: relative;
+    background-color: #b5d0d0;
+    border: 1px solid lightgray;
+}
+
+.area-map-btn {
+    position: absolute;
+    bottom: 20px;
+    left: 20px;
+    width: 50px;
+    z-index: 800;
+}
+
+.area-pos {
+    margin-top: 5px;
+    margin-right: 5px;
+}
+
+/* Hide OSM link */
+.olControlNoSelect {
+    display: none;
+}
+
+.result-files {
+    width: 380px;
+    padding: 10px 10px 0 10px;
+}
+
+.result-file {
+    vertical-align: top;
+    padding: 3px;
+    font-size: 11px;
+}
+
+.result-file-progress {
+    height: 8px;
+    margin: 0;
+    padding: 0;
+}
+
+.result-file-size {
+    color: gray;
+    font-size: 10px;
+}
+
+.trash-btn {
+    top: 0!important;
+}
+
+.delete-files {
+    font-size: 11px;
+    text-align: center;
+    padding: 5px 0 5px 0;
+    margin-top: 5px;
+    border-top: 1px solid lightgray;
+}

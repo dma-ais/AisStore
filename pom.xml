@@ -24,6 +24,7 @@
   <modules>
     <module>ais-store-common</module>
     <module>ais-store-cli</module>
+    <module>ais-store-web</module>
   </modules>
 
   <repositories>
