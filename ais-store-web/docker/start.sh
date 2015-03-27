@@ -17,6 +17,6 @@ else
 	AUTH_HEADERP="--auth.header=${AUTH_HEADER}"
 fi
 
-LATEST=`ls /archive/target/ais-downloader*SNAPSHOT.war`
+LATEST=`ls /target/ais-store-web-*.war`
 
 java -jar $LATEST $AIS_VIEW_URLP $REPO_PATHP AUTH_HEADERP
