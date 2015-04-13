@@ -58,7 +58,7 @@ public final class AisStoreQueryBuilder extends CassandraQueryBuilder<AisStoreQu
     Instant stopTimeExclusive;
 
     /** True if queries should use packets_area_cell10 when relevant; false if always use packets_area_cell1 */
-    private boolean cell10Enabled = false;
+    private boolean cell10Enabled = AisStoreSchema.TABLE_PACKETS_AREA_CELL10_ENABLED;
 
     private AisStoreQueryBuilder(Area area, int[] mmsi) {
         this.area = area;

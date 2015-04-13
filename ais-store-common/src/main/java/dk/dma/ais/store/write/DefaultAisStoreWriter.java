@@ -21,6 +21,7 @@ import com.google.common.cache.Cache;
 import com.google.common.cache.CacheBuilder;
 import dk.dma.ais.message.AisMessage;
 import dk.dma.ais.packet.AisPacket;
+import dk.dma.ais.store.AisStoreSchema;
 import dk.dma.db.cassandra.CassandraConnection;
 import dk.dma.enav.model.geometry.Position;
 import dk.dma.enav.model.geometry.PositionTime;
@@ -130,14 +131,16 @@ public abstract class DefaultAisStoreWriter extends CassandraBatchedStagedWriter
             i.value(COLUMN_AISDATA.toString(), rawMessage);
             batch.add(i);
 
-            // Cells with size 10 degree
-            i = QueryBuilder.insertInto(TABLE_PACKETS_AREA_CELL10.toString());
-            i.value(COLUMN_CELLID.toString(), p.getCellInt(10));
-            i.value(COLUMN_TIMEBLOCK.toString(), timeBlock(TABLE_PACKETS_AREA_CELL10, timestamp));
-            i.value(COLUMN_TIMESTAMP.toString(), timestamp.toEpochMilli());
-            i.value(COLUMN_AISDATA_DIGEST.toString(), ByteBuffer.wrap(digest));
-            i.value(COLUMN_AISDATA.toString(), rawMessage);
-            batch.add(i);
+            if (AisStoreSchema.TABLE_PACKETS_AREA_CELL10_ENABLED) {
+                // Cells with size 10 degree
+                i = QueryBuilder.insertInto(TABLE_PACKETS_AREA_CELL10.toString());
+                i.value(COLUMN_CELLID.toString(), p.getCellInt(10));
+                i.value(COLUMN_TIMEBLOCK.toString(), timeBlock(TABLE_PACKETS_AREA_CELL10, timestamp));
+                i.value(COLUMN_TIMESTAMP.toString(), timestamp.toEpochMilli());
+                i.value(COLUMN_AISDATA_DIGEST.toString(), ByteBuffer.wrap(digest));
+                i.value(COLUMN_AISDATA.toString(), rawMessage);
+                batch.add(i);
+            }
         }
     }
 

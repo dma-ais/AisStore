@@ -31,7 +31,7 @@ import java.util.List;
 public class AisStoreSchema {
 
     /** Identifiers of the columns in use (names are shared across tables). */
-    public static enum Column {
+    public enum Column {
         /** Common name of column holding time block (i.e. no. of 10 minute blocks since the epoch. */
         COLUMN_TIMEBLOCK("timeblock"),
 
@@ -60,7 +60,7 @@ public class AisStoreSchema {
     }
 
     /** Identifiers of the different tables in use. */
-    public static enum Table {
+    public enum Table {
         /**
          * This table holds all packets stored in row with the number of 10 minute blocks since the
          * epoch as the key. Within each 10 minute blocks, packets are store ordered by timestamp (and a message
@@ -91,6 +91,9 @@ public class AisStoreSchema {
             return this.tableName;
         }
     }
+
+    /** True if queries should use packets_area_cell10 when relevant; false if always use packets_area_cell1 */
+    public final static boolean TABLE_PACKETS_AREA_CELL10_ENABLED = false;
 
     /**
      * Converts a milliseconds since epoch to a 10-minute blocks since epoch.
