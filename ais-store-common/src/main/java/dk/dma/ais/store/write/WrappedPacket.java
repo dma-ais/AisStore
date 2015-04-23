@@ -14,7 +14,7 @@
  */
 package dk.dma.ais.store.write;
 
-import dk.dma.ais.tracker.TargetTracker;
+import dk.dma.ais.tracker.targetTracker.TargetTracker;
 
 /**
  * We wrap a packet using this class. The main issue is the target tracker. Which keeps the latest position. However,
@@ -25,5 +25,4 @@ import dk.dma.ais.tracker.TargetTracker;
  */
 public class WrappedPacket {
     TargetTracker tracker;
-
 }
