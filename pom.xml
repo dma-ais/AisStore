@@ -14,7 +14,7 @@
   <packaging>pom</packaging>
   <name>AisStore Parent</name>
   <description>AisStore parent module</description>
-  
+
   <scm>
     <connection>scm:git:git@github.com:dma-ais/AisStore.git</connection>
     <developerConnection>scm:git:git@github.com:dma-ais/AisStore.git</developerConnection>
@@ -24,6 +24,7 @@
   <modules>
     <module>ais-store-common</module>
     <module>ais-store-cli</module>
+    <module>ais-store-rest</module>
     <module>ais-store-web</module>
   </modules>
 
