@@ -80,8 +80,9 @@ public class AisPastTrackRepository {
 
     /**
      * Query the database for packets from the supplied mmsi numbers and with transmission
-     * timestamps not older than maxAge.
+     * timestamps at or after t0 and at or before t1.
      *
+     * Intended for "small" queries where the query result can be kept in memory.
      *
      * @param sourceFilterPredicate
      * @param maxAge

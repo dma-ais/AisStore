@@ -32,6 +32,31 @@ The command line interface (CLI) requires
 - Java 8 Runtime Environment (JRE 1.8)
 - A running Cassandra cluster with known IP:port of at least one node.
 
+AIS Store REST service
+-------------------------------------------------------------------------------
+The AIS Store REST service allows for reads from the AIS Store database.
+
+### Past track 
+To query past track information for a given MMSI no. use the following URL:
+
+    http://localhost:8080/pastTrack/<mmsi>?duration=<duration>&&sourceFilter=<expression>
+
+The query returns matching past track information for a time period spanning from
+'now'-<duration> to 'now'.
+
+it accepts the following parameters: 
+
+- <mmsi> is the MMSI no. to query
+- <duration> is the amount of time to seek backwards (in [ISO-8601 like format](https://docs.oracle.com/javase/8/docs/api/java/time/Duration.html#parse-java.lang.CharSequence-).
+- <expression> (optional) is a [free-text expression](https://github.com/dma-ais/AisLib#expression-based-packet-filtering) to filter the allowed sources.
+
+An example is 
+
+    http://localhost:8080/pastTrack/257074900?duration=PT999H&sourceFilter=s.region=806
+
+The returned past track information is in JSON format.
+
+
 AIS Store Archiver
 -------------------------------------------------------------------------------
 
