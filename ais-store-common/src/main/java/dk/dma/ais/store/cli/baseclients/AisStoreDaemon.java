@@ -71,14 +71,15 @@ public abstract class AisStoreDaemon extends AbstractDaemon {
         CassandraConnection con;
         if (seeds != null && seeds.size() > 0 && !isBlank(keyspace)) {
             if (secure) {
-                LOG.info("Starting secure Cassandra connection.");
+                LOG.info("Creating secure Cassandra connection.");
                 con = PasswordProtectedCassandraConnection.create(env(ENV_KEY_AISSTORE_USER), env(ENV_KEY_AISSTORE_PASS), keyspace, seeds);
+                LOG.info("Connected to Cassandra cluster " + con.getSession().getCluster().getClusterName());
             } else {
-                LOG.info("Starting unsecure Cassandra connection.");
+                LOG.info("Creating unsecure Cassandra connection.");
                 con = CassandraConnection.create(keyspace, seeds);
             }
         } else {
-            LOG.warn("No seeds or keyspace for AisStore.");
+            LOG.warn("No seeds or keyspace for AisStore. No connection established.");
             con = null;
         }
         return con;
