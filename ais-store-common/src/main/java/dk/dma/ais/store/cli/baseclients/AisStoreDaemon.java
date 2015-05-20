@@ -57,14 +57,19 @@ public abstract class AisStoreDaemon extends AbstractDaemon {
      * @return A new and started connection to AisStore.
      */
     public CassandraConnection connect() {
+        return start(connect(cassandraSeeds, databaseName, useSecureCassandraConnection));
+    }
+
+    static CassandraConnection connect(List<String> seeds, String keyspace, boolean secure) {
         CassandraConnection con;
-        if (useSecureCassandraConnection) {
+        if (secure) {
             LOG.info("Starting secure Cassandra connection.");
-            con = start(PasswordProtectedCassandraConnection.create(env(ENV_KEY_AISSTORE_USER), env(ENV_KEY_AISSTORE_PASS), databaseName, cassandraSeeds));
+            con = PasswordProtectedCassandraConnection.create(env(ENV_KEY_AISSTORE_USER), env(ENV_KEY_AISSTORE_PASS), keyspace, seeds);
         } else {
             LOG.info("Starting unsecure Cassandra connection.");
-            con = start(CassandraConnection.create(databaseName, cassandraSeeds));
+            con = CassandraConnection.create(keyspace, seeds);
         }
         return con;
     }
+
 }

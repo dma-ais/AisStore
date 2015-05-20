@@ -18,14 +18,11 @@ import com.beust.jcommander.Parameter;
 import dk.dma.commons.app.AbstractCommandLineTool;
 import dk.dma.commons.management.ManagedResource;
 import dk.dma.db.cassandra.CassandraConnection;
-import dk.dma.db.cassandra.PasswordProtectedCassandraConnection;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.List;
-
-import static dk.dma.commons.util.EnvironmentUtil.env;
 
 /**
  * An abstract base class for CLI tools which can provide a CassandraConnection
@@ -57,14 +54,6 @@ public abstract class AisStoreCommandLineTool extends AbstractCommandLineTool {
      * @return A new and started connection to AisStore.
      */
     public CassandraConnection connect() {
-        CassandraConnection con;
-        if (useSecureCassandraConnection) {
-            LOG.info("Starting secure Cassandra connection.");
-            con = start(PasswordProtectedCassandraConnection.create(env(ENV_KEY_AISSTORE_USER), env(ENV_KEY_AISSTORE_PASS), databaseName, cassandraSeeds));
-        } else {
-            LOG.info("Starting unsecure Cassandra connection.");
-            con = start(CassandraConnection.create(databaseName, cassandraSeeds));
-        }
-        return con;
+        return start(AisStoreDaemon.connect(cassandraSeeds, databaseName, useSecureCassandraConnection));
     }
 }
