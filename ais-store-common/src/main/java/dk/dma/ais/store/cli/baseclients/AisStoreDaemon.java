@@ -73,7 +73,6 @@ public abstract class AisStoreDaemon extends AbstractDaemon {
             if (secure) {
                 LOG.info("Creating secure Cassandra connection.");
                 con = PasswordProtectedCassandraConnection.create(env(ENV_KEY_AISSTORE_USER), env(ENV_KEY_AISSTORE_PASS), keyspace, seeds);
-                LOG.info("Connected to Cassandra cluster " + con.getSession().getCluster().getClusterName());
             } else {
                 LOG.info("Creating unsecure Cassandra connection.");
                 con = CassandraConnection.create(keyspace, seeds);
