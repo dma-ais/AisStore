@@ -36,7 +36,7 @@ import java.util.List;
 import java.util.Objects;
 import java.util.function.Predicate;
 
-import static org.apache.commons.lang.StringUtils.isBlank;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
  * @author tbsalling
