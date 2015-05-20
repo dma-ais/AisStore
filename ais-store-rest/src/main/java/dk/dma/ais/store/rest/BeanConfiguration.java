@@ -31,11 +31,11 @@ public class BeanConfiguration {
 
     {  LOG.info("BeanConfiguration created."); }
 
-    /** Location of aisbus.xml file */
+    /** Name of Cassandra keyspace */
     @Value("${dk.dma.ais.store.rest.cassandra.keyspace}")
     private String cassandraKeyspace;
 
-    /** Location of aisbus.xml file */
+    /** Cassandra seed nodes */
     @Value("#{'${dk.dma.ais.store.rest.cassandra.seeds}'.split(',')}")
     private List<String> cassandraContactPoints;
 
