@@ -26,6 +26,7 @@ import java.util.Arrays;
 import java.util.List;
 
 import static dk.dma.commons.util.EnvironmentUtil.env;
+import static org.apache.commons.lang3.StringUtils.isBlank;
 
 /**
  * An abstract base class for Daemon processes which can provide a CassandraConnection
@@ -36,7 +37,6 @@ import static dk.dma.commons.util.EnvironmentUtil.env;
 @ManagedResource
 public abstract class AisStoreDaemon extends AbstractDaemon {
 
-    /** The logger. */
     private static final Logger LOG = LoggerFactory.getLogger(AisStoreDaemon.class);
     { LOG.info("AisStoreDaemon created."); }
 
@@ -44,32 +44,43 @@ public abstract class AisStoreDaemon extends AbstractDaemon {
     private final static String ENV_KEY_AISSTORE_PASS = "AISSTORE_PASS";
 
     @Parameter(names = "-secure", description = "Use $AISSTORE_USER and $AISSTORE_PASS as username/password for Cassandra")
-    boolean useSecureCassandraConnection = false;
+    boolean secureConnection = false;
 
-    @Parameter(names = "-databaseName", description = "The Cassandra database to write data to")
-    String databaseName = "aisdata";
+    @Parameter(names = "-keyspace", description = "The Cassandra keyspace to read/write data from/to")
+    String keyspaceName = "aisdata";
 
-    @Parameter(names = "-database", description = "A list of Cassandra hosts that can store the data")
-    List<String> cassandraSeeds = Arrays.asList("localhost");
+    @Parameter(names = "-seeds", description = "A list of Cassandra hosts used to bootstrap the connection to the database cluster, list=empty -> AisStore disabled")
+    List<String> seeds = Arrays.asList("localhost");
 
     /**
      * Create a new connection to AisStore and start it.
-     * @return A new and started connection to AisStore.
+     *
+     * @return A new and started connection to AisStore. Null if no seeds or database name are provided.
      */
     public CassandraConnection connect() {
-        return start(connect(cassandraSeeds, databaseName, useSecureCassandraConnection));
+        CassandraConnection connection = connect(seeds, keyspaceName, secureConnection);
+        return connection == null ? null : start(connection);
     }
 
+    /**
+     * Create a new (non-started) connection to AisStore.
+     *
+     * @return A new connection to AisStore. Null if no seeds or database name are provided.
+     */
     static CassandraConnection connect(List<String> seeds, String keyspace, boolean secure) {
         CassandraConnection con;
-        if (secure) {
-            LOG.info("Starting secure Cassandra connection.");
-            con = PasswordProtectedCassandraConnection.create(env(ENV_KEY_AISSTORE_USER), env(ENV_KEY_AISSTORE_PASS), keyspace, seeds);
+        if (seeds != null && seeds.size() > 0 && !isBlank(keyspace)) {
+            if (secure) {
+                LOG.info("Starting secure Cassandra connection.");
+                con = PasswordProtectedCassandraConnection.create(env(ENV_KEY_AISSTORE_USER), env(ENV_KEY_AISSTORE_PASS), keyspace, seeds);
+            } else {
+                LOG.info("Starting unsecure Cassandra connection.");
+                con = CassandraConnection.create(keyspace, seeds);
+            }
         } else {
-            LOG.info("Starting unsecure Cassandra connection.");
-            con = CassandraConnection.create(keyspace, seeds);
+            LOG.warn("No seeds or keyspace for AisStore.");
+            con = null;
         }
         return con;
     }
-
 }

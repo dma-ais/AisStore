@@ -33,27 +33,25 @@ import java.util.List;
 @ManagedResource
 public abstract class AisStoreCommandLineTool extends AbstractCommandLineTool {
 
-    /** The logger. */
     private static final Logger LOG = LoggerFactory.getLogger(AisStoreCommandLineTool.class);
     { LOG.info("AisStoreCommandLineTool created."); }
 
-    private final static String ENV_KEY_AISSTORE_USER = "AISSTORE_USER";
-    private final static String ENV_KEY_AISSTORE_PASS = "AISSTORE_PASS";
-
     @Parameter(names = "-secure", description = "Use $AISSTORE_USER and $AISSTORE_PASS as username/password for Cassandra")
-    boolean useSecureCassandraConnection = false;
+    boolean secureConnection = false;
 
-    @Parameter(names = "-databaseName", description = "The Cassandra database to write data to")
-    String databaseName = "aisdata";
+    @Parameter(names = "-keyspace", description = "The Cassandra keyspace to read/write data from/to")
+    String keyspaceName = "aisdata";
 
-    @Parameter(names = "-database", description = "A list of Cassandra hosts that can store the data")
-    List<String> cassandraSeeds = Arrays.asList("localhost");
+    @Parameter(names = "-seeds", description = "A list of Cassandra hosts used to bootstrap the connection to the database cluster, list=empty -> AisStore disabled")
+    List<String> seeds = Arrays.asList("localhost");
 
     /**
      * Create a new connection to AisStore and start it.
-     * @return A new and started connection to AisStore.
+     * @return A new and started connection to AisStore. Null if no seeds or database name are provided.
      */
     public CassandraConnection connect() {
-        return start(AisStoreDaemon.connect(cassandraSeeds, databaseName, useSecureCassandraConnection));
+        CassandraConnection connection = AisStoreDaemon.connect(seeds, keyspaceName, secureConnection);
+        return connection == null ? null : start(connection);
     }
+
 }
