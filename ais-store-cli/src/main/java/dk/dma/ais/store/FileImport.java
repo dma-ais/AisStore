@@ -14,31 +14,28 @@
  */
 package dk.dma.ais.store;
 
-import java.util.Arrays;
-import java.util.List;
-import java.util.concurrent.atomic.AtomicInteger;
-import java.util.function.Consumer;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
-
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.reader.AisReader;
 import dk.dma.ais.reader.AisReaders;
+import dk.dma.ais.store.cli.baseclients.AisStoreCommandLineTool;
 import dk.dma.ais.store.write.DefaultAisStoreWriter;
-import dk.dma.commons.app.AbstractCommandLineTool;
 import dk.dma.commons.service.AbstractBatchedStage;
 import dk.dma.db.cassandra.CassandraConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.Consumer;
 
 /**
  * 
  * @author Kasper Nielsen
  * @author Jens Tuxen
  */
-public class FileImport extends AbstractCommandLineTool {
+public class FileImport extends AisStoreCommandLineTool {
 
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(FileImport.class);
@@ -55,13 +52,6 @@ public class FileImport extends AbstractCommandLineTool {
     @Parameter(names = "-recursive", description = "recursive directory reader")
     boolean recursive = true;
         
-
-    @Parameter(names = "-keyspace", description = "The cassandra database to write data to")
-    String cassandraDatabase = "aisdata";
-
-    @Parameter(names = "-seeds", description = "A list of cassandra hosts that can store the data")
-    List<String> cassandraSeeds = Arrays.asList("localhost");
-    
     @Parameter(names = "-tag", description = "Overwrite the tag")
     String tag;
     
@@ -70,16 +60,13 @@ public class FileImport extends AbstractCommandLineTool {
     
     @Parameter(names = "-verbose", description = "verbose prints packets/second stats")
     boolean verbose;
-    
 
     /** {@inheritDoc} */
     @Override
     protected void run(Injector injector) throws Exception {
-        CassandraConnection con = start(CassandraConnection.create(cassandraDatabase, cassandraSeeds));
-        
-        
+        final CassandraConnection con = connect();
+
         final AtomicInteger acceptedCount = new AtomicInteger();
-        
         final long start = System.currentTimeMillis();
 
         final AbstractBatchedStage<AisPacket> cassandra = start(new DefaultAisStoreWriter(con, batchSize) {
@@ -94,8 +81,7 @@ public class FileImport extends AbstractCommandLineTool {
         if (tag != null) {
             reader.setSourceId(tag);
         }
-        
-        
+
         reader.registerPacketHandler(new Consumer<AisPacket>() {
 
             @Override
@@ -105,12 +91,12 @@ public class FileImport extends AbstractCommandLineTool {
                             Thread.sleep(2000);
                             LOG.debug("waiting for queue to open");
                         }
-                        
+
                         acceptedCount.incrementAndGet();
                     } catch (InterruptedException e) {
                         LOG.debug("failed to sleep (cassandra input queue was full and sleep was interrupted)");
                     }
-                    
+
                 }
             });
                     
@@ -118,17 +104,17 @@ public class FileImport extends AbstractCommandLineTool {
         if (verbose) {
             final AtomicInteger verboseCounter = new AtomicInteger();
             reader.registerPacketHandler(new Consumer<AisPacket>() {
-                
-                
+
+
                 @Override
                 public void accept(AisPacket arg0) {
-                    
+
                     long count = verboseCounter.incrementAndGet();
                     if (count % 10000 == 0) {
                         long end = System.currentTimeMillis();
                         LOG.info("Average Import rate "+(double)count/((double)(end-start)/1000.0) +" packets/s");
                     }
-                    
+
                 }
             });
         }
@@ -146,19 +132,15 @@ public class FileImport extends AbstractCommandLineTool {
                             LOG.debug("failed to block reader (sleep interrupted)");
                         }
                     }
-                    
+
                 }
-                
+
             });
-            
-            
         }
         
         reader.start();
         reader.join();
         LOG.info("Finished processing directory, " + acceptedCount + " packets was imported from " + path);
-        
-        
     }
 
     public static void main(String[] args) throws Exception {

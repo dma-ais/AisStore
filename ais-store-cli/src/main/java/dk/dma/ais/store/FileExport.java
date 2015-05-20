@@ -14,21 +14,12 @@
  */
 package dk.dma.ais.store;
 
-import java.io.File;
-import java.io.FileDescriptor;
-import java.io.FileOutputStream;
-import java.util.ArrayList;
-import java.util.List;
-
-import org.apache.commons.lang.ArrayUtils;
-
 import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
-
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.packet.AisPacketFilters;
 import dk.dma.ais.packet.AisPacketOutputSinks;
-import dk.dma.commons.app.AbstractCommandLineTool;
+import dk.dma.ais.store.cli.baseclients.AisStoreCommandLineTool;
 import dk.dma.commons.util.DateTimeUtil;
 import dk.dma.commons.util.Iterables;
 import dk.dma.commons.util.io.OutputStreamSink;
@@ -36,19 +27,20 @@ import dk.dma.db.cassandra.CassandraConnection;
 import dk.dma.enav.model.geometry.BoundingBox;
 import dk.dma.enav.model.geometry.CoordinateSystem;
 import dk.dma.enav.model.geometry.Position;
+import org.apache.commons.lang.ArrayUtils;
+
+import java.io.File;
+import java.io.FileDescriptor;
+import java.io.FileOutputStream;
+import java.util.ArrayList;
+import java.util.List;
 
 /**
  * 
  * @author Kasper Nielsen
  * @author Jens Tuxen
  */
-public class FileExport extends AbstractCommandLineTool {
-
-    @Parameter(names = "-keyspace", description = "The keyspace in cassandra")
-    String keyspace = "aisdata";
-    
-    @Parameter(names = "-seeds", description = "List of Cassandra nodes (minimum one is needed)")
-    ArrayList<String> seeds = new ArrayList<String>();
+public class FileExport extends AisStoreCommandLineTool {
 
     @Parameter(names = "-filter", description = "The filter to apply")
     String filter;
@@ -57,7 +49,7 @@ public class FileExport extends AbstractCommandLineTool {
     String interval;
     
     @Parameter(names = "-mmsi", description = "Extract from mmsi schema")
-    List<Integer> mmsis = new ArrayList<Integer>();
+    List<Integer> mmsis = new ArrayList<>();
     
     @Parameter(names = { "-area", "-box", "-geo" }, description = "Extract from geopgraphic cells schema within bounding box lat1,lon1,lat2,lon2")
     String area;
@@ -106,7 +98,7 @@ public class FileExport extends AbstractCommandLineTool {
             return;
         }
         
-        CassandraConnection conn = CassandraConnection.create(keyspace, seeds);
+        final CassandraConnection conn = connect();
         conn.startAsync();
         
         AisStoreQueryResult result = conn.execute(b);

@@ -14,35 +14,31 @@
  */
 package dk.dma.ais.store;
 
-import java.io.File;
-import java.util.Arrays;
-import java.util.List;
-import java.util.function.Consumer;
-
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
-
 import com.beust.jcommander.Parameter;
 import com.google.inject.Injector;
-
 import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.packet.AisPacketOutputSinks;
 import dk.dma.ais.reader.AisReaderGroup;
 import dk.dma.ais.reader.AisReaders;
+import dk.dma.ais.store.cli.baseclients.AisStoreDaemon;
 import dk.dma.ais.store.write.DefaultAisStoreWriter;
-import dk.dma.commons.app.AbstractDaemon;
 import dk.dma.commons.management.ManagedAttribute;
 import dk.dma.commons.management.ManagedResource;
 import dk.dma.commons.service.AbstractBatchedStage;
 import dk.dma.commons.service.io.MessageToFileService;
 import dk.dma.db.cassandra.CassandraConnection;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.File;
+import java.util.List;
 
 /**
  * 
  * @author Kasper Nielsen
  */
 @ManagedResource
-public class Archiver extends AbstractDaemon {
+public class Archiver extends AisStoreDaemon {
 
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(Archiver.class);
@@ -53,14 +49,8 @@ public class Archiver extends AbstractDaemon {
     @Parameter(names = "-backup", description = "The backup directory")
     File backup = new File("aisbackup");
 
-    @Parameter(names = "-databaseName", description = "The cassandra database to write data to")
-    String databaseName = "aisdata";
-
-    @Parameter(names = "-batchSize", description = "The number of messages to write to cassandra at a time")
+    @Parameter(names = "-batchSize", description = "The number of messages to write to Cassandra at a time")
     int batchSize = 1000;
-
-    @Parameter(names = "-database", description = "A list of cassandra hosts that can store the data")
-    List<String> cassandraSeeds = Arrays.asList("localhost");
 
     /** The stage that is responsible for writing the package */
     volatile AbstractBatchedStage<AisPacket> mainStage;
@@ -83,8 +73,7 @@ public class Archiver extends AbstractDaemon {
     /** {@inheritDoc} */
     @Override
     protected void runDaemon(Injector injector) throws Exception {
-        // Setup keyspace for cassandra
-        CassandraConnection con = start(CassandraConnection.create(databaseName, cassandraSeeds));
+        final CassandraConnection con = connect();
 
         // Starts the backup service that will write files to disk if disconnected
         final MessageToFileService<AisPacket> backupService = start(MessageToFileService.dateTimeService(
@@ -110,13 +99,11 @@ public class Archiver extends AbstractDaemon {
         start(new FileImportService(this));
         start(backupService.startFlushThread()); // we want to occasional flush and close dormant files
 
-        g.stream().subscribe(new Consumer<AisPacket>() {
-            public void accept(AisPacket aisPacket) {
-                // We use offer because we do not want to block receiving
-                if (!cassandra.getInputQueue().offer(aisPacket)) {
-                    if (!backupService.getInputQueue().offer(aisPacket)) {
-                        System.err.println("Could not persist packet");
-                    }
+        g.stream().subscribe(aisPacket -> {
+            // We use offer because we do not want to block receiving
+            if (!cassandra.getInputQueue().offer(aisPacket)) {
+                if (!backupService.getInputQueue().offer(aisPacket)) {
+                    System.err.println("Could not persist packet");
                 }
             }
         });

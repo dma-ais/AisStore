@@ -33,7 +33,7 @@ import static java.util.Objects.requireNonNull;
  * 
  * @author Kasper Nielsen
  */
-public final class CassandraConnection extends AbstractService {
+public class CassandraConnection extends AbstractService {
 
     /** The cluster we are connected to. */
     private final Cluster cluster;
@@ -54,7 +54,7 @@ public final class CassandraConnection extends AbstractService {
      * @throws NullPointerException
      *             if the cluster or keyspace is null
      */
-    private CassandraConnection(Cluster cluster, String keyspace) {
+    protected CassandraConnection(Cluster cluster, String keyspace) {
         this.cluster = requireNonNull(cluster);
         this.keyspace = requireNonNull(keyspace);
     }
@@ -143,7 +143,7 @@ public final class CassandraConnection extends AbstractService {
         return new CassandraConnection(cluster, keyspace);
     }
 
-    private static InetSocketAddress connectionPointToInetAddress(String connectionPoint) {
+    protected static InetSocketAddress connectionPointToInetAddress(String connectionPoint) {
         InetSocketAddress inetSocketAddress;
 
         if (StringUtils.countMatches(connectionPoint, ":") == 1) {
@@ -158,7 +158,7 @@ public final class CassandraConnection extends AbstractService {
         return inetSocketAddress;
     }
 
-    private static boolean seedsContainPortNumbers(Collection<String> connectionPoints) {
+    protected static boolean seedsContainPortNumbers(Collection<String> connectionPoints) {
         requireNonNull(connectionPoints);
         return connectionPoints.stream().filter(cp -> StringUtils.countMatches(cp, ":") == 1).count() > 0;
     }

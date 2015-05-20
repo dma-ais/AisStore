@@ -27,7 +27,7 @@ import dk.dma.ais.packet.AisPacket;
 import dk.dma.ais.reader.AisReader;
 import dk.dma.ais.reader.AisReaders;
 import dk.dma.ais.store.AisStoreSchema.Table;
-import dk.dma.commons.app.AbstractCommandLineTool;
+import dk.dma.ais.store.cli.baseclients.AisStoreCommandLineTool;
 import dk.dma.commons.management.ManagedResource;
 import dk.dma.db.cassandra.CassandraConnection;
 import org.slf4j.Logger;
@@ -35,9 +35,7 @@ import org.slf4j.LoggerFactory;
 
 import java.io.IOException;
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.Collection;
-import java.util.List;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -60,16 +58,10 @@ import static dk.dma.ais.store.AisStoreSchema.timeBlock;
  * assist in pin-pointing AisPackets which are in data files, but not in Cassandra.
  */
 @ManagedResource
-public class FileDiff extends AbstractCommandLineTool {
+public class FileDiff extends AisStoreCommandLineTool {
 
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(FileDiff.class);
-
-    @Parameter(names = "-databaseName", description = "Name of the AIS keyspace")
-    String databaseName = "aisdata";
-
-    @Parameter(names = "-database", description = "A list of cassandra hosts that can store the data")
-    List<String> cassandraSeeds = Arrays.asList("localhost");
 
     @Parameter(names = "-tag", description = "Overwrite or add the tag")
     String tag;
@@ -95,9 +87,7 @@ public class FileDiff extends AbstractCommandLineTool {
     /** {@inheritDoc} */
     @Override
     protected void run(Injector injector) throws Exception {
-        // Setup keyspace for cassandra
-        CassandraConnection con = start(CassandraConnection.create(databaseName, cassandraSeeds));
-        diffPackets(con);
+        diffPackets(connect());
     }
 
     private void diffPackets(CassandraConnection conn) throws IOException, InterruptedException {

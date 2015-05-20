@@ -23,7 +23,7 @@ import com.datastax.driver.core.Statement;
 import com.datastax.driver.core.querybuilder.QueryBuilder;
 import com.datastax.driver.core.querybuilder.Select;
 import com.google.inject.Injector;
-import dk.dma.commons.app.AbstractCommandLineTool;
+import dk.dma.ais.store.cli.baseclients.AisStoreCommandLineTool;
 import dk.dma.commons.management.ManagedResource;
 import dk.dma.db.cassandra.CassandraConnection;
 import org.slf4j.Logger;
@@ -31,7 +31,6 @@ import org.slf4j.LoggerFactory;
 
 import java.time.Instant;
 import java.util.Arrays;
-import java.util.List;
 
 import static com.datastax.driver.core.querybuilder.QueryBuilder.gte;
 import static com.datastax.driver.core.querybuilder.QueryBuilder.in;
@@ -46,16 +45,10 @@ import static java.lang.Integer.min;
  * @author Thomas Borg Salling
  */
 @ManagedResource
-public class CassandraStats extends AbstractCommandLineTool {
+public class CassandraStats extends AisStoreCommandLineTool {
 
     /** The logger. */
     static final Logger LOG = LoggerFactory.getLogger(CassandraStats.class);
-
-    @Parameter(names = "-databaseName", description = "Name of the AIS keyspace")
-    String databaseName = "aisdata";
-
-    @Parameter(names = "-database", description = "A list of cassandra hosts that can store the data")
-    List<String> cassandraSeeds = Arrays.asList("localhost");
 
     @Parameter(names = "-from", description = "The instant to count from (format \"2015-01-01T00:00:00.000Z\") (inclusive)", required = true)
     String from;
@@ -69,9 +62,7 @@ public class CassandraStats extends AbstractCommandLineTool {
     /** {@inheritDoc} */
     @Override
     protected void run(Injector injector) throws Exception {
-        // Setup keyspace for cassandra
-        CassandraConnection con = start(CassandraConnection.create(databaseName, cassandraSeeds));
-        printPacketsTimeStats(con);
+        printPacketsTimeStats(connect());
     }
 
     private void printPacketsTimeStats(CassandraConnection conn) {
