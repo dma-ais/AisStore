@@ -23,6 +23,17 @@
 			<groupId>org.apache.cassandra</groupId>
 			<artifactId>cassandra-all</artifactId>
 			<version>2.1.2</version>
+			<!-- We will not let Cassandra dictate which logging impl to use. -->
+			<exclusions>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-core</artifactId>
+				</exclusion>
+				<exclusion>
+					<groupId>ch.qos.logback</groupId>
+					<artifactId>logback-classic</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 
 		<dependency>
