@@ -94,8 +94,7 @@ public class FileExport extends AisStoreCommandLineTool {
         b.setInterval(DateTimeUtil.toInterval(interval));
         
         if (dryrun) {
-        	new RuntimeException("Not implemented");
-            return;
+        	throw new RuntimeException("Not implemented");
         }
         
         final CassandraConnection conn = connect();
