@@ -24,6 +24,7 @@ import dk.dma.commons.util.DateTimeUtil;
 import dk.dma.commons.util.Iterables;
 import dk.dma.commons.util.io.OutputStreamSink;
 import dk.dma.db.cassandra.CassandraConnection;
+import dk.dma.db.cassandra.CassandraQuery;
 import dk.dma.enav.model.geometry.BoundingBox;
 import dk.dma.enav.model.geometry.CoordinateSystem;
 import dk.dma.enav.model.geometry.Position;
@@ -92,14 +93,12 @@ public class FileExport extends AisStoreCommandLineTool {
         
         b.setInterval(DateTimeUtil.toInterval(interval));
         
-        
         if (dryrun) {
-            System.out.println(b);
+        	new RuntimeException("Not implemented");
             return;
         }
         
         final CassandraConnection conn = connect();
-        conn.startAsync();
         
         AisStoreQueryResult result = conn.execute(b);
         Iterable<AisPacket> iterableResult = result;
