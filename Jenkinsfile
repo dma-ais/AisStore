@@ -31,9 +31,6 @@ pipeline {
             sh 'curl --data "build=true" -X POST https://registry.hub.docker.com/u/dmadk/ais-store-web/trigger/55519437-3b1c-44e8-bc89-e8ec4e5e4d1f/'
             sh 'curl --data "build=true" -X POST https://registry.hub.docker.com/u/dmadk/ais-store-rest/trigger/504d94da-49f6-4c48-918c-350e2e067e6a/'
         }
-        always {
-            junit 'build/reports/**/*.xml'
-        }
     }
 //    failure {
 //        // notify users when the Pipeline fails
