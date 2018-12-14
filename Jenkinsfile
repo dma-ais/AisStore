@@ -19,7 +19,7 @@ pipeline {
         stage('build') {
             steps {
                 withMaven() {
-                    sh 'mvn -e -DskipTests -DincludeSrcJavadocs clean source:jar install'
+                    sh 'mvn -e -DincludeSrcJavadocs clean source:jar install'
                 }
             }
         }
@@ -39,3 +39,4 @@ pipeline {
 //                body: "Something is wrong with ${env.BUILD_URL}"
 //    }
 }
+
