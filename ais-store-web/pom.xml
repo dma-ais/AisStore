@@ -21,8 +21,8 @@
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
         <java.version>1.8</java.version>
-        <ais.lib.version>2.2-SNAPSHOT</ais.lib.version>
-        <enav.version>0.5-SNAPSHOT</enav.version>
+        <ais.lib.version>2.4</ais.lib.version>
+        <enav.version>0.6</enav.version>
         <guava.version>17.0</guava.version>
     </properties>
 
